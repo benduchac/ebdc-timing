@@ -17,7 +17,7 @@ export default function ClockVerification() {
 
   if (!clockCheck) {
     return (
-      <div className="bg-gray-100 border-2 border-dashed border-purple-500 rounded-lg p-6">
+      <div className="bg-gray-100 border-2 border-purple-500 rounded-lg p-6">
         <h3 className="text-lg font-bold text-center mb-4">⏰ System Clock Verification</h3>
         <button
           onClick={handleCheck}

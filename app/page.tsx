@@ -85,17 +85,7 @@ export default function Home() {
   }, [entries, raceMode]);
 
 const handleResetApp = async () => {
-  if (!confirm('⚠️ RESET ENTIRE APP?\n\nThis will permanently delete:\n- All timing entries\n- All registrants\n- Wave start times\n- Everything in IndexedDB\n\nThis cannot be undone!')) {
-    return;
-  }
-  
-  if (!confirm('Are you REALLY sure? Type YES in the next prompt to confirm.')) {
-    return;
-  }
-  
-  const confirmation = prompt('Type YES to reset:');
-  if (confirmation !== 'YES') {
-    alert('Reset cancelled.');
+  if (!confirm('⚠️ RESET ENTIRE APP?\n\nThis will permanently delete:\n- All timing entries\n- All registrants\n- Wave start times\n- Everything in IndexedDB\n\nThis cannot be undone!\n\nAre you sure?')) {
     return;
   }
   
@@ -106,7 +96,7 @@ const handleResetApp = async () => {
     // Reset all state
     setEntries([]);
     setRegistrants(new Map());
-    setWaveStartTimes({ A: null, B: null, C: null });
+    setWaveStartTimes(null);
     setEntryCounter(0);
     setAutoBackupCounter(0);
     setRaceMode(false);
@@ -228,18 +218,16 @@ const handleStartRace = (config: {
   const handleAutoBackup = () => {
     if (!waveStartTimes) return;
 
-    const backup = {
-      exportDate: new Date().toISOString(),
-      event: 'East Bay Dirt Classic - C510',
-      waveStartTimes: {
-        A: waveStartTimes.A.toISOString(),
-        B: waveStartTimes.B.toISOString(),
-        C: waveStartTimes.C.toISOString()
-      },
-      registrants: Array.from(registrants.entries()),
-      entryCounter,
-      entries
-    };
+const backup = {
+  exportDate: new Date().toISOString(),
+  event: 'East Bay Dirt Classic - C510',
+  waveStartTimes: {
+    A: waveStartTimes.A.getTime(),  // ✅ Store as milliseconds
+    B: waveStartTimes.B.getTime(),
+    C: waveStartTimes.C.getTime()
+  },
+  // ...
+};
 
     const json = JSON.stringify(backup, null, 2);
     downloadFile(json, `EBDC-auto-backup-${getDateString()}.json`, 'application/json');
@@ -252,6 +240,7 @@ const handleStartRace = (config: {
       }
     }
     setRaceMode(false);
+    // Don't clear registrants or waveStartTimes - keep them!
   };
 
   return (
@@ -266,7 +255,12 @@ const handleStartRace = (config: {
         
 {/* Setup or Race Mode */}
 {!raceMode ? (
-  <SetupScreen onStartRace={handleStartRace} onResetApp={handleResetApp} />
+  <SetupScreen 
+    onStartRace={handleStartRace} 
+    onResetApp={handleResetApp}
+    initialRegistrants={registrants}  // ✅ Pass down existing registrants
+    hasRaceData={entries.length > 0}
+  />
 ) : waveStartTimes ? (
   <>
     <RaceMode

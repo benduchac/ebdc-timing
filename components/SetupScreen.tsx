@@ -1,66 +1,91 @@
 'use client';
 
-import { useState } from 'react';
 import ClockVerification from './ClockVerification';
 import type { Registrant } from '@/lib/types';
+import { useState, useEffect } from 'react';
 
 interface SetupScreenProps {
   onStartRace: (config: {
     waveStartTimes: { A: string; B: string; C: string };
     registrants: Map<string, Registrant>;
   }) => void;
-  onResetApp: () => void; // Add this
+  onResetApp: () => void;
+  initialRegistrants?: Map<string, Registrant>;
+  hasRaceData?: boolean;  // ✅ Add this to know if there's race data
 }
 
-export default function SetupScreen({ onStartRace }: SetupScreenProps) {
+export default function SetupScreen({ onStartRace, onResetApp, initialRegistrants, hasRaceData }: SetupScreenProps) {
   const [waveATime, setWaveATime] = useState('09:00:00');
   const [waveBTime, setWaveBTime] = useState('09:15:00');
   const [waveCTime, setWaveCTime] = useState('09:30:00');
-  const [registrants, setRegistrants] = useState<Map<string, Registrant>>(new Map());
-  const [registrantCount, setRegistrantCount] = useState(0);
+  const [registrants, setRegistrants] = useState<Map<string, Registrant>>(
+    initialRegistrants || new Map()  // ✅ Use initial registrants if provided
+  );
+  const [registrantCount, setRegistrantCount] = useState(initialRegistrants?.size || 0);  // ✅ Initialize count
 
-  const handleCSVUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    useEffect(() => {
+    setRegistrants(initialRegistrants || new Map());
+    setRegistrantCount(initialRegistrants?.size || 0);
+  }, [initialRegistrants]);
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const csv = e.target?.result as string;
-        const lines = csv.split('\n');
-        const newRegistrants = new Map<string, Registrant>();
+const handleCSVUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  // ✅ CRITICAL: Warn if there's active race data
+  if (hasRaceData) {
+    if (!confirm(`🚨 WARNING: YOU HAVE ACTIVE RACE DATA!\n\nUploading a new CSV mid-race will replace all ${registrants.size} registrants.\n\nThis could cause confusion if bibs no longer match names.\n\nAre you SURE you want to do this?`)) {
+      event.target.value = '';
+      return;
+    }
+  }
+  
+  // ✅ Warn if overwriting existing registrants (even without race data)
+  if (registrants.size > 0 && !hasRaceData) {
+    if (!confirm(`⚠️ You currently have ${registrants.size} registrants loaded.\n\nUploading a new CSV will REPLACE all current registrants.\n\nContinue?`)) {
+      event.target.value = '';
+      return;
+    }
+  }
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const csv = e.target?.result as string;
+      const lines = csv.split('\n');
+      const newRegistrants = new Map<string, Registrant>();
+      
+      let loadedCount = 0;
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
         
-        let loadedCount = 0;
-        for (let i = 1; i < lines.length; i++) {
-          const line = lines[i].trim();
-          if (!line) continue;
+        const fields = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || [];
+        const cleanFields = fields.map(f => f.replace(/^"|"$/g, '').trim());
+        
+        if (cleanFields.length >= 4) {
+          const bib = cleanFields[0].trim();
+          const firstName = cleanFields[1].trim();
+          const lastName = cleanFields[2].trim();
+          const wave = cleanFields[3].trim().toUpperCase() as 'A' | 'B' | 'C';
           
-          const fields = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || [];
-          const cleanFields = fields.map(f => f.replace(/^"|"$/g, '').trim());
-          
-          if (cleanFields.length >= 4) {
-            const bib = cleanFields[0].trim();
-            const firstName = cleanFields[1].trim();
-            const lastName = cleanFields[2].trim();
-            const wave = cleanFields[3].trim().toUpperCase() as 'A' | 'B' | 'C';
-            
-            if (bib && firstName && lastName && ['A', 'B', 'C'].includes(wave)) {
-              newRegistrants.set(bib, { bib, firstName, lastName, wave });
-              loadedCount++;
-            }
+          if (bib && firstName && lastName && ['A', 'B', 'C'].includes(wave)) {
+            newRegistrants.set(bib, { bib, firstName, lastName, wave });
+            loadedCount++;
           }
         }
-        
-        setRegistrants(newRegistrants);
-        setRegistrantCount(loadedCount);
-        alert(`Successfully loaded ${loadedCount} registrants!`);
-      } catch (error) {
-        alert('Error loading CSV: ' + (error as Error).message);
       }
-    };
-    reader.readAsText(file);
-    event.target.value = '';
+      
+      setRegistrants(newRegistrants);
+      setRegistrantCount(loadedCount);
+      alert(`Successfully loaded ${loadedCount} registrants!`);
+    } catch (error) {
+      alert('Error loading CSV: ' + (error as Error).message);
+    }
   };
+  reader.readAsText(file);
+  event.target.value = '';
+};
 
   const handleStartRace = () => {
     if (!waveATime || !waveBTime || !waveCTime) {
@@ -81,7 +106,7 @@ export default function SetupScreen({ onStartRace }: SetupScreenProps) {
   };
 
   return (
-    <div className="bg-gray-100 border-2 border-dashed border-purple-600 rounded-lg p-6 mb-6">
+    <div className="bg-gray-100 border-2 border-purple-600 rounded-lg p-6 mb-6">
       <h2 className="text-2xl font-bold text-center text-purple-600 mb-6">
         ⚙️ Pre-Race Setup
       </h2>
@@ -123,26 +148,36 @@ export default function SetupScreen({ onStartRace }: SetupScreenProps) {
         <ClockVerification />
       </div>
 
-      <div
-        onClick={() => document.getElementById('csvInput')?.click()}
-        className="bg-white p-6 rounded-lg text-center border-2 border-dashed border-purple-600 cursor-pointer hover:bg-gray-50 transition mb-4"
-      >
-        <input
-          id="csvInput"
-          type="file"
-          accept=".csv"
-          onChange={handleCSVUpload}
-          className="hidden"
-        />
-        <p className="text-lg font-semibold mb-2">📄 Click to Load Registrants CSV</p>
-        <p className="text-sm text-gray-600">Expected format: Bib, FirstName, LastName, Wave</p>
-      </div>
+<div
+  onClick={() => document.getElementById('csvInput')?.click()}
+  className="bg-white p-6 rounded-lg text-center border-2 border-purple-600 cursor-pointer hover:bg-gray-50 transition mb-4"
+>
+  <input
+    id="csvInput"
+    type="file"
+    accept=".csv"
+    onChange={handleCSVUpload}
+    className="hidden"
+  />
+  <p className="text-lg font-semibold mb-2">📄 Click to Load Registrants CSV</p>
+  <p className="text-sm text-gray-600">Expected format: Bib, FirstName, LastName, Wave</p>
+  {registrantCount > 0 && (
+    <p className="text-sm font-bold text-green-700 mt-2">
+      Currently loaded: {registrantCount} registrants
+    </p>
+  )}
+</div>
 
-      {registrantCount > 0 && (
-        <div className="bg-green-100 border-2 border-green-500 rounded-lg p-4 text-center font-bold text-green-800 mb-6">
-          ✅ Loaded {registrantCount} registrants
-        </div>
-      )}
+{/* Move this OUTSIDE the upload area so it's always visible */}
+<div className={`rounded-lg p-4 text-center font-bold mb-6 ${
+  registrantCount > 0 
+    ? 'bg-green-100 border-2 border-green-500 text-green-800' 
+    : 'bg-gray-100 border-2 border-gray-300 text-gray-600'
+}`}>
+  {registrantCount > 0 
+    ? `✅ ${registrantCount} registrants loaded and ready`
+    : '⚠️ No registrants loaded - upload CSV or continue without'}
+</div>
 
       <button
         onClick={handleStartRace}
@@ -151,19 +186,14 @@ export default function SetupScreen({ onStartRace }: SetupScreenProps) {
         🏁 START RACE MODE
       </button>
 
-      <button
-  onClick={handleStartRace}
-  className="w-full py-4 text-xl font-bold bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
->
-  🏁 START RACE MODE
-</button>
+
 
 {/* Add this new reset button */}
 <button
   onClick={onResetApp}
   className="w-full mt-4 py-2 text-sm font-medium bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition border-2 border-red-300"
 >
-  🗑️ Reset App & Clear All Data
+  🗑️ Reset App & Clear All Data{hasRaceData ? ' (⚠️ RACE IN PROGRESS)' : ''}
 </button>
     </div>
   );

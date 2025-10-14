@@ -48,8 +48,7 @@ export class EBDCDatabase extends Dexie {
 
 export async function clearAllData(): Promise<void> {
   await db.entries.clear();
-  await db.registrants.clear();
-  await db.config.clear();
+  await db.raceState.clear();
 }
 
 export const db = new EBDCDatabase();

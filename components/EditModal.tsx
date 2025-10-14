@@ -32,25 +32,32 @@ export default function EditModal({ entry, registrants, waveStartTimes, onSave, 
 
   if (!entry) return null;
 
-  const handleSave = () => {
-    const rider = registrants.get(editBib.trim());
-    const today = new Date().toISOString().split('T')[0];
-    const newFinishDate = new Date(`${today}T${editFinishTime}`);
-    
-    const updatedEntry: Entry = {
-      ...entry,
-      bib: editBib.trim(),
-      wave: editWave,
-      firstName: rider ? rider.firstName : entry.firstName,
-      lastName: rider ? rider.lastName : entry.lastName,
-      finishTimeMs: newFinishDate.getTime(),
-      finishTime: newFinishDate.toLocaleTimeString('en-US', { hour12: false }),
-      elapsedMs: newFinishDate.getTime() - waveStartTimes[editWave].getTime(),
-      elapsedTime: formatElapsedTime(newFinishDate.getTime() - waveStartTimes[editWave].getTime())
-    };
-
-    onSave(updatedEntry);
+const handleSave = () => {
+  const rider = registrants.get(editBib.trim());
+  
+  // Use the ORIGINAL date from the entry, not today's date
+  const originalDate = new Date(entry.finishTimeMs);
+  const year = originalDate.getFullYear();
+  const month = String(originalDate.getMonth() + 1).padStart(2, '0');
+  const day = String(originalDate.getDate()).padStart(2, '0');
+  
+  // Build new datetime with same date, new time
+  const newFinishDate = new Date(`${year}-${month}-${day}T${editFinishTime}`);
+  
+  const updatedEntry: Entry = {
+    ...entry,
+    bib: editBib.trim(),
+    wave: editWave,
+    firstName: rider ? rider.firstName : entry.firstName,
+    lastName: rider ? rider.lastName : entry.lastName,
+    finishTimeMs: newFinishDate.getTime(),
+    finishTime: newFinishDate.toLocaleTimeString('en-US', { hour12: false }),
+    elapsedMs: newFinishDate.getTime() - waveStartTimes[editWave].getTime(),
+    elapsedTime: formatElapsedTime(newFinishDate.getTime() - waveStartTimes[editWave].getTime())
   };
+
+  onSave(updatedEntry);
+};
 
   const formatElapsedTime = (ms: number): string => {
     const totalSeconds = Math.floor(ms / 1000);
