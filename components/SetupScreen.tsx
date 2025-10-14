@@ -9,6 +9,7 @@ interface SetupScreenProps {
     waveStartTimes: { A: string; B: string; C: string };
     registrants: Map<string, Registrant>;
   }) => void;
+  onResetApp: () => void; // Add this
 }
 
 export default function SetupScreen({ onStartRace }: SetupScreenProps) {
@@ -149,6 +150,21 @@ export default function SetupScreen({ onStartRace }: SetupScreenProps) {
       >
         🏁 START RACE MODE
       </button>
+
+      <button
+  onClick={handleStartRace}
+  className="w-full py-4 text-xl font-bold bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+>
+  🏁 START RACE MODE
+</button>
+
+{/* Add this new reset button */}
+<button
+  onClick={onResetApp}
+  className="w-full mt-4 py-2 text-sm font-medium bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition border-2 border-red-300"
+>
+  🗑️ Reset App & Clear All Data
+</button>
     </div>
   );
 }

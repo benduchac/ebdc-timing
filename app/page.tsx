@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '@/lib/db';
+import { db, clearAllData } from '@/lib/db';
 import type { Registrant, Entry } from '@/lib/types';
 import { downloadFile, getDateString, formatElapsedTime } from '@/lib/utils';
 import SetupScreen from '@/components/SetupScreen';
@@ -84,19 +84,58 @@ export default function Home() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [entries, raceMode]);
 
-  const handleStartRace = (config: {
-    waveStartTimes: { A: string; B: string; C: string };
-    registrants: Map<string, Registrant>;
-  }) => {
-    const today = new Date().toISOString().split('T')[0];
-    setWaveStartTimes({
-      A: new Date(`${today}T${config.waveStartTimes.A}`),
-      B: new Date(`${today}T${config.waveStartTimes.B}`),
-      C: new Date(`${today}T${config.waveStartTimes.C}`)
-    });
-    setRegistrants(config.registrants);
-    setRaceMode(true);
-  };
+const handleResetApp = async () => {
+  if (!confirm('⚠️ RESET ENTIRE APP?\n\nThis will permanently delete:\n- All timing entries\n- All registrants\n- Wave start times\n- Everything in IndexedDB\n\nThis cannot be undone!')) {
+    return;
+  }
+  
+  if (!confirm('Are you REALLY sure? Type YES in the next prompt to confirm.')) {
+    return;
+  }
+  
+  const confirmation = prompt('Type YES to reset:');
+  if (confirmation !== 'YES') {
+    alert('Reset cancelled.');
+    return;
+  }
+  
+  try {
+    // Clear IndexedDB
+    await clearAllData();
+    
+    // Reset all state
+    setEntries([]);
+    setRegistrants(new Map());
+    setWaveStartTimes({ A: null, B: null, C: null });
+    setEntryCounter(0);
+    setAutoBackupCounter(0);
+    setRaceMode(false);
+    setEditingEntry(null);
+    
+    alert('✅ App reset successfully! All data cleared.');
+  } catch (error) {
+    alert('Error resetting app: ' + (error as Error).message);
+  }
+};
+
+const handleStartRace = (config: {
+  waveStartTimes: { A: string; B: string; C: string };
+  registrants: Map<string, Registrant>;
+}) => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  
+  // Build local datetime strings WITHOUT converting to UTC
+  setWaveStartTimes({
+    A: new Date(`${year}-${month}-${day}T${config.waveStartTimes.A}`),
+    B: new Date(`${year}-${month}-${day}T${config.waveStartTimes.B}`),
+    C: new Date(`${year}-${month}-${day}T${config.waveStartTimes.C}`)
+  });
+  setRegistrants(config.registrants);
+  setRaceMode(true);
+};
 
   const handleRecordEntry = (entry: Omit<Entry, 'id'>) => {
     const newEntry = {
@@ -224,22 +263,22 @@ export default function Home() {
           <h1 className="text-3xl font-bold text-gray-800">East Bay Dirt Classic</h1>
           <p className="text-gray-600 italic">Race Timing System</p>
         </div>
-
-        {/* Setup or Race Mode */}
-        {!raceMode ? (
-          <SetupScreen onStartRace={handleStartRace} />
-        ) : waveStartTimes ? (
-          <>
-            <RaceMode
-              waveStartTimes={waveStartTimes}
-              registrants={registrants}
-              entries={entries}
-              onRecordEntry={handleRecordEntry}
-              onEditEntry={handleEditEntry}
-              onExportCSV={handleExportCSV}
-              onExportBackup={handleExportBackup}
-              onReturnToSetup={handleReturnToSetup}
-            />
+        
+{/* Setup or Race Mode */}
+{!raceMode ? (
+  <SetupScreen onStartRace={handleStartRace} onResetApp={handleResetApp} />
+) : waveStartTimes ? (
+  <>
+    <RaceMode
+      waveStartTimes={waveStartTimes}
+      registrants={registrants}
+      entries={entries}
+      onRecordEntry={handleRecordEntry}
+      onEditEntry={handleEditEntry}
+      onExportCSV={handleExportCSV}
+      onExportBackup={handleExportBackup}
+      onReturnToSetup={handleReturnToSetup}
+    />
 
             {/* Full Results Button */}
             <div className="mt-6">
