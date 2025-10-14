@@ -1,41 +1,46 @@
-<<<<<<< HEAD
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# EBDC Timing System
 
-## Getting Started
+Race timing app for the East Bay Dirt Classic charity bike race.
 
-First, run the development server:
+## Setup
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Race Day Quick Start
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. **Setup Screen**: Set wave start times (9:00, 9:15, 9:30)
+2. **Load CSV**: Upload registrants (Bib, FirstName, LastName, Wave)
+3. **Start Race**: Begin timing
+4. **Record Finishers**: Type bib → Enter (or press U for unknown riders)
+5. **Export Results**: Click "Export Results CSV" when done
 
-## Learn More
+## Key Features
 
-To learn more about Next.js, take a look at the following resources:
+- **Offline-first**: Works without internet, data saved to browser
+- **Auto-backup**: Downloads backup JSON every 10 entries
+- **Edit entries**: Fix bibs/waves post-race
+- **Zero cost**: No subscriptions, runs entirely in browser
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Data Safety
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- All data stored in IndexedDB (browser database)
+- Auto-backups download to your Downloads folder
+- Manual export anytime via "Download Backup JSON"
+- **Keep browser tab open during race!**
 
-## Deploy on Vercel
+## Troubleshooting
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+**Reset everything**: Click "Reset App & Clear All Data" on setup screen
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-=======
-# ebdc-timing
-EBDC timing app
->>>>>>> 93fb4916d195655567610063419a90276dc5ba01
+**Lost data?**: Check Downloads folder for auto-backup files, load via browser
+
+**Wrong times?**: Check system clock before race starts
+
+---
+
+Built for C510 • Every dollar saved goes to the food bank 🚴💚
