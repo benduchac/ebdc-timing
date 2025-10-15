@@ -1,6 +1,7 @@
 'use client';
 
 import type { Entry } from '@/lib/types';
+import { formatElapsedTime } from '@/lib/utils';
 
 interface ResultsTableProps {
   entries: Entry[];
@@ -83,8 +84,17 @@ export default function ResultsTable({ entries, onEditEntry }: ResultsTableProps
                   <td className="p-2 font-bold">{entry.bib}</td>
                   <td className="p-2">{entry.firstName} {entry.lastName}</td>
                   <td className="p-2">Wave {entry.wave}</td>
-                  <td className="p-2">{entry.finishTime}</td>
-                  <td className="p-2 font-bold">{entry.elapsedTime}</td>
+                  <td className="p-2">
+                    {new Date(entry.finishTimeMs).toLocaleTimeString('en-US', { 
+                      hour: 'numeric',
+                      minute: '2-digit',
+                      second: '2-digit',
+                      hour12: true 
+                    })}
+                  </td>
+                  <td className="p-2 font-bold">
+                    {entry.elapsedMs !== null ? formatElapsedTime(entry.elapsedMs) : 'N/A'}
+                  </td>
                   <td className="p-2">
                     <button
                       onClick={() => onEditEntry(entry.id)}
@@ -109,8 +119,17 @@ export default function ResultsTable({ entries, onEditEntry }: ResultsTableProps
                     ASSIGN WAVE
                   </span>
                 </td>
-                <td className="p-2">{entry.finishTime}</td>
-                <td className="p-2 text-gray-400">-</td>
+                <td className="p-2">
+                  {new Date(entry.finishTimeMs).toLocaleTimeString('en-US', { 
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: true 
+                  })}
+                </td>
+                <td className="p-2 font-bold">
+                  {entry.elapsedMs !== null ? formatElapsedTime(entry.elapsedMs) : 'N/A'}
+                </td>
                 <td className="p-2">
                   <button
                     onClick={() => onEditEntry(entry.id)}

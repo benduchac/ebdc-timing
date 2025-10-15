@@ -1,4 +1,4 @@
-import Dexie, { Table } from 'dexie';
+import Dexie from 'dexie';
 
 export interface Registrant {
   bib: string;
@@ -33,22 +33,36 @@ export interface RaceState {
   lastSaved: string;
 }
 
-export class EBDCDatabase extends Dexie {
-  entries!: Table<Entry, number>;
-  raceState!: Table<RaceState, number>;
-
-  constructor() {
-    super('EBDCTiming');
-    this.version(1).stores({
-      entries: '++id, bib, wave, finishTimeMs',
-      raceState: '++id'
-    });
-  }
+export interface SetupConfig {
+  id?: number;
+  waveATime: string;
+  waveBTime: string;
+  waveCTime: string;
+  lastUpdated: string;
 }
+
+// Create and configure the database
+const database = new Dexie('EBDCTiming');
+
+database.version(1).stores({
+  entries: '++id, bib, wave, finishTimeMs',
+  raceState: '++id'
+});
+
+database.version(2).stores({
+  entries: '++id, bib, wave, finishTimeMs',
+  raceState: '++id',
+  setupConfig: '++id'
+});
+
+export const db = database as Dexie & {
+  entries: Dexie.Table<Entry, number>;
+  raceState: Dexie.Table<RaceState, number>;
+  setupConfig: Dexie.Table<SetupConfig, number>;
+};
 
 export async function clearAllData(): Promise<void> {
   await db.entries.clear();
   await db.raceState.clear();
+  await db.setupConfig.clear();
 }
-
-export const db = new EBDCDatabase();

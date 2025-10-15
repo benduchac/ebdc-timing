@@ -29,13 +29,13 @@ export default function RaceMode({
   const [riderInfo, setRiderInfo] = useState<Registrant | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [showOptions, setShowOptions] = useState(false);
-  const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString('en-US', { hour12: false }));
+  const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString('en-US', { hour12: true }));
   const bibInputRef = useRef<HTMLInputElement>(null);
 
   // Update clock every second
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentTime(new Date().toLocaleTimeString('en-US', { hour12: false }));
+      setCurrentTime(new Date().toLocaleTimeString('en-US', { hour12: true }));
     }, 1000);
     return () => clearInterval(interval);
   }, []);
@@ -82,7 +82,7 @@ export default function RaceMode({
       wave,
       firstName,
       lastName,
-      finishTime: now.toLocaleTimeString('en-US', { hour12: false }),
+      finishTime: now.toLocaleTimeString('en-US', { hour12: true }),
       finishTimeMs: now.getTime(),
       elapsedTime: wave ? formatElapsedTime(now.getTime() - waveStartTimes[wave].getTime()) : 'N/A',
       elapsedMs: wave ? (now.getTime() - waveStartTimes[wave].getTime()) : null,
