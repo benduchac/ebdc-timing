@@ -55,7 +55,6 @@ export default function ResultsTable({ entries, onEditEntry }: ResultsTableProps
           <thead className="bg-purple-600 text-white sticky top-0">
             <tr>
               <th className="p-2 text-left">Overall</th>
-              <th className="p-2 text-left">Wave</th>
               <th className="p-2 text-left">Bib</th>
               <th className="p-2 text-left">Name</th>
               <th className="p-2 text-left">Wave</th>
@@ -76,11 +75,7 @@ export default function ResultsTable({ entries, onEditEntry }: ResultsTableProps
                       {overallPlace}
                     </span>
                   </td>
-                  <td className="p-2">
-                    <span className="inline-block px-2 py-1 rounded-full text-xs font-bold bg-purple-600 text-white">
-                      {wavePlace}
-                    </span>
-                  </td>
+
                   <td className="p-2 font-bold">{entry.bib}</td>
                   <td className="p-2">{entry.firstName} {entry.lastName}</td>
                   <td className="p-2">Wave {entry.wave}</td>
