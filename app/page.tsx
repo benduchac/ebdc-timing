@@ -9,6 +9,8 @@ import SetupScreen from '@/components/SetupScreen';
 import RaceMode from '@/components/RaceMode';
 import ResultsTable from '@/components/ResultsTable';
 import EditModal from '@/components/EditModal';
+import WaveStatusBoxes from '@/components/WaveStatusBoxes';
+
 
 export default function Home() {
   const [raceMode, setRaceMode] = useState(false);
@@ -19,6 +21,8 @@ export default function Home() {
   const [editingEntry, setEditingEntry] = useState<Entry | null>(null);
   const [showFullResults, setShowFullResults] = useState(false);
   const [autoBackupCounter, setAutoBackupCounter] = useState(0);
+  const [activeTab, setActiveTab] = useState<'timing' | 'results'>('timing');
+
 
   // Load persisted state on mount
   useEffect(() => {
@@ -263,36 +267,71 @@ const backup = {
   />
 ) : waveStartTimes ? (
   <>
-    <RaceMode
+    {/* Tab Switcher */}
+    <div className="flex gap-2 mb-4 border-b-2 border-gray-300">
+      <button
+        onClick={() => setActiveTab('timing')}
+        className={`flex-1 py-3 font-bold rounded-t-lg transition ${
+          activeTab === 'timing'
+            ? 'bg-purple-600 text-white'
+            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+        }`}
+      >
+        🏁 TIMING MODE
+      </button>
+      <button
+        onClick={() => setActiveTab('results')}
+        className={`flex-1 py-3 font-bold rounded-t-lg transition ${
+          activeTab === 'results'
+            ? 'bg-purple-600 text-white'
+            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+        }`}
+      >
+        📊 FULL RESULTS
+      </button>
+    </div>
+
+    {/* Wave Status Boxes - always visible */}
+    <WaveStatusBoxes
       waveStartTimes={waveStartTimes}
-      registrants={registrants}
       entries={entries}
-      onRecordEntry={handleRecordEntry}
-      onEditEntry={handleEditEntry}
-      onExportCSV={handleExportCSV}
-      onExportBackup={handleExportBackup}
-      onReturnToSetup={handleReturnToSetup}
+      registrants={registrants}
     />
 
-            {/* Full Results Button */}
-            <div className="mt-6">
-              <button
-                onClick={() => setShowFullResults(!showFullResults)}
-                className="w-full py-3 bg-purple-600 text-white rounded-lg font-bold hover:bg-purple-700 transition"
-              >
-                {showFullResults ? '▲ Hide Full Results' : '▼ Show Full Results'}
-              </button>
-            </div>
-
-            {/* Full Results Table */}
-            {showFullResults && (
-              <div className="mt-4">
-                <h2 className="text-2xl font-bold mb-3">Complete Results - {entries.length} Finishers</h2>
-                <ResultsTable entries={entries} onEditEntry={handleEditEntry} />
-              </div>
-            )}
-          </>
-        ) : null}
+    {/* Tab Content */}
+    {activeTab === 'timing' ? (
+      <RaceMode
+        waveStartTimes={waveStartTimes}
+        registrants={registrants}
+        entries={entries}
+        onRecordEntry={handleRecordEntry}
+        onEditEntry={handleEditEntry}
+        onExportBackup={handleExportBackup}
+        onReturnToSetup={handleReturnToSetup}
+      />
+    ) : (
+      <div className="space-y-4">
+        <h2 className="text-2xl font-bold">Complete Results - {entries.length} Finishers</h2>
+        <ResultsTable entries={entries} onEditEntry={handleEditEntry} />
+        
+        <div className="flex gap-2">
+          <button
+            onClick={handleExportCSV}
+            className="flex-1 py-3 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700"
+          >
+            📊 Export Results CSV
+          </button>
+          <button
+            onClick={handleExportBackup}
+            className="flex-1 py-3 bg-purple-600 text-white rounded-lg font-bold hover:bg-purple-700"
+          >
+            💾 Download Backup JSON
+          </button>
+        </div>
+      </div>
+    )}
+  </>
+) : null}
 
         {/* Edit Modal */}
         {editingEntry && waveStartTimes && (
