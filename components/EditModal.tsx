@@ -86,7 +86,7 @@ const handleSave = () => {
     firstName: rider ? rider.firstName : 'Unknown',
     lastName: rider ? rider.lastName : 'Rider',
     finishTimeMs: newFinishDate.getTime(),
-    finishTime: newFinishDate.toLocaleTimeString('en-US', { hour12: false }),
+    finishTime: newFinishDate.toLocaleTimeString('en-US', { hour12: true }),
     elapsedMs: newFinishDate.getTime() - waveStartTimes[editWave].getTime(),
     elapsedTime: formatElapsedTime(newFinishDate.getTime() - waveStartTimes[editWave].getTime())
   };
