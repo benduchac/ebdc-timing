@@ -18,7 +18,7 @@ export default function ClockVerification() {
   if (!clockCheck) {
     return (
       <div className="bg-gray-100 border-2 border-purple-500 rounded-lg p-6">
-        <h3 className="text-lg font-bold text-center mb-4">⏰ System Clock Verification</h3>
+        <h3 className="text-lg font-bold text-center text-black mb-4">⏰ System Clock Verification</h3>
         <button
           onClick={handleCheck}
           disabled={checking}
@@ -39,7 +39,7 @@ export default function ClockVerification() {
       <h3 className="text-lg font-bold text-center mb-4">
         {clockCheck.ok === true ? '✅ Clock Verified' :
          clockCheck.ok === false ? '⚠️ CLOCK PROBLEM' :
-         '⚠️ Cannot Verify Clock (Offline)'}
+         '⚠️ Cannot Verify Clock (unable to connect to worldtimeapi.org)'}
       </h3>
       
       <div className="space-y-2 text-sm">

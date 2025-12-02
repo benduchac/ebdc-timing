@@ -40,6 +40,11 @@ export default function ResultsTable({ entries, onEditEntry }: ResultsTableProps
     return wavePlacements[entry.wave].findIndex(e => e.id === entry.id) + 1;
   };
 
+    // Helper to check if a bib is duplicated
+const isDuplicateBib = (bib: string, allEntries: Entry[]): boolean => {
+  return allEntries.filter(e => e.bib === bib).length > 1;
+};
+
   if (entries.length === 0) {
     return (
       <div className="bg-white rounded-lg shadow p-8 text-center text-gray-500">
@@ -65,43 +70,51 @@ export default function ResultsTable({ entries, onEditEntry }: ResultsTableProps
           </thead>
           <tbody>
             {sortedValid.map((entry, index) => {
-              const overallPlace = index + 1;
-              const wavePlace = getWavePlace(entry);
-              
-              return (
-                <tr key={entry.id} className="border-b border-gray-200 hover:bg-gray-50">
-                  <td className="p-2">
-                    <span className="inline-block px-2 py-1 rounded-full text-xs font-bold bg-yellow-400 text-gray-900">
-                      {overallPlace}
-                    </span>
-                  </td>
-
-                  <td className="p-2 font-bold">{entry.bib}</td>
-                  <td className="p-2">{entry.firstName} {entry.lastName}</td>
-                  <td className="p-2">Wave {entry.wave}</td>
-                  <td className="p-2">
-                    {new Date(entry.finishTimeMs).toLocaleTimeString('en-US', { 
-                      hour: 'numeric',
-                      minute: '2-digit',
-                      second: '2-digit',
-                      hour12: true 
-                    })}
-                  </td>
-                  <td className="p-2 font-bold">
-                    {entry.elapsedMs !== null ? formatElapsedTime(entry.elapsedMs) : 'N/A'}
-                  </td>
-                  <td className="p-2">
-                    <button
-                      onClick={() => onEditEntry(entry.id)}
-                      className="text-purple-600 hover:text-purple-800 text-lg"
-                      title="Edit"
-                    >
-                      ✏️
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
+  const overallPlace = index + 1;
+  const wavePlace = getWavePlace(entry);
+  const isDuplicate = isDuplicateBib(entry.bib, entries);
+  
+  return (
+    <tr 
+      key={entry.id} 
+      className={`border-b border-gray-200 hover:bg-gray-50 ${
+        isDuplicate ? 'bg-orange-50 border-l-4 border-l-orange-500' : ''
+      }`}
+    >
+      <td className="p-2">
+        <span className="inline-block px-2 py-1 rounded-full text-xs font-bold bg-yellow-400 text-gray-900">
+          {overallPlace}
+        </span>
+      </td>
+      <td className="p-2 font-bold">
+        {isDuplicate && <span className="text-orange-600 mr-1">⚠️</span>}
+        {entry.bib}
+      </td>
+      <td className="p-2">{entry.firstName} {entry.lastName}</td>
+      <td className="p-2">Wave {entry.wave}</td>
+      <td className="p-2">
+        {new Date(entry.finishTimeMs).toLocaleTimeString('en-US', { 
+          hour: 'numeric',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: true 
+        })}
+      </td>
+      <td className="p-2 font-bold">
+        {entry.elapsedMs !== null ? formatElapsedTime(entry.elapsedMs) : 'N/A'}
+      </td>
+      <td className="p-2">
+        <button
+          onClick={() => onEditEntry(entry.id)}
+          className="text-purple-600 hover:text-purple-800 text-lg"
+          title="Edit"
+        >
+          ✏️
+        </button>
+      </td>
+    </tr>
+  );
+})}
             
             {unknownEntries.map((entry) => (
               <tr key={entry.id} className="border-b border-gray-200 bg-yellow-50">

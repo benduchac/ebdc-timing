@@ -168,33 +168,32 @@ useEffect(() => {
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div className="bg-white p-4 rounded-lg shadow">
-          <label className="block mb-2 font-bold text-sm">Wave A Start Time</label>
+          <label className="block mb-2 font-bold text-black text-sm">Wave A Start Time</label>
             <input
               type="time"
               step="1"
               value={waveATime}
               onChange={(e) => setWaveATime(e.target.value)}
-              className="w-full p-2 text-lg border-2 border-gray-300 rounded-lg"
-            />
+              className="w-full p-2 text-lg border-2 border-gray-300 rounded-lg text-black"            />
         </div>
         <div className="bg-white p-4 rounded-lg shadow">
-          <label className="block mb-2 font-bold text-sm">Wave B Start Time</label>
+          <label className="block mb-2 text-black font-bold text-sm">Wave B Start Time</label>
           <input
             type="time"
             step="1"
             value={waveBTime}
             onChange={(e) => setWaveBTime(e.target.value)}
-            className="w-full p-2 text-lg border-2 border-gray-300 rounded-lg"
+            className="w-full p-2 text-lg border-2 border-gray-300 rounded-lg text-black"
           />
         </div>
         <div className="bg-white p-4 rounded-lg shadow">
-          <label className="block mb-2 font-bold text-sm">Wave C Start Time</label>
+          <label className="block mb-2 font-bold text-black text-sm">Wave C Start Time</label>
           <input
             type="time"
             step="1"
             value={waveCTime}
             onChange={(e) => setWaveCTime(e.target.value)}
-            className="w-full p-2 text-lg border-2 border-gray-300 rounded-lg"
+            className="w-full p-2 text-lg border-2 border-gray-300 rounded-lg text-black"
           />
         </div>
       </div>
@@ -214,7 +213,7 @@ useEffect(() => {
     onChange={handleCSVUpload}
     className="hidden"
   />
-  <p className="text-lg font-semibold mb-2">📄 Click to Load Registrants CSV</p>
+  <p className="text-lg font-semibold mb-2 text-black">📄 Click to Load Registrants CSV</p>
   <p className="text-sm text-gray-600">Expected format: Bib, FirstName, LastName, Wave</p>
   {registrantCount > 0 && (
     <p className="text-sm font-bold text-green-700 mt-2">

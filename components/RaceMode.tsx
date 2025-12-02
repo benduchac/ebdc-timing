@@ -29,6 +29,10 @@ export default function RaceMode({
   const [errorMessage, setErrorMessage] = useState('');
   const [showOptions, setShowOptions] = useState(false);
   const bibInputRef = useRef<HTMLInputElement>(null);
+    // Helper to check if a bib is duplicated
+  const isDuplicateBib = (bib: string): boolean => {
+    return entries.filter(e => e.bib === bib).length > 1;
+};
 
 
   // Auto-focus bib input
@@ -36,55 +40,86 @@ export default function RaceMode({
     bibInputRef.current?.focus();
   }, [entries.length]);
 
-  // Lookup rider as user types
-  useEffect(() => {
-    if (!bibNumber) {
-      setRiderInfo(null);
-      setErrorMessage('');
-      return;
-    }
-
-    const rider = registrants.get(bibNumber.trim());
-    if (rider) {
-      setRiderInfo(rider);
-      setErrorMessage('');
-    } else {
-      setRiderInfo(null);
-      setErrorMessage(`⚠️ Bib #${bibNumber} not found. Entry will be recorded - use Edit to assign wave.`);
-    }
-  }, [bibNumber, registrants]);
-
-  const handleRecordFinish = () => {
-    if (!bibNumber.trim()) {
-      alert('Please enter a bib number!');
-      bibInputRef.current?.focus();
-      return;
-    }
-
-    const now = new Date();
-    const rider = registrants.get(bibNumber.trim());
-    
-    const wave = rider ? rider.wave : null;
-    const firstName = rider ? rider.firstName : 'Unknown';
-    const lastName = rider ? rider.lastName : 'Rider';
-    
-    const entry: Omit<Entry, 'id'> = {
-      bib: bibNumber.trim(),
-      wave,
-      firstName,
-      lastName,
-      finishTime: now.toLocaleTimeString('en-US', { hour12: true }),
-      finishTimeMs: now.getTime(),
-      elapsedTime: wave ? formatElapsedTime(now.getTime() - waveStartTimes[wave].getTime()) : 'N/A',
-      elapsedMs: wave ? (now.getTime() - waveStartTimes[wave].getTime()) : null,
-      timestamp: now.toISOString()
-    };
-
-    onRecordEntry(entry);
-    setBibNumber('');
+// Lookup rider as user types
+useEffect(() => {
+  if (!bibNumber) {
     setRiderInfo(null);
     setErrorMessage('');
+    return;
+  }
+
+  const rider = registrants.get(bibNumber.trim());
+  
+  // Check for duplicate
+  const existingEntry = entries.find(e => e.bib === bibNumber.trim());
+  
+  if (rider) {
+    setRiderInfo(rider);
+    if (existingEntry) {
+      const existingTime = new Date(existingEntry.finishTimeMs).toLocaleTimeString('en-US', { hour12: true });
+      setErrorMessage(`⚠️ DUPLICATE! Bib #${bibNumber.trim()} already finished at ${existingTime}. Press Enter to record again, or fix bib number.`);
+    } else {
+      setErrorMessage('');
+    }
+  } else {
+    setRiderInfo(null);
+    if (existingEntry) {
+      const existingTime = new Date(existingEntry.finishTimeMs).toLocaleTimeString('en-US', { hour12: true });
+      setErrorMessage(`⚠️ DUPLICATE! Bib #${bibNumber.trim()} already finished at ${existingTime}. Press Enter to record again, or fix bib number.`);
+    } else {
+      setErrorMessage(`⚠️ Bib #${bibNumber} not found. Entry will be recorded - use Edit to assign wave.`);
+    }
+  }
+}, [bibNumber, registrants, entries]);
+
+const handleRecordFinish = () => {
+  if (!bibNumber.trim()) {
+    alert('Please enter a bib number!');
+    bibInputRef.current?.focus();
+    return;
+  }
+
+  // Check for duplicate bib
+  const existingEntry = entries.find(e => e.bib === bibNumber.trim());
+  if (existingEntry) {
+    const confirmed = confirm(
+      `Record duplicate bib #${bibNumber.trim()} again?\n\n` +
+      `OK = Record duplicate\n` +
+      `Cancel = Fix bib number`
+    );
+    
+    if (!confirmed) {
+      // User wants to fix - select all text for easy correction
+      bibInputRef.current?.select();
+      return;
+    }
+    // If confirmed, continue with recording below
+  }
+
+  const now = new Date();
+  const rider = registrants.get(bibNumber.trim());
+  
+  const wave = rider ? rider.wave : null;
+  const firstName = rider ? rider.firstName : 'Unknown';
+  const lastName = rider ? rider.lastName : 'Rider';
+  
+  const entry: Omit<Entry, 'id'> = {
+    bib: bibNumber.trim(),
+    wave,
+    firstName,
+    lastName,
+    finishTime: now.toLocaleTimeString('en-US', { hour12: true }),
+    finishTimeMs: now.getTime(),
+    elapsedTime: wave ? formatElapsedTime(now.getTime() - waveStartTimes[wave].getTime()) : 'N/A',
+    elapsedMs: wave ? (now.getTime() - waveStartTimes[wave].getTime()) : null,
+    timestamp: now.toISOString()
   };
+
+  onRecordEntry(entry);
+  setBibNumber('');
+  setRiderInfo(null);
+  setErrorMessage('');
+};
 
   const handleUnknownFinisher = () => {
     const now = new Date();
@@ -158,12 +193,16 @@ export default function RaceMode({
         </div>
       )}
 
-      {/* Error Message */}
-      {errorMessage && (
-        <div className="mt-3 bg-red-100 border-2 border-red-400 rounded-lg p-3 text-red-800 font-bold text-sm">
-          {errorMessage}
-        </div>
-      )}
+{/* Error/Warning Message */}
+{errorMessage && (
+  <div className={`mt-3 border-2 rounded-lg p-3 font-bold text-sm ${
+    errorMessage.includes('DUPLICATE') 
+      ? 'bg-orange-100 border-orange-500 text-orange-900' 
+      : 'bg-red-100 border-red-400 text-red-800'
+  }`}>
+    {errorMessage}
+  </div>
+)}
 
       {/* Record Button */}
       <button
@@ -196,33 +235,45 @@ export default function RaceMode({
               <th className="p-2 text-left"></th>
             </tr>
           </thead>
-          <tbody>
-            {recentEntries.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="p-4 text-center text-gray-500">
-                  No finishers yet. Record your first finish!
-                </td>
-              </tr>
-            ) : (
-              recentEntries.map((entry) => (
-                <tr key={entry.id} className="border-b border-gray-200 hover:bg-gray-50">
-                  <td className="p-2 font-bold">{entry.bib}</td>
-                  <td className="p-2">{entry.firstName} {entry.lastName}</td>
-                  <td className="p-2">{entry.wave ? `Wave ${entry.wave}` : <span className="text-yellow-600 font-bold">Unknown</span>}</td>
-                  <td className="p-2">{entry.finishTime}</td>
-                  <td className="p-2">
-                    <button
-                      onClick={() => onEditEntry(entry.id)}
-                      className="text-purple-600 hover:text-purple-800 text-lg"
-                      title="Edit"
-                    >
-                      ✏️
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
+<tbody>
+  {recentEntries.length === 0 ? (
+    <tr>
+      <td colSpan={5} className="p-4 text-center text-gray-500">
+        No finishers yet. Record your first finish!
+      </td>
+    </tr>
+  ) : (
+    recentEntries.map((entry) => {
+      const isDuplicate = isDuplicateBib(entry.bib);
+      
+      return (
+        <tr 
+          key={entry.id} 
+          className={`border-b border-gray-200 hover:bg-gray-50 ${
+            isDuplicate ? 'bg-orange-50 border-l-4 border-l-orange-500' : ''
+          }`}
+        >
+          <td className="p-2 font-bold">
+            {isDuplicate && <span className="text-orange-600 mr-1">⚠️</span>}
+            {entry.bib}
+          </td>
+          <td className="p-2">{entry.firstName} {entry.lastName}</td>
+          <td className="p-2">{entry.wave ? `Wave ${entry.wave}` : <span className="text-yellow-600 font-bold">Unknown</span>}</td>
+          <td className="p-2">{entry.finishTime}</td>
+          <td className="p-2">
+            <button
+              onClick={() => onEditEntry(entry.id)}
+              className="text-purple-600 hover:text-purple-800 text-lg"
+              title="Edit"
+            >
+              ✏️
+            </button>
+          </td>
+        </tr>
+      );
+    })
+  )}
+</tbody>
         </table>
       </div>
     </div>
