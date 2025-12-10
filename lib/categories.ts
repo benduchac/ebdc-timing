@@ -28,8 +28,8 @@ export function calculateAge(dob: string): number {
 export function getAgeCategory(dob: string): AgeCategory {
   const age = calculateAge(dob);
 
-  if (age < 18) return "junior";
-  if (age >= 55) return "masters";
+  if (age < 19) return "junior";
+  if (age >= 50) return "masters";
   return "adult";
 }
 
@@ -39,11 +39,11 @@ export function getAgeCategory(dob: string): AgeCategory {
 export function getCategoryLabel(category: AgeCategory): string {
   switch (category) {
     case "junior":
-      return "Junior (U18)";
+      return "Junior (18U)";
     case "adult":
-      return "Adult (18-54)";
+      return "Adult (19-49)";
     case "masters":
-      return "Masters (55+)";
+      return "Masters (50+)";
   }
 }
 

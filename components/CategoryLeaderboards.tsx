@@ -138,13 +138,13 @@ export default function CategoryLeaderboards({
       {/* Row 2: Junior Male & Female */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <LeaderboardCard
-          title="Junior Male (U18)"
+          title="Junior Male (18U)"
           emoji="🏅"
           entries={juniorMale}
           registrants={registrants}
         />
         <LeaderboardCard
-          title="Junior Female (U18)"
+          title="Junior Female (18U)"
           emoji="🏅"
           entries={juniorFemale}
           registrants={registrants}
@@ -154,7 +154,7 @@ export default function CategoryLeaderboards({
       {/* Row 3: Masters (Combined) */}
       <div className="grid grid-cols-1 gap-4">
         <LeaderboardCard
-          title="Masters (55+)"
+          title="Masters (50+)"
           emoji="🏆"
           entries={masters}
           registrants={registrants}
