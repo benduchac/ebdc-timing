@@ -28,7 +28,7 @@ export function calculateAge(dob: string): number {
 export function getAgeCategory(dob: string): AgeCategory {
   const age = calculateAge(dob);
 
-  if (age < 19) return "junior";
+  if (age <= 18) return "junior";
   if (age >= 50) return "masters";
   return "adult";
 }

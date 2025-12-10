@@ -1,12 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import type { Entry, Registrant } from "@/lib/types";
 import { formatElapsedTime } from "@/lib/utils";
-import {
-  filterByCategory,
-  getTopEntries,
-  calculateAge,
-} from "@/lib/categories";
+import { filterByCategory, calculateAge } from "@/lib/categories";
 
 interface CategoryLeaderboardsProps {
   entries: Entry[];
@@ -26,6 +23,8 @@ function LeaderboardCard({
   entries,
   registrants,
 }: LeaderboardCardProps) {
+  const [showAll, setShowAll] = useState(false);
+
   if (entries.length === 0) {
     return (
       <div className="bg-white rounded-lg shadow p-4">
@@ -39,13 +38,16 @@ function LeaderboardCard({
     );
   }
 
+  const displayedEntries = showAll ? entries : entries.slice(0, 10);
+  const hasMore = entries.length > 10;
+
   return (
     <div className="bg-white rounded-lg shadow p-4">
       <h3 className="text-lg font-bold mb-3 text-purple-600">
         {emoji} {title}
       </h3>
       <div className="space-y-2">
-        {entries.map((entry, index) => {
+        {displayedEntries.map((entry, index) => {
           const place = index + 1;
           const medalEmoji =
             place === 1 ? "🥇" : place === 2 ? "🥈" : place === 3 ? "🥉" : "";
@@ -78,8 +80,19 @@ function LeaderboardCard({
           );
         })}
       </div>
+
+      {hasMore && (
+        <button
+          onClick={() => setShowAll(!showAll)}
+          className="w-full mt-3 py-2 bg-purple-100 text-purple-700 rounded-lg font-semibold hover:bg-purple-200 transition"
+        >
+          {showAll ? "▲ Show Top 10" : `▼ Show All ${entries.length} Finishers`}
+        </button>
+      )}
+
       <div className="mt-3 pt-3 border-t border-gray-200 text-xs text-gray-600 text-center">
-        {entries.length} finisher{entries.length !== 1 ? "s" : ""}
+        {entries.length} finisher{entries.length !== 1 ? "s" : ""} total
+        {hasMore && !showAll && " (showing top 10)"}
       </div>
     </div>
   );
@@ -89,29 +102,46 @@ export default function CategoryLeaderboards({
   entries,
   registrants,
 }: CategoryLeaderboardsProps) {
-  // Filter entries for each category
-  const overallMale = getTopEntries(
-    filterByCategory(entries, registrants, "male"),
-    10
-  );
-  const overallFemale = getTopEntries(
-    filterByCategory(entries, registrants, "female"),
-    10
-  );
+  // Filter entries for each category - get ALL entries, not just top 10
+  const overallMale = filterByCategory(entries, registrants, "male")
+    .filter((e) => e.wave !== null && e.elapsedMs !== null)
+    .sort((a, b) => {
+      if (a.elapsedMs === null || b.elapsedMs === null) return 0;
+      return a.elapsedMs - b.elapsedMs;
+    });
 
-  const juniorMale = getTopEntries(
-    filterByCategory(entries, registrants, "male", "junior"),
-    10
-  );
-  const juniorFemale = getTopEntries(
-    filterByCategory(entries, registrants, "female", "junior"),
-    10
-  );
+  const overallFemale = filterByCategory(entries, registrants, "female")
+    .filter((e) => e.wave !== null && e.elapsedMs !== null)
+    .sort((a, b) => {
+      if (a.elapsedMs === null || b.elapsedMs === null) return 0;
+      return a.elapsedMs - b.elapsedMs;
+    });
 
-  const masters = getTopEntries(
-    filterByCategory(entries, registrants, undefined, "masters"),
-    10
-  );
+  const juniorMale = filterByCategory(entries, registrants, "male", "junior")
+    .filter((e) => e.wave !== null && e.elapsedMs !== null)
+    .sort((a, b) => {
+      if (a.elapsedMs === null || b.elapsedMs === null) return 0;
+      return a.elapsedMs - b.elapsedMs;
+    });
+
+  const juniorFemale = filterByCategory(
+    entries,
+    registrants,
+    "female",
+    "junior"
+  )
+    .filter((e) => e.wave !== null && e.elapsedMs !== null)
+    .sort((a, b) => {
+      if (a.elapsedMs === null || b.elapsedMs === null) return 0;
+      return a.elapsedMs - b.elapsedMs;
+    });
+
+  const masters = filterByCategory(entries, registrants, undefined, "masters")
+    .filter((e) => e.wave !== null && e.elapsedMs !== null)
+    .sort((a, b) => {
+      if (a.elapsedMs === null || b.elapsedMs === null) return 0;
+      return a.elapsedMs - b.elapsedMs;
+    });
 
   return (
     <div className="space-y-4">
