@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import type { Registrant, Entry } from '@/lib/types';
 import { formatElapsedTime } from '@/lib/utils';
 import WaveStatusBoxes from './WaveStatusBoxes';
+import TopTenLeaderboard from './TopTenLeaderboard';
 
 interface RaceModeProps {
   waveStartTimes: { A: Date; B: Date; C: Date };
@@ -178,59 +179,63 @@ const handleRecordFinish = () => {
   onEditWaveTime={onEditWaveTime}
 />
 
-      {/* Input Section */}
-      <div className="bg-gray-100 rounded-lg p-4 mb-4">
-        <label className="block mb-2 font-bold text-sm">Bib Number</label>
-        <input
-          ref={bibInputRef}
-          type="text"
-          inputMode="numeric"
-          value={bibNumber}
-          onChange={(e) => setBibNumber(e.target.value)}
-          onKeyPress={handleKeyPress}
-          placeholder="Enter bib number"
-          className="w-full p-3 text-lg border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
-        />
+{/* Two-column layout: Main timing on left, Top Ten on right */}
+<div className="flex gap-4 mb-4">
+  {/* Left column - Main timing interface */}
+  <div className="flex-1 space-y-4">
+    {/* Input Section */}
+    <div className="bg-gray-100 rounded-lg p-4">
+      <label className="block mb-2 font-bold text-sm">Bib Number</label>
+      <input
+        ref={bibInputRef}
+        type="text"
+        inputMode="numeric"
+        value={bibNumber}
+        onChange={(e) => setBibNumber(e.target.value)}
+        onKeyPress={handleKeyPress}
+        placeholder="Enter bib number"
+        className="w-full p-3 text-lg border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+      />
 
-        {/* Rider Info */}
-        {riderInfo && (
-          <div className="mt-3 bg-blue-100 border-2 border-blue-400 rounded-lg p-3">
-            <div className="text-xl font-bold text-blue-800">
-              {riderInfo.firstName} {riderInfo.lastName}
-            </div>
-            <div className="text-gray-700">
-              Wave {riderInfo.wave} • Bib #{riderInfo.bib}
-            </div>
+      {/* Rider Info */}
+      {riderInfo && (
+        <div className="mt-3 bg-blue-100 border-2 border-blue-400 rounded-lg p-3">
+          <div className="text-xl font-bold text-blue-800">
+            {riderInfo.firstName} {riderInfo.lastName}
           </div>
-        )}
+          <div className="text-gray-700">
+            Wave {riderInfo.wave} • Bib #{riderInfo.bib}
+          </div>
+        </div>
+      )}
 
-  {/* Error/Warning Message */}
-  {errorMessage && (
-    <div className={`mt-3 border-2 rounded-lg p-3 font-bold text-sm ${
-    errorMessage.includes('DUPLICATE') 
-      ? 'bg-orange-100 border-orange-500 text-orange-900' 
-      : 'bg-red-100 border-red-400 text-red-800'
-  }`}>
-      {errorMessage}
+      {/* Error/Warning Message */}
+      {errorMessage && (
+        <div className={`mt-3 border-2 rounded-lg p-3 font-bold text-sm ${
+          errorMessage.includes('DUPLICATE') 
+            ? 'bg-orange-100 border-orange-500 text-orange-900' 
+            : 'bg-red-100 border-red-400 text-red-800'
+        }`}>
+          {errorMessage}
+        </div>
+      )}
+
+      {/* Record Button */}
+      <button
+        onClick={handleRecordFinish}
+        className="w-full mt-3 py-4 text-xl font-bold bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+      >
+        ✅ RECORD FINISH TIME (Enter)
+      </button>
+
+      {/* Unknown Button */}
+      <button
+        onClick={handleUnknownFinisher}
+        className="w-full mt-2 py-3 text-lg font-bold bg-yellow-500 text-gray-900 rounded-lg hover:bg-yellow-600 transition"
+      >
+        ❓ UNKNOWN FINISHER (U)
+      </button>
     </div>
-  )}
-
-        {/* Record Button */}
-        <button
-          onClick={handleRecordFinish}
-          className="w-full mt-3 py-4 text-xl font-bold bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
-        >
-          ✅ RECORD FINISH TIME (Enter)
-        </button>
-
-        {/* Unknown Button */}
-        <button
-          onClick={handleUnknownFinisher}
-          className="w-full mt-2 py-3 text-lg font-bold bg-yellow-500 text-gray-900 rounded-lg hover:bg-yellow-600 transition"
-        >
-          ❓ UNKNOWN FINISHER (U)
-        </button>
-      </div>
 
     {/* Recent Finishers */}
     <div>
@@ -243,51 +248,60 @@ const handleRecordFinish = () => {
               <th className="p-2 text-left">Name</th>
               <th className="p-2 text-left">Wave</th>
               <th className="p-2 text-left">Finish Time</th>
-              <th className="p-2 text-left">Elapsed</th>
+              <th className="p-2 text-left">Edit</th>
             </tr>
           </thead>
-<tbody>
-  {recentEntries.length === 0 ? (
-    <tr>
-      <td colSpan={5} className="p-4 text-center text-gray-500">
-        No finishers yet. Record your first finish!
-      </td>
-    </tr>
-  ) : (
-    recentEntries.map((entry) => {
-      const isDuplicate = isDuplicateBib(entry.bib);
-      
-      return (
-        <tr 
-          key={entry.id} 
-          className={`border-b border-gray-200 hover:bg-gray-50 ${
-            isDuplicate ? 'bg-orange-50 border-l-4 border-l-orange-500' : ''
-          }`}
-        >
-          <td className="p-2 font-bold">
-            {isDuplicate && <span className="text-orange-600 mr-1">⚠️</span>}
-            {entry.bib}
-          </td>
-          <td className="p-2">{entry.firstName} {entry.lastName}</td>
-          <td className="p-2">{entry.wave ? `Wave ${entry.wave}` : <span className="text-yellow-600 font-bold">Unknown</span>}</td>
-          <td className="p-2">{entry.finishTime}</td>
-          <td className="p-2">
-            <button
-              onClick={() => onEditEntry(entry.id)}
-              className="text-purple-600 hover:text-purple-800 text-lg"
-              title="Edit"
-            >
-              ✏️
-            </button>
-          </td>
-        </tr>
-      );
-    })
-  )}
-</tbody>
+          <tbody>
+            {recentEntries.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="p-4 text-center text-gray-500">
+                  No finishers yet. Record your first finish!
+                </td>
+              </tr>
+            ) : (
+              recentEntries.map((entry) => {
+                const isDuplicate = isDuplicateBib(entry.bib);
+                
+                return (
+                  <tr 
+                    key={entry.id} 
+                    className={`border-b border-gray-200 hover:bg-gray-50 ${
+                      isDuplicate ? 'bg-orange-50 border-l-4 border-l-orange-500' : ''
+                    }`}
+                  >
+                    <td className="p-2 font-bold">
+                      {isDuplicate && <span className="text-orange-600 mr-1">⚠️</span>}
+                      {entry.bib}
+                    </td>
+                    <td className="p-2">{entry.firstName} {entry.lastName}</td>
+                    <td className="p-2">{entry.wave ? `Wave ${entry.wave}` : <span className="text-yellow-600 font-bold">Unknown</span>}</td>
+                    <td className="p-2">{entry.finishTime}</td>
+                    <td className="p-2">
+                      <button
+                        onClick={() => onEditEntry(entry.id)}
+                        className="text-purple-600 hover:text-purple-800 text-lg"
+                        title="Edit"
+                      >
+                        ✏️
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
         </table>
       </div>
     </div>
+  </div>
+
+  {/* Right column - Top Ten Leaderboard */}
+  <div className="w-80">
+    <TopTenLeaderboard entries={entries} />
+  </div>
+</div>
+
+
 
       {/* Options Section */}
       <div className="border-t-2 border-gray-300 pt-4">
