@@ -10,6 +10,7 @@ import RaceMode from '@/components/RaceMode';
 import ResultsTable from '@/components/ResultsTable';
 import EditModal from '@/components/EditModal';
 import WaveStatusBoxes from '@/components/WaveStatusBoxes';
+import WaveTimeEditModal from '@/components/WaveTimeEditModal';
 
 
 export default function Home() {
@@ -22,6 +23,7 @@ export default function Home() {
   const [showFullResults, setShowFullResults] = useState(false);
   const [autoBackupCounter, setAutoBackupCounter] = useState(0);
   const [activeTab, setActiveTab] = useState<'timing' | 'results'>('timing');
+  const [editingWave, setEditingWave] = useState<'A' | 'B' | 'C' | null>(null);
 
 
   // Load persisted state on mount
@@ -219,6 +221,54 @@ const handleStartRace = (config: {
     alert(`Backed up ${entries.length} finishers!`);
   };
 
+  const handleEditWaveTime = (wave: 'A' | 'B' | 'C') => {
+  setEditingWave(wave);
+};
+
+const handleSaveWaveTime = (wave: 'A' | 'B' | 'C', newTimeStr: string) => {
+  if (!waveStartTimes) return;
+
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  const newDateTime = new Date(`${year}-${month}-${day}T${newTimeStr}`);
+
+  // Create backup before changing
+  handleAutoBackup();
+
+  // Update wave start times
+  const updatedWaveStartTimes = {
+    ...waveStartTimes,
+    [wave]: newDateTime
+  };
+  setWaveStartTimes(updatedWaveStartTimes);
+
+  // Recalculate all entries for this wave
+  const updatedEntries = entries.map(entry => {
+    if (entry.wave === wave) {
+      const elapsedMs = entry.finishTimeMs - newDateTime.getTime();
+      const elapsedTime = formatElapsedTime(elapsedMs);
+      
+      return {
+        ...entry,
+        elapsedMs,
+        elapsedTime
+      };
+    }
+    return entry;
+  });
+
+  setEntries(updatedEntries);
+  setEditingWave(null);
+
+  // Trigger another backup after change
+  setTimeout(() => handleAutoBackup(), 500);
+
+  const affectedCount = updatedEntries.filter(e => e.wave === wave).length;
+  alert(`✅ Wave ${wave} start time updated!\nRecalculated ${affectedCount} entries.`);
+};
+
   const handleAutoBackup = () => {
     if (!waveStartTimes) return;
 
@@ -291,12 +341,7 @@ const backup = {
       </button>
     </div>
 
-    {/* Wave Status Boxes - always visible */}
-    <WaveStatusBoxes
-      waveStartTimes={waveStartTimes}
-      entries={entries}
-      registrants={registrants}
-    />
+
 
     {/* Tab Content */}
     {activeTab === 'timing' ? (
@@ -308,6 +353,7 @@ const backup = {
         onEditEntry={handleEditEntry}
         onExportBackup={handleExportBackup}
         onReturnToSetup={handleReturnToSetup}
+        onEditWaveTime={handleEditWaveTime}
       />
     ) : (
       <div className="space-y-4">
@@ -341,6 +387,17 @@ const backup = {
             waveStartTimes={waveStartTimes}
             onSave={handleSaveEdit}
             onClose={() => setEditingEntry(null)}
+          />
+        )}
+
+        {/* Wave Time Edit Modal - ADD THIS: */}
+        {editingWave && waveStartTimes && (
+          <WaveTimeEditModal
+            wave={editingWave}
+            currentTime={waveStartTimes[editingWave]}
+            affectedEntries={entries.filter(e => e.wave === editingWave).length}
+            onSave={(newTime) => handleSaveWaveTime(editingWave, newTime)}
+            onClose={() => setEditingWave(null)}
           />
         )}
       </div>

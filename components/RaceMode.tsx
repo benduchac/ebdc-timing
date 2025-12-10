@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { Registrant, Entry } from '@/lib/types';
 import { formatElapsedTime } from '@/lib/utils';
-import TopTenLeaderboard from './TopTenLeaderboard';
+import WaveStatusBoxes from './WaveStatusBoxes';
 
 interface RaceModeProps {
   waveStartTimes: { A: Date; B: Date; C: Date };
@@ -13,6 +13,7 @@ interface RaceModeProps {
   onEditEntry: (id: number) => void;
   onExportBackup: () => void;
   onReturnToSetup: () => void;
+  onEditWaveTime: (wave: 'A' | 'B' | 'C') => void;  // ← ADD THIS LINE
 }
 
 export default function RaceMode({
@@ -21,13 +22,16 @@ export default function RaceMode({
   entries,
   onRecordEntry,
   onEditEntry,
+  onExportCSV,
   onExportBackup,
-  onReturnToSetup
+  onReturnToSetup,
+  onEditWaveTime  
 }: RaceModeProps) {
   const [bibNumber, setBibNumber] = useState('');
   const [riderInfo, setRiderInfo] = useState<Registrant | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [showOptions, setShowOptions] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString('en-US', { hour12: true }));
   const bibInputRef = useRef<HTMLInputElement>(null);
     // Helper to check if a bib is duplicated
   const isDuplicateBib = (bib: string): boolean => {
@@ -130,7 +134,7 @@ const handleRecordFinish = () => {
       wave: null,
       firstName: 'Unknown',
       lastName: 'Rider',
-      finishTime: now.toLocaleTimeString('en-US', { hour12: false }),
+      finishTime: now.toLocaleTimeString('en-US', { hour12: true }),
       finishTimeMs: now.getTime(),
       elapsedTime: 'N/A',
       elapsedMs: null,
@@ -150,76 +154,83 @@ const handleRecordFinish = () => {
     }
   };
 
+  const waveACounts = entries.filter(e => e.wave === 'A').length;
+  const waveBCounts = entries.filter(e => e.wave === 'B').length;
+  const waveCCounts = entries.filter(e => e.wave === 'C').length;
 
   // Get last 10 entries
   const recentEntries = [...entries].reverse().slice(0, 10);
 
   return (
     <div>
-  
+
 
       {/* Warning */}
       <div className="bg-yellow-100 border-2 border-yellow-400 rounded-lg p-3 mb-4 text-center font-bold text-yellow-800">
         ⚠️ KEEP THIS TAB OPEN! Data auto-saves to IndexedDB
       </div>
 
-{/* Two-column layout: Timing + Sidebar */}
-<div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-  {/* Left column: Timing (2/3 width) */}
-  <div className="lg:col-span-2 space-y-4">
-    {/* Input Section */}
-    <div className="bg-gray-100 rounded-lg p-4">
-      <label className="block mb-2 font-bold text-sm">Bib Number</label>
-      <input
-        ref={bibInputRef}
-        type="text"
-        inputMode="numeric"
-        value={bibNumber}
-        onChange={(e) => setBibNumber(e.target.value)}
-        onKeyPress={handleKeyPress}
-        placeholder="Enter bib number"
-        className="w-full p-3 text-lg border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
-      />
+      {/* ADD THIS: */}
+<WaveStatusBoxes
+  waveStartTimes={waveStartTimes}
+  entries={entries}
+  registrants={registrants}
+  onEditWaveTime={onEditWaveTime}
+/>
 
-      {/* Rider Info */}
-      {riderInfo && (
-        <div className="mt-3 bg-blue-100 border-2 border-blue-400 rounded-lg p-3">
-          <div className="text-xl font-bold text-blue-800">
-            {riderInfo.firstName} {riderInfo.lastName}
-          </div>
-          <div className="text-gray-700">
-            Wave {riderInfo.wave} • Bib #{riderInfo.bib}
-          </div>
-        </div>
-      )}
+      {/* Input Section */}
+      <div className="bg-gray-100 rounded-lg p-4 mb-4">
+        <label className="block mb-2 font-bold text-sm">Bib Number</label>
+        <input
+          ref={bibInputRef}
+          type="text"
+          inputMode="numeric"
+          value={bibNumber}
+          onChange={(e) => setBibNumber(e.target.value)}
+          onKeyPress={handleKeyPress}
+          placeholder="Enter bib number"
+          className="w-full p-3 text-lg border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+        />
 
-{/* Error/Warning Message */}
-{errorMessage && (
-  <div className={`mt-3 border-2 rounded-lg p-3 font-bold text-sm ${
+        {/* Rider Info */}
+        {riderInfo && (
+          <div className="mt-3 bg-blue-100 border-2 border-blue-400 rounded-lg p-3">
+            <div className="text-xl font-bold text-blue-800">
+              {riderInfo.firstName} {riderInfo.lastName}
+            </div>
+            <div className="text-gray-700">
+              Wave {riderInfo.wave} • Bib #{riderInfo.bib}
+            </div>
+          </div>
+        )}
+
+  {/* Error/Warning Message */}
+  {errorMessage && (
+    <div className={`mt-3 border-2 rounded-lg p-3 font-bold text-sm ${
     errorMessage.includes('DUPLICATE') 
       ? 'bg-orange-100 border-orange-500 text-orange-900' 
       : 'bg-red-100 border-red-400 text-red-800'
   }`}>
-    {errorMessage}
-  </div>
-)}
-
-      {/* Record Button */}
-      <button
-        onClick={handleRecordFinish}
-        className="w-full mt-3 py-4 text-xl font-bold bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
-      >
-        ✅ RECORD FINISH TIME (Enter)
-      </button>
-
-      {/* Unknown Button */}
-      <button
-        onClick={handleUnknownFinisher}
-        className="w-full mt-2 py-3 text-lg font-bold bg-yellow-500 text-gray-900 rounded-lg hover:bg-yellow-600 transition"
-      >
-        ❓ UNKNOWN FINISHER (U)
-      </button>
+      {errorMessage}
     </div>
+  )}
+
+        {/* Record Button */}
+        <button
+          onClick={handleRecordFinish}
+          className="w-full mt-3 py-4 text-xl font-bold bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+        >
+          ✅ RECORD FINISH TIME (Enter)
+        </button>
+
+        {/* Unknown Button */}
+        <button
+          onClick={handleUnknownFinisher}
+          className="w-full mt-2 py-3 text-lg font-bold bg-yellow-500 text-gray-900 rounded-lg hover:bg-yellow-600 transition"
+        >
+          ❓ UNKNOWN FINISHER (U)
+        </button>
+      </div>
 
     {/* Recent Finishers */}
     <div>
@@ -231,8 +242,8 @@ const handleRecordFinish = () => {
               <th className="p-2 text-left">Bib</th>
               <th className="p-2 text-left">Name</th>
               <th className="p-2 text-left">Wave</th>
-              <th className="p-2 text-left">Time</th>
-              <th className="p-2 text-left"></th>
+              <th className="p-2 text-left">Finish Time</th>
+              <th className="p-2 text-left">Elapsed</th>
             </tr>
           </thead>
 <tbody>
@@ -278,38 +289,38 @@ const handleRecordFinish = () => {
       </div>
     </div>
 
-    {/* Options Section */}
-    <div className="border-t-2 border-gray-300 pt-4">
-      <button
-        onClick={() => setShowOptions(!showOptions)}
-        className="w-full py-3 bg-gray-200 rounded-lg font-bold text-gray-800 hover:bg-gray-300 transition"
-      >
-        ⚙️ Options & Backup
-      </button>
+      {/* Options Section */}
+      <div className="border-t-2 border-gray-300 pt-4">
+        <button
+          onClick={() => setShowOptions(!showOptions)}
+          className="w-full py-3 bg-gray-200 rounded-lg font-bold text-gray-800 hover:bg-gray-300 transition"
+        >
+          ⚙️ Options & Export
+        </button>
 
-      {showOptions && (
-        <div className="mt-3 bg-gray-100 rounded-lg p-4 space-y-2">
-          <button
-            onClick={onExportBackup}
-            className="w-full py-2 bg-purple-600 text-white rounded-lg font-bold hover:bg-purple-700"
-          >
-            💾 Download Backup JSON
-          </button>
-          <button
-            onClick={onReturnToSetup}
-            className="w-full py-2 bg-yellow-500 text-gray-900 rounded-lg font-bold hover:bg-yellow-600"
-          >
-            ⚙️ Return to Setup
-          </button>
-        </div>
-      )}
+        {showOptions && (
+          <div className="mt-3 bg-gray-100 rounded-lg p-4 space-y-2">
+            <button
+              onClick={onExportCSV}
+              className="w-full py-2 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700"
+            >
+              📊 Export Results CSV
+            </button>
+            <button
+              onClick={onExportBackup}
+              className="w-full py-2 bg-purple-600 text-white rounded-lg font-bold hover:bg-purple-700"
+            >
+              💾 Download Backup JSON
+            </button>
+            <button
+              onClick={onReturnToSetup}
+              className="w-full py-2 bg-yellow-500 text-gray-900 rounded-lg font-bold hover:bg-yellow-600"
+            >
+              ⚙️ Return to Setup
+            </button>
+          </div>
+        )}
+      </div>
     </div>
-  </div>
-
-  {/* Right column: Top 10 Leaderboard (1/3 width) */}
-  <div className="hidden lg:block">
-    <TopTenLeaderboard entries={entries} />
-  </div>
-</div>
-</div>
-)};
+  );
+}
