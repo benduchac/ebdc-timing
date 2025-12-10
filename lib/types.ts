@@ -1,4 +1,4 @@
-export type { Registrant, Entry, RaceState } from './db';
+export type { Registrant, Entry, RaceState } from "./db";
 
 export interface WaveStartTimes {
   A: Date | null;

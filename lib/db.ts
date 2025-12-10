@@ -1,16 +1,18 @@
-import Dexie from 'dexie';
+import Dexie from "dexie";
 
 export interface Registrant {
   bib: string;
   firstName: string;
   lastName: string;
-  wave: 'A' | 'B' | 'C';
+  wave: "A" | "B" | "C";
+  dob: string; // Format: YYYY-MM-DD
+  gender: "male" | "female" | "n/a";
 }
 
 export interface Entry {
   id: number;
   bib: string;
-  wave: 'A' | 'B' | 'C' | null;
+  wave: "A" | "B" | "C" | null;
   firstName: string;
   lastName: string;
   finishTime: string;
@@ -42,17 +44,17 @@ export interface SetupConfig {
 }
 
 // Create and configure the database
-const database = new Dexie('EBDCTiming');
+const database = new Dexie("EBDCTiming");
 
 database.version(1).stores({
-  entries: '++id, bib, wave, finishTimeMs',
-  raceState: '++id'
+  entries: "++id, bib, wave, finishTimeMs",
+  raceState: "++id",
 });
 
 database.version(2).stores({
-  entries: '++id, bib, wave, finishTimeMs',
-  raceState: '++id',
-  setupConfig: '++id'
+  entries: "++id, bib, wave, finishTimeMs",
+  raceState: "++id",
+  setupConfig: "++id",
 });
 
 export const db = database as Dexie & {
