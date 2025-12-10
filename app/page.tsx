@@ -11,6 +11,7 @@ import ResultsTable from "@/components/ResultsTable";
 import EditModal from "@/components/EditModal";
 import WaveStatusBoxes from "@/components/WaveStatusBoxes";
 import WaveTimeEditModal from "@/components/WaveTimeEditModal";
+import CategoryLeaderboards from "@/components/CategoryLeaderboards";
 
 export default function Home() {
   const [raceMode, setRaceMode] = useState(false);
@@ -28,6 +29,9 @@ export default function Home() {
   const [showFullResults, setShowFullResults] = useState(false);
   const [autoBackupCounter, setAutoBackupCounter] = useState(0);
   const [activeTab, setActiveTab] = useState<"timing" | "results">("timing");
+  const [resultsView, setResultsView] = useState<"overall" | "categories">(
+    "overall"
+  ); // ← ADD THIS
   const [editingWave, setEditingWave] = useState<"A" | "B" | "C" | null>(null);
 
   // Load persisted state on mount
@@ -376,18 +380,56 @@ export default function Home() {
                 entries={entries}
                 onRecordEntry={handleRecordEntry}
                 onEditEntry={handleEditEntry}
+                onExportCSV={handleExportCSV}
                 onExportBackup={handleExportBackup}
                 onReturnToSetup={handleReturnToSetup}
                 onEditWaveTime={handleEditWaveTime}
-                onExportCSV={handleExportCSV}
               />
             ) : (
               <div className="space-y-4">
-                <h2 className="text-2xl font-bold">
-                  Complete Results - {entries.length} Finishers
-                </h2>
-                <ResultsTable entries={entries} onEditEntry={handleEditEntry} />
+                {/* Sub-tabs for Results views */}
+                <div className="flex gap-2 border-b-2 border-gray-200">
+                  <button
+                    onClick={() => setResultsView("overall")}
+                    className={`px-6 py-2 font-semibold rounded-t-lg transition ${
+                      resultsView === "overall"
+                        ? "bg-purple-600 text-white"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                  >
+                    📋 Overall Results
+                  </button>
+                  <button
+                    onClick={() => setResultsView("categories")}
+                    className={`px-6 py-2 font-semibold rounded-t-lg transition ${
+                      resultsView === "categories"
+                        ? "bg-purple-600 text-white"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                  >
+                    🏆 Category Leaderboards
+                  </button>
+                </div>
 
+                {/* Content based on selected view */}
+                {resultsView === "overall" ? (
+                  <>
+                    <h2 className="text-2xl font-bold">
+                      Complete Results - {entries.length} Finishers
+                    </h2>
+                    <ResultsTable
+                      entries={entries}
+                      onEditEntry={handleEditEntry}
+                    />
+                  </>
+                ) : (
+                  <CategoryLeaderboards
+                    entries={entries}
+                    registrants={registrants}
+                  />
+                )}
+
+                {/* Export buttons - shown for both views */}
                 <div className="flex gap-2">
                   <button
                     onClick={handleExportCSV}
