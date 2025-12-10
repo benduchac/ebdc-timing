@@ -1,34 +1,34 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 interface WaveTimeEditModalProps {
-  wave: 'A' | 'B' | 'C';
+  wave: "A" | "B" | "C";
   currentTime: Date;
   affectedEntries: number;
   onSave: (newTime: string) => void;
   onClose: () => void;
 }
 
-export default function WaveTimeEditModal({ 
-  wave, 
-  currentTime, 
-  affectedEntries, 
-  onSave, 
-  onClose 
+export default function WaveTimeEditModal({
+  wave,
+  currentTime,
+  affectedEntries,
+  onSave,
+  onClose,
 }: WaveTimeEditModalProps) {
-  const [newTime, setNewTime] = useState('');
+  const [newTime, setNewTime] = useState("");
 
   useEffect(() => {
-    const hours = String(currentTime.getHours()).padStart(2, '0');
-    const minutes = String(currentTime.getMinutes()).padStart(2, '0');
-    const seconds = String(currentTime.getSeconds()).padStart(2, '0');
+    const hours = String(currentTime.getHours()).padStart(2, "0");
+    const minutes = String(currentTime.getMinutes()).padStart(2, "0");
+    const seconds = String(currentTime.getSeconds()).padStart(2, "0");
     setNewTime(`${hours}:${minutes}:${seconds}`);
   }, [currentTime]);
 
   const handleSave = () => {
     if (!newTime) {
-      alert('Please enter a valid start time!');
+      alert("Please enter a valid start time!");
       return;
     }
     onSave(newTime);
@@ -36,15 +36,17 @@ export default function WaveTimeEditModal({
 
   const getTimeDiff = () => {
     if (!newTime) return null;
-    
+
     const today = new Date();
-    const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    const dateStr = `${today.getFullYear()}-${String(
+      today.getMonth() + 1
+    ).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
     const oldTime = currentTime.getTime();
     const newDateTime = new Date(`${dateStr}T${newTime}`).getTime();
     const diffMs = newDateTime - oldTime;
     const diffSec = Math.abs(Math.floor(diffMs / 1000));
-    const direction = diffMs > 0 ? 'later' : 'earlier';
-    
+    const direction = diffMs > 0 ? "later" : "earlier";
+
     return { diffSec, direction };
   };
 
@@ -60,20 +62,25 @@ export default function WaveTimeEditModal({
         <div className="mb-4 p-3 bg-yellow-50 border-2 border-yellow-400 rounded-lg">
           <div className="font-bold text-yellow-800 mb-1">⚠️ Important</div>
           <div className="text-sm text-yellow-700">
-            Changing this will recalculate <strong>{affectedEntries} existing entries</strong> for Wave {wave}.
+            Changing this will recalculate{" "}
+            <strong>{affectedEntries} existing entries</strong> for Wave {wave}.
             All elapsed times will be updated based on the new start time.
           </div>
         </div>
 
         <div className="mb-4 p-3 bg-gray-100 rounded-lg">
-          <div className="text-sm font-semibold text-gray-600 mb-1">Current Start Time:</div>
+          <div className="text-sm font-semibold text-gray-600 mb-1">
+            Current Start Time:
+          </div>
           <div className="text-xl font-mono font-bold text-gray-800">
-            {currentTime.toLocaleTimeString('en-US', { hour12: false })}
+            {currentTime.toLocaleTimeString("en-US", { hour12: true })}
           </div>
         </div>
 
         <div className="mb-4">
-          <label className="block mb-2 font-bold text-sm">New Start Time (HH:MM:SS)</label>
+          <label className="block mb-2 font-bold text-sm">
+            New Start Time (HH:MM:SS)
+          </label>
           <input
             type="time"
             step="1"
@@ -81,10 +88,14 @@ export default function WaveTimeEditModal({
             onChange={(e) => setNewTime(e.target.value)}
             className="w-full p-3 text-lg font-mono border-2 border-purple-300 rounded-lg focus:border-purple-500 focus:outline-none"
           />
-          
+
           {timeDiff && timeDiff.diffSec > 0 && (
             <div className="mt-2 text-sm text-gray-600">
-              📊 This is <strong>{timeDiff.diffSec} seconds {timeDiff.direction}</strong> than current
+              📊 This is{" "}
+              <strong>
+                {timeDiff.diffSec} seconds {timeDiff.direction}
+              </strong>{" "}
+              than current
             </div>
           )}
         </div>
