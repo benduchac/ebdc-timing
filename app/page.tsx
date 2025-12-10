@@ -234,9 +234,6 @@ const handleSaveWaveTime = (wave: 'A' | 'B' | 'C', newTimeStr: string) => {
   const day = String(today.getDate()).padStart(2, '0');
   const newDateTime = new Date(`${year}-${month}-${day}T${newTimeStr}`);
 
-  // Create backup before changing
-  handleAutoBackup();
-
   // Update wave start times
   const updatedWaveStartTimes = {
     ...waveStartTimes,
@@ -352,6 +349,7 @@ const backup = {
         onRecordEntry={handleRecordEntry}
         onEditEntry={handleEditEntry}
         onExportBackup={handleExportBackup}
+        onExportCSV={handleExportCSV}
         onReturnToSetup={handleReturnToSetup}
         onEditWaveTime={handleEditWaveTime}
       />

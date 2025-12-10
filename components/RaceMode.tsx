@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import type { Registrant, Entry } from '@/lib/types';
 import { formatElapsedTime } from '@/lib/utils';
 import WaveStatusBoxes from './WaveStatusBoxes';
+import TopTenLeaderboard from './TopTenLeaderboard';
 
 interface RaceModeProps {
   waveStartTimes: { A: Date; B: Date; C: Date };
@@ -13,6 +14,7 @@ interface RaceModeProps {
   onEditEntry: (id: number) => void;
   onExportBackup: () => void;
   onReturnToSetup: () => void;
+  onExportCSV: () => void;
   onEditWaveTime: (wave: 'A' | 'B' | 'C') => void;  // ← ADD THIS LINE
 }
 
@@ -142,7 +144,8 @@ export default function RaceMode({
         ⚠️ KEEP THIS TAB OPEN! Data auto-saves to IndexedDB
       </div>
 
-      {/* ADD THIS: */}
+
+{/* Wave Status Boxes */}
 <WaveStatusBoxes
   waveStartTimes={waveStartTimes}
   entries={entries}
@@ -150,127 +153,138 @@ export default function RaceMode({
   onEditWaveTime={onEditWaveTime}
 />
 
-      {/* Input Section */}
-      <div className="bg-gray-100 rounded-lg p-4 mb-4">
-        <label className="block mb-2 font-bold text-sm">Bib Number</label>
-        <input
-          ref={bibInputRef}
-          type="text"
-          inputMode="numeric"
-          value={bibNumber}
-          onChange={(e) => setBibNumber(e.target.value)}
-          onKeyPress={handleKeyPress}
-          placeholder="Enter bib number"
-          className="w-full p-3 text-lg border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
-        />
+{/* Two-column layout: Main timing on left, Top Ten on right */}
+<div className="flex gap-4 mb-4">
+  {/* Left column - Main timing interface */}
+  <div className="flex-1 space-y-4">
+    {/* Input Section */}
+    <div className="bg-gray-100 rounded-lg p-4">
+      <label className="block mb-2 font-bold text-sm">Bib Number</label>
+      <input
+        ref={bibInputRef}
+        type="text"
+        inputMode="numeric"
+        value={bibNumber}
+        onChange={(e) => setBibNumber(e.target.value)}
+        onKeyPress={handleKeyPress}
+        placeholder="Enter bib number"
+        className="w-full p-3 text-lg border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+      />
 
-        {/* Rider Info */}
-        {riderInfo && (
-          <div className="mt-3 bg-blue-100 border-2 border-blue-400 rounded-lg p-3">
-            <div className="text-xl font-bold text-blue-800">
-              {riderInfo.firstName} {riderInfo.lastName}
-            </div>
-            <div className="text-gray-700">
-              Wave {riderInfo.wave} • Bib #{riderInfo.bib}
-            </div>
+      {/* Rider Info */}
+      {riderInfo && (
+        <div className="mt-3 bg-blue-100 border-2 border-blue-400 rounded-lg p-3">
+          <div className="text-xl font-bold text-blue-800">
+            {riderInfo.firstName} {riderInfo.lastName}
           </div>
-        )}
-
-        {/* Error Message */}
-        {errorMessage && (
-          <div className="mt-3 bg-red-100 border-2 border-red-400 rounded-lg p-3 text-red-800 font-bold text-sm">
-            {errorMessage}
+          <div className="text-gray-700">
+            Wave {riderInfo.wave} • Bib #{riderInfo.bib}
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Record Button */}
-        <button
-          onClick={handleRecordFinish}
-          className="w-full mt-3 py-4 text-xl font-bold bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
-        >
-          ✅ RECORD FINISH TIME (Enter)
-        </button>
+      {/* Error Message */}
+      {errorMessage && (
+        <div className="mt-3 bg-red-100 border-2 border-red-400 rounded-lg p-3 text-red-800 font-bold text-sm">
+          {errorMessage}
+        </div>
+      )}
 
-        {/* Unknown Button */}
-        <button
-          onClick={handleUnknownFinisher}
-          className="w-full mt-2 py-3 text-lg font-bold bg-yellow-500 text-gray-900 rounded-lg hover:bg-yellow-600 transition"
-        >
-          ❓ UNKNOWN FINISHER (U)
-        </button>
-      </div>
+      {/* Record Button */}
+      <button
+        onClick={handleRecordFinish}
+        className="w-full mt-3 py-4 text-xl font-bold bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+      >
+        ✅ RECORD FINISH TIME (Enter)
+      </button>
 
-      {/* Recent Finishers */}
-      <div className="mb-4">
-        <h3 className="text-lg font-bold mb-2">Recent Finishers (Last 10)</h3>
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-purple-600 text-white">
+      {/* Unknown Button */}
+      <button
+        onClick={handleUnknownFinisher}
+        className="w-full mt-2 py-3 text-lg font-bold bg-yellow-500 text-gray-900 rounded-lg hover:bg-yellow-600 transition"
+      >
+        ❓ UNKNOWN FINISHER (U)
+      </button>
+    </div>
+
+    {/* Recent Finishers */}
+    <div>
+      <h3 className="text-lg font-bold mb-2">Recent Finishers (Last 10)</h3>
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-purple-600 text-white">
+            <tr>
+              <th className="p-2 text-left">Bib</th>
+              <th className="p-2 text-left">Name</th>
+              <th className="p-2 text-left">Wave</th>
+              <th className="p-2 text-left">Finish Time</th>
+              <th className="p-2 text-left">Elapsed</th>
+            </tr>
+          </thead>
+          <tbody>
+            {recentEntries.length === 0 ? (
               <tr>
-                <th className="p-2 text-left">Bib</th>
-                <th className="p-2 text-left">Name</th>
-                <th className="p-2 text-left">Wave</th>
-                <th className="p-2 text-left">Finish Time</th>
-                <th className="p-2 text-left">Elapsed</th>
+                <td colSpan={5} className="p-4 text-center text-gray-500">
+                  No finishers yet. Record your first finish!
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {recentEntries.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="p-4 text-center text-gray-500">
-                    No finishers yet. Record your first finish!
+            ) : (
+              recentEntries.map((entry) => (
+                <tr key={entry.id} className="border-b border-gray-200 hover:bg-gray-50">
+                  <td className="p-2 font-bold">{entry.bib}</td>
+                  <td className="p-2">{entry.firstName} {entry.lastName}</td>
+                  <td className="p-2">{entry.wave ? `Wave ${entry.wave}` : <span className="text-yellow-600 font-bold">Unknown</span>}</td>
+                  <td className="p-2">{entry.finishTime}</td>
+                  <td className="p-2 font-bold">
+                    {entry.elapsedMs !== null ? formatElapsedTime(entry.elapsedMs) : 'N/A'}
                   </td>
                 </tr>
-              ) : (
-                recentEntries.map((entry) => (
-                  <tr key={entry.id} className="border-b border-gray-200 hover:bg-gray-50">
-                    <td className="p-2 font-bold">{entry.bib}</td>
-                    <td className="p-2">{entry.firstName} {entry.lastName}</td>
-                    <td className="p-2">{entry.wave ? `Wave ${entry.wave}` : <span className="text-yellow-600 font-bold">Unknown</span>}</td>
-                    <td className="p-2">{entry.finishTime}</td>
-                    <td className="p-2 font-bold">
-                      {entry.elapsedMs !== null ? formatElapsedTime(entry.elapsedMs) : 'N/A'}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Options Section */}
-      <div className="border-t-2 border-gray-300 pt-4">
-        <button
-          onClick={() => setShowOptions(!showOptions)}
-          className="w-full py-3 bg-gray-200 rounded-lg font-bold text-gray-800 hover:bg-gray-300 transition"
-        >
-          ⚙️ Options & Export
-        </button>
-
-        {showOptions && (
-          <div className="mt-3 bg-gray-100 rounded-lg p-4 space-y-2">
-            <button
-              onClick={onExportCSV}
-              className="w-full py-2 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700"
-            >
-              📊 Export Results CSV
-            </button>
-            <button
-              onClick={onExportBackup}
-              className="w-full py-2 bg-purple-600 text-white rounded-lg font-bold hover:bg-purple-700"
-            >
-              💾 Download Backup JSON
-            </button>
-            <button
-              onClick={onReturnToSetup}
-              className="w-full py-2 bg-yellow-500 text-gray-900 rounded-lg font-bold hover:bg-yellow-600"
-            >
-              ⚙️ Return to Setup
-            </button>
-          </div>
-        )}
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
-  );
+  </div>
+
+  {/* Right column - Top Ten Leaderboard */}
+  <div className="w-80">
+    <TopTenLeaderboard entries={entries} />
+  </div>
+</div>
+
+{/* Options Section */}
+<div className="border-t-2 border-gray-300 pt-4">
+  <button
+    onClick={() => setShowOptions(!showOptions)}
+    className="w-full py-3 bg-gray-200 rounded-lg font-bold text-gray-800 hover:bg-gray-300 transition"
+  >
+    ⚙️ Options & Export
+  </button>
+
+  {showOptions && (
+    <div className="mt-3 bg-gray-100 rounded-lg p-4 space-y-2">
+      <button
+        onClick={onExportCSV}
+        className="w-full py-2 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700"
+      >
+        📊 Export Results CSV
+      </button>
+      <button
+        onClick={onExportBackup}
+        className="w-full py-2 bg-purple-600 text-white rounded-lg font-bold hover:bg-purple-700"
+      >
+        💾 Download Backup JSON
+      </button>
+      <button
+        onClick={onReturnToSetup}
+        className="w-full py-2 bg-yellow-500 text-gray-900 rounded-lg font-bold hover:bg-yellow-600"
+      >
+        ⚙️ Return to Setup
+      </button>
+    </div>
+  )}
+</div>
+</div>
+  )
 }
