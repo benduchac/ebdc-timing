@@ -257,7 +257,6 @@ export default function Home() {
     const day = String(today.getDate()).padStart(2, "0");
     const newDateTime = new Date(`${year}-${month}-${day}T${newTimeStr}`);
 
-
     // Update wave start times
     const updatedWaveStartTimes = {
       ...waveStartTimes,
@@ -325,7 +324,10 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-500 to-purple-800 p-4">
+    <div
+      className="min-h-screen p-4 bg-cover bg-center bg-no-repeat bg-fixed"
+      style={{ backgroundImage: "url(/timing_bg.webp)" }}
+    >
       <div className="max-w-6xl mx-auto bg-white rounded-xl shadow-2xl p-6">
         {/* Header */}
         <div className="text-center mb-6 border-b-4 border-purple-600 pb-4">
@@ -369,8 +371,6 @@ export default function Home() {
                 📊 FULL RESULTS
               </button>
             </div>
-
-
 
             {/* Tab Content */}
             {activeTab === "timing" ? (
