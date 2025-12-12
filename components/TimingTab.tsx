@@ -6,37 +6,32 @@ import { formatElapsedTime } from "@/lib/utils";
 import WaveStatusBoxes from "./WaveStatusBoxes";
 import TopTenLeaderboard from "./TopTenLeaderboard";
 
-interface RaceModeProps {
+interface TimingTabProps {
   waveStartTimes: { A: Date; B: Date; C: Date };
   registrants: Map<string, Registrant>;
   entries: Entry[];
   onRecordEntry: (entry: Omit<Entry, "id">) => void;
   onEditEntry: (id: number) => void;
-  onExportBackup: () => void;
-  onReturnToSetup: () => void;
+  onDeleteEntry: (id: number) => void;
   onExportCSV: () => void;
-  onEditWaveTime: (wave: "A" | "B" | "C") => void; // ← ADD THIS LINE
+  onEditWaveTime: (wave: "A" | "B" | "C") => void;
 }
 
-export default function RaceMode({
+export default function TimingTab({
   waveStartTimes,
   registrants,
   entries,
   onRecordEntry,
   onEditEntry,
+  onDeleteEntry,
   onExportCSV,
-  onExportBackup,
-  onReturnToSetup,
   onEditWaveTime,
-}: RaceModeProps) {
+}: TimingTabProps) {
   const [bibNumber, setBibNumber] = useState("");
   const [riderInfo, setRiderInfo] = useState<Registrant | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
-  const [showOptions, setShowOptions] = useState(false);
-  const [currentTime, setCurrentTime] = useState(
-    new Date().toLocaleTimeString("en-US", { hour12: true })
-  );
   const bibInputRef = useRef<HTMLInputElement>(null);
+
   // Helper to check if a bib is duplicated
   const isDuplicateBib = (bib: string): boolean => {
     return entries.filter((e) => e.bib === bib).length > 1;
@@ -83,7 +78,7 @@ export default function RaceMode({
         );
       } else {
         setErrorMessage(
-          `⚠️ Bib #${bibNumber} not found. Entry will be recorded - use Edit to assign wave.`
+          `⚠️ Bib #${bibNumber} not found in registration. Entry will still be recorded.`
         );
       }
     }
@@ -106,11 +101,9 @@ export default function RaceMode({
       );
 
       if (!confirmed) {
-        // User wants to fix - select all text for easy correction
         bibInputRef.current?.select();
         return;
       }
-      // If confirmed, continue with recording below
     }
 
     const now = new Date();
@@ -169,21 +162,12 @@ export default function RaceMode({
     }
   };
 
-  const waveACounts = entries.filter((e) => e.wave === "A").length;
-  const waveBCounts = entries.filter((e) => e.wave === "B").length;
-  const waveCCounts = entries.filter((e) => e.wave === "C").length;
-
   // Get last 10 entries
   const recentEntries = [...entries].reverse().slice(0, 10);
 
   return (
     <div>
-      {/* Warning */}
-      <div className="bg-yellow-100 border-2 border-yellow-400 rounded-lg p-3 mb-4 text-center font-bold text-yellow-800">
-        ⚠️ KEEP THIS TAB OPEN! Data auto-saves to IndexedDB
-      </div>
-
-      {/* ADD THIS: */}
+      {/* Wave Status Boxes */}
       <WaveStatusBoxes
         waveStartTimes={waveStartTimes}
         entries={entries}
@@ -227,7 +211,7 @@ export default function RaceMode({
                 className={`mt-3 border-2 rounded-lg p-3 font-bold text-sm ${
                   errorMessage.includes("DUPLICATE")
                     ? "bg-orange-100 border-orange-500 text-orange-900"
-                    : "bg-red-100 border-red-400 text-red-800"
+                    : "bg-yellow-100 border-yellow-400 text-yellow-800"
                 }`}
               >
                 {errorMessage}
@@ -253,9 +237,15 @@ export default function RaceMode({
 
           {/* Recent Finishers */}
           <div>
-            <h3 className="text-lg font-bold mb-2">
-              Recent Finishers (Last 10)
-            </h3>
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-lg font-bold">Recent Finishers (Last 10)</h3>
+              <button
+                onClick={onExportCSV}
+                className="px-3 py-1 bg-green-600 text-white rounded font-semibold text-sm hover:bg-green-700"
+              >
+                📊 Export CSV
+              </button>
+            </div>
             <div className="bg-white rounded-lg shadow overflow-hidden">
               <table className="w-full text-sm">
                 <thead className="bg-purple-600 text-white">
@@ -263,8 +253,8 @@ export default function RaceMode({
                     <th className="p-2 text-left">Bib</th>
                     <th className="p-2 text-left">Name</th>
                     <th className="p-2 text-left">Wave</th>
-                    <th className="p-2 text-left">Finish Time</th>
-                    <th className="p-2 text-left">Edit</th>
+                    <th className="p-2 text-left">Time</th>
+                    <th className="p-2 text-left">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -309,10 +299,17 @@ export default function RaceMode({
                           <td className="p-2">
                             <button
                               onClick={() => onEditEntry(entry.id)}
-                              className="text-purple-600 hover:text-purple-800 text-lg"
+                              className="text-purple-600 hover:text-purple-800 mr-2"
                               title="Edit"
                             >
                               ✏️
+                            </button>
+                            <button
+                              onClick={() => onDeleteEntry(entry.id)}
+                              className="text-red-600 hover:text-red-800"
+                              title="Delete"
+                            >
+                              🗑️
                             </button>
                           </td>
                         </tr>
@@ -331,54 +328,13 @@ export default function RaceMode({
         </div>
       </div>
 
-      {/* Options Section */}
-      <div className="border-t-2 border-gray-300 pt-4">
-        <button
-          onClick={() => {
-            setShowOptions(!showOptions);
-            // Scroll after a tiny delay to let the DOM update
-            if (!showOptions) {
-              setTimeout(() => {
-                const optionsElement =
-                  document.getElementById("options-content");
-                optionsElement?.scrollIntoView({
-                  behavior: "smooth",
-                  block: "nearest",
-                });
-              }, 100);
-            }
-          }}
-          className="w-full py-3 bg-gray-200 rounded-lg font-bold text-gray-800 hover:bg-gray-300 transition"
-        >
-          ⚙️ Options & Export
-        </button>
-
-        {showOptions && (
-          <div
-            id="options-content"
-            className="mt-3 bg-gray-100 rounded-lg p-4 space-y-2"
-          >
-            <button
-              onClick={onExportCSV}
-              className="w-full py-2 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700"
-            >
-              📊 Export Results CSV
-            </button>
-            <button
-              onClick={onExportBackup}
-              className="w-full py-2 bg-purple-600 text-white rounded-lg font-bold hover:bg-purple-700"
-            >
-              💾 Download Backup JSON
-            </button>
-            <button
-              onClick={onReturnToSetup}
-              className="w-full py-2 bg-yellow-500 text-gray-900 rounded-lg font-bold hover:bg-yellow-600"
-            >
-              ⚙️ Return to Setup
-            </button>
-          </div>
-        )}
-      </div>
+      {/* Registrant count reminder */}
+      {registrants.size === 0 && (
+        <div className="bg-yellow-100 border-2 border-yellow-400 rounded-lg p-3 text-center text-yellow-800 font-semibold">
+          ⚠️ No registrants loaded. Go to Registration tab to upload CSV or add
+          riders.
+        </div>
+      )}
     </div>
   );
 }

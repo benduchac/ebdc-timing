@@ -6,11 +6,13 @@ import { formatElapsedTime } from "@/lib/utils";
 interface ResultsTableProps {
   entries: Entry[];
   onEditEntry: (id: number) => void;
+  onDeleteEntry?: (id: number) => void; // Optional for backward compatibility
 }
 
 export default function ResultsTable({
   entries,
   onEditEntry,
+  onDeleteEntry,
 }: ResultsTableProps) {
   // Separate valid entries from unknown
   const validEntries = entries.filter((e) => e.wave !== null);
@@ -62,17 +64,18 @@ export default function ResultsTable({
 
   return (
     <div className="bg-white rounded-lg shadow overflow-hidden">
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
         <table className="w-full text-sm">
           <thead className="bg-purple-600 text-white sticky top-0">
             <tr>
               <th className="p-2 text-left">Overall</th>
+              <th className="p-2 text-left">Wave Pl.</th>
               <th className="p-2 text-left">Bib</th>
               <th className="p-2 text-left">Name</th>
               <th className="p-2 text-left">Wave</th>
               <th className="p-2 text-left">Finish Time</th>
               <th className="p-2 text-left">Elapsed</th>
-              <th className="p-2 text-left"></th>
+              <th className="p-2 text-left">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -93,6 +96,11 @@ export default function ResultsTable({
                   <td className="p-2">
                     <span className="inline-block px-2 py-1 rounded-full text-xs font-bold bg-yellow-400 text-gray-900">
                       {overallPlace}
+                    </span>
+                  </td>
+                  <td className="p-2">
+                    <span className="inline-block px-2 py-1 rounded-full text-xs font-bold bg-purple-200 text-purple-800">
+                      {wavePlace}
                     </span>
                   </td>
                   <td className="p-2 font-bold">
@@ -121,56 +129,79 @@ export default function ResultsTable({
                   <td className="p-2">
                     <button
                       onClick={() => onEditEntry(entry.id)}
-                      className="text-purple-600 hover:text-purple-800 text-lg"
+                      className="text-purple-600 hover:text-purple-800 mr-2"
                       title="Edit"
                     >
                       ✏️
                     </button>
+                    {onDeleteEntry && (
+                      <button
+                        onClick={() => onDeleteEntry(entry.id)}
+                        className="text-red-600 hover:text-red-800"
+                        title="Delete"
+                      >
+                        🗑️
+                      </button>
+                    )}
                   </td>
                 </tr>
               );
             })}
 
-            {unknownEntries.map((entry) => (
-              <tr
-                key={entry.id}
-                className="border-b border-gray-200 bg-yellow-50"
-              >
-                <td className="p-2 text-gray-400">-</td>
-                <td className="p-2 text-gray-400">-</td>
-                <td className="p-2 font-bold">{entry.bib}</td>
-                <td className="p-2">
-                  {entry.firstName} {entry.lastName}
-                </td>
-                <td className="p-2">
-                  <span className="inline-block px-2 py-1 rounded-full text-xs font-bold bg-yellow-400 text-gray-900">
-                    ASSIGN WAVE
-                  </span>
-                </td>
-                <td className="p-2">
-                  {new Date(entry.finishTimeMs).toLocaleTimeString("en-US", {
-                    hour: "numeric",
-                    minute: "2-digit",
-                    second: "2-digit",
-                    hour12: true,
-                  })}
-                </td>
-                <td className="p-2 font-bold">
-                  {entry.elapsedMs !== null
-                    ? formatElapsedTime(entry.elapsedMs)
-                    : "N/A"}
-                </td>
-                <td className="p-2">
-                  <button
-                    onClick={() => onEditEntry(entry.id)}
-                    className="text-purple-600 hover:text-purple-800 text-lg"
-                    title="Edit"
-                  >
-                    ✏️
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {unknownEntries.map((entry) => {
+              const isDuplicate = isDuplicateBib(entry.bib, entries);
+
+              return (
+                <tr
+                  key={entry.id}
+                  className="border-b border-gray-200 bg-yellow-50"
+                >
+                  <td className="p-2 text-gray-400">-</td>
+                  <td className="p-2 text-gray-400">-</td>
+                  <td className="p-2 font-bold">
+                    {isDuplicate && (
+                      <span className="text-orange-600 mr-1">⚠️</span>
+                    )}
+                    {entry.bib}
+                  </td>
+                  <td className="p-2">
+                    {entry.firstName} {entry.lastName}
+                  </td>
+                  <td className="p-2">
+                    <span className="inline-block px-2 py-1 rounded-full text-xs font-bold bg-yellow-400 text-gray-900">
+                      ASSIGN WAVE
+                    </span>
+                  </td>
+                  <td className="p-2">
+                    {new Date(entry.finishTimeMs).toLocaleTimeString("en-US", {
+                      hour: "numeric",
+                      minute: "2-digit",
+                      second: "2-digit",
+                      hour12: true,
+                    })}
+                  </td>
+                  <td className="p-2 font-bold">-</td>
+                  <td className="p-2">
+                    <button
+                      onClick={() => onEditEntry(entry.id)}
+                      className="text-purple-600 hover:text-purple-800 mr-2"
+                      title="Edit"
+                    >
+                      ✏️
+                    </button>
+                    {onDeleteEntry && (
+                      <button
+                        onClick={() => onDeleteEntry(entry.id)}
+                        className="text-red-600 hover:text-red-800"
+                        title="Delete"
+                      >
+                        🗑️
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
