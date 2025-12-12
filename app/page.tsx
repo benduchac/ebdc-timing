@@ -135,9 +135,24 @@ export default function Home() {
   useEffect(() => {
     const saveWaveTimes = async () => {
       try {
-        const waveATime = `${String(waveStartTimes.A.getHours()).padStart(2, "0")}:${String(waveStartTimes.A.getMinutes()).padStart(2, "0")}:${String(waveStartTimes.A.getSeconds()).padStart(2, "0")}`;
-        const waveBTime = `${String(waveStartTimes.B.getHours()).padStart(2, "0")}:${String(waveStartTimes.B.getMinutes()).padStart(2, "0")}:${String(waveStartTimes.B.getSeconds()).padStart(2, "0")}`;
-        const waveCTime = `${String(waveStartTimes.C.getHours()).padStart(2, "0")}:${String(waveStartTimes.C.getMinutes()).padStart(2, "0")}:${String(waveStartTimes.C.getSeconds()).padStart(2, "0")}`;
+        const waveATime = `${String(waveStartTimes.A.getHours()).padStart(
+          2,
+          "0"
+        )}:${String(waveStartTimes.A.getMinutes()).padStart(2, "0")}:${String(
+          waveStartTimes.A.getSeconds()
+        ).padStart(2, "0")}`;
+        const waveBTime = `${String(waveStartTimes.B.getHours()).padStart(
+          2,
+          "0"
+        )}:${String(waveStartTimes.B.getMinutes()).padStart(2, "0")}:${String(
+          waveStartTimes.B.getSeconds()
+        ).padStart(2, "0")}`;
+        const waveCTime = `${String(waveStartTimes.C.getHours()).padStart(
+          2,
+          "0"
+        )}:${String(waveStartTimes.C.getMinutes()).padStart(2, "0")}:${String(
+          waveStartTimes.C.getSeconds()
+        ).padStart(2, "0")}`;
 
         await db.setupConfig.clear();
         await db.setupConfig.add({
@@ -337,7 +352,9 @@ export default function Home() {
         if (
           entries.length > 0 &&
           !confirm(
-            `Replace current data (${entries.length} entries) with backup (${backup.entries?.length || 0} entries)?`
+            `Replace current data (${entries.length} entries) with backup (${
+              backup.entries?.length || 0
+            } entries)?`
           )
         ) {
           return;
@@ -361,7 +378,9 @@ export default function Home() {
         }
 
         alert(
-          `✅ Loaded backup: ${backup.registrants?.length || 0} registrants, ${backup.entries?.length || 0} entries`
+          `✅ Loaded backup: ${backup.registrants?.length || 0} registrants, ${
+            backup.entries?.length || 0
+          } entries`
         );
 
         // Switch to appropriate tab
@@ -453,7 +472,8 @@ export default function Home() {
         {/* Status Bar */}
         <div className="flex gap-4 mb-4 text-sm">
           <div className="bg-purple-100 px-3 py-1 rounded-full">
-            <span className="font-semibold">{registrants.size}</span> registrants
+            <span className="font-semibold">{registrants.size}</span>{" "}
+            registrants
           </div>
           <div className="bg-green-100 px-3 py-1 rounded-full">
             <span className="font-semibold">{entries.length}</span> finishers
