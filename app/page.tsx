@@ -12,6 +12,7 @@ import EditModal from "@/components/EditModal";
 import WaveStatusBoxes from "@/components/WaveStatusBoxes";
 import WaveTimeEditModal from "@/components/WaveTimeEditModal";
 import CategoryLeaderboards from "@/components/CategoryLeaderboards";
+import { calculateAge } from "@/lib/categories";
 
 export default function Home() {
   const [raceMode, setRaceMode] = useState(false);
@@ -205,14 +206,23 @@ export default function Home() {
       });
     });
 
+    // Updated CSV header with DOB and Gender
     let csv =
-      "Overall Place,Wave Place,Bib Number,First Name,Last Name,Wave,Finish Time,Elapsed Time,Full Timestamp\n";
+      "Overall Place,Wave Place,Bib Number,First Name,Last Name,Wave,DOB,Gender,Age,Finish Time,Elapsed Time,Finish Timestamp\n";
+
     sorted.forEach((entry, index) => {
       const overallPlace = index + 1;
       const wavePlace = entry.wave
         ? wavePlacements[entry.wave].findIndex((e) => e.id === entry.id) + 1
         : "";
-      csv += `${overallPlace},${wavePlace},${entry.bib},${entry.firstName},${entry.lastName},${entry.wave},${entry.finishTime},${entry.elapsedTime},${entry.timestamp}\n`;
+
+      // Look up registrant data
+      const registrant = registrants.get(entry.bib);
+      const dob = registrant?.dob || "N/A";
+      const gender = registrant?.gender || "N/A";
+      const age = registrant ? calculateAge(registrant.dob) : "N/A";
+
+      csv += `${overallPlace},${wavePlace},${entry.bib},${entry.firstName},${entry.lastName},${entry.wave},${dob},${gender},${age},${entry.finishTime},${entry.elapsedTime},${entry.timestamp}\n`;
     });
 
     downloadFile(csv, `EBDC-results-${getDateString()}.csv`, "text/csv");
