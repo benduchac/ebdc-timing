@@ -57,14 +57,21 @@ database.version(2).stores({
   setupConfig: "++id",
 });
 
+// v3: drop the unused `entries` store. Entry data has always lived inside the
+// single `raceState` snapshot row; this table and its indexes were never
+// written to. Setting the store to null deletes it (no data to migrate).
+database.version(3).stores({
+  raceState: "++id",
+  setupConfig: "++id",
+  entries: null,
+});
+
 export const db = database as Dexie & {
-  entries: Dexie.Table<Entry, number>;
   raceState: Dexie.Table<RaceState, number>;
   setupConfig: Dexie.Table<SetupConfig, number>;
 };
 
 export async function clearAllData(): Promise<void> {
-  await db.entries.clear();
   await db.raceState.clear();
   await db.setupConfig.clear();
 }
