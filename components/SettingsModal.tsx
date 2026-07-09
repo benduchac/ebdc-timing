@@ -185,7 +185,7 @@ export default function SettingsModal({
 
                 <div>
                   <label className="block mb-1 font-bold text-sm text-red-700">
-                    Type "RESET" to confirm:
+                    Type &quot;RESET&quot; to confirm:
                   </label>
                   <input
                     type="text"

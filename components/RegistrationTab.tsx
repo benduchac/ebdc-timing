@@ -535,14 +535,14 @@ export default function RegistrationTab({
               {hasTimingData && (
                 <p className="text-red-600 text-sm mt-2">
                   ⚠️ This rider may have timing entries that will become
-                  "Unknown Rider"
+                  &quot;Unknown Rider&quot;
                 </p>
               )}
             </div>
 
             <div className="mb-4">
               <label className="block mb-2 font-bold text-sm">
-                Type "{deleteConfirmBib}" to confirm:
+                Type &quot;{deleteConfirmBib}&quot; to confirm:
               </label>
               <input
                 type="text"

@@ -1,9 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { db, clearAllData } from "@/lib/db";
-import type { Registrant, Entry, RaceState } from "@/lib/types";
-import { downloadFile, getDateString, formatElapsedTime } from "@/lib/utils";
+import type { Registrant, Entry } from "@/lib/types";
+import {
+  downloadFile,
+  getDateString,
+  formatElapsedTime,
+  csvField,
+} from "@/lib/utils";
 import RegistrationTab from "@/components/RegistrationTab";
 import TimingTab from "@/components/TimingTab";
 import ResultsTable from "@/components/ResultsTable";
@@ -24,6 +29,9 @@ export default function Home() {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [entryCounter, setEntryCounter] = useState(0);
   const [autoBackupCounter, setAutoBackupCounter] = useState(0);
+  // Number of entries that existed at the last auto-backup. Used to trigger a
+  // fresh backup every 10 newly recorded entries.
+  const lastBackupCountRef = useRef(0);
 
   // Wave start times - initialize with defaults
   const [waveStartTimes, setWaveStartTimes] = useState<{
@@ -70,6 +78,9 @@ export default function Home() {
           setRegistrants(new Map(state.registrants));
           setEntries(state.entries);
           setEntryCounter(state.entryCounter);
+          // Baseline the auto-backup counter to restored data so reloading
+          // doesn't immediately trigger a backup download.
+          lastBackupCountRef.current = state.entries.length;
 
           // If there are entries, go to timing tab
           if (state.entries.length > 0) {
@@ -110,17 +121,21 @@ export default function Home() {
       // Only save if we have registrants or entries
       if (registrants.size > 0 || entries.length > 0) {
         try {
-          await db.raceState.clear();
-          await db.raceState.add({
-            waveStartTimes: {
-              A: waveStartTimes.A.toISOString(),
-              B: waveStartTimes.B.toISOString(),
-              C: waveStartTimes.C.toISOString(),
-            },
-            registrants: Array.from(registrants.entries()),
-            entries,
-            entryCounter,
-            lastSaved: new Date().toISOString(),
+          // Atomic replace so a rapid follow-up save can't interleave between
+          // the clear and the add and momentarily empty the store.
+          await db.transaction("rw", db.raceState, async () => {
+            await db.raceState.clear();
+            await db.raceState.add({
+              waveStartTimes: {
+                A: waveStartTimes.A.toISOString(),
+                B: waveStartTimes.B.toISOString(),
+                C: waveStartTimes.C.toISOString(),
+              },
+              registrants: Array.from(registrants.entries()),
+              entries,
+              entryCounter,
+              lastSaved: new Date().toISOString(),
+            });
           });
         } catch (error) {
           console.error("Error saving state:", error);
@@ -154,12 +169,14 @@ export default function Home() {
           waveStartTimes.C.getSeconds()
         ).padStart(2, "0")}`;
 
-        await db.setupConfig.clear();
-        await db.setupConfig.add({
-          waveATime,
-          waveBTime,
-          waveCTime,
-          lastUpdated: new Date().toISOString(),
+        await db.transaction("rw", db.setupConfig, async () => {
+          await db.setupConfig.clear();
+          await db.setupConfig.add({
+            waveATime,
+            waveBTime,
+            waveCTime,
+            lastUpdated: new Date().toISOString(),
+          });
         });
       } catch (error) {
         console.error("Error saving wave times:", error);
@@ -183,27 +200,36 @@ export default function Home() {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [entries]);
 
+  // Auto-backup every 10 newly recorded entries. Runs as an effect (after the
+  // entries state is committed) so the downloaded backup includes the entry
+  // that triggered it — a synchronous call in the record handler would miss it.
+  useEffect(() => {
+    const since = entries.length - lastBackupCountRef.current;
+    if (since >= 10) {
+      handleAutoBackup();
+      lastBackupCountRef.current = entries.length;
+      setAutoBackupCounter(0);
+    } else {
+      setAutoBackupCounter(Math.max(0, since));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entries]);
+
   // Handlers
   const handleUpdateRegistrants = (newRegistrants: Map<string, Registrant>) => {
     setRegistrants(newRegistrants);
   };
 
   const handleRecordEntry = (entry: Omit<Entry, "id">) => {
-    const newEntry = {
-      ...entry,
-      id: entryCounter + 1,
-    };
-
-    setEntries((prev) => [...prev, newEntry]);
-    setEntryCounter((prev) => prev + 1);
-    setAutoBackupCounter((prev) => {
-      const newCount = prev + 1;
-      if (newCount >= 10) {
-        handleAutoBackup();
-        return 0;
-      }
-      return newCount;
+    // Derive the id from the current entries so it stays unique even if
+    // multiple records land in one render batch (avoids id collisions that
+    // would make edit/delete target the wrong row). Auto-backup is handled by
+    // the effect below, which sees committed state.
+    setEntries((prev) => {
+      const nextId = prev.reduce((max, e) => Math.max(max, e.id), 0) + 1;
+      return [...prev, { ...entry, id: nextId }];
     });
+    setEntryCounter((prev) => prev + 1);
   };
 
   const handleEditEntry = (id: number) => {
@@ -311,7 +337,20 @@ export default function Home() {
       const wavePlace = entry.wave
         ? wavePlacements[entry.wave].findIndex((e) => e.id === entry.id) + 1
         : "";
-      csv += `${overallPlace},${wavePlace},${entry.bib},${entry.firstName},${entry.lastName},${entry.wave},${entry.finishTime},${entry.elapsedTime},${entry.timestamp}\n`;
+      csv +=
+        [
+          overallPlace,
+          wavePlace,
+          entry.bib,
+          entry.firstName,
+          entry.lastName,
+          entry.wave,
+          entry.finishTime,
+          entry.elapsedTime,
+          entry.timestamp,
+        ]
+          .map(csvField)
+          .join(",") + "\n";
     });
 
     downloadFile(csv, `EBDC-results-${getDateString()}.csv`, "text/csv");
@@ -372,6 +411,9 @@ export default function Home() {
         }
         if (backup.entries) {
           setEntries(backup.entries);
+          // Baseline auto-backup to imported data so it doesn't immediately
+          // re-download a backup.
+          lastBackupCountRef.current = backup.entries.length;
         }
         if (backup.entryCounter) {
           setEntryCounter(backup.entryCounter);
@@ -425,6 +467,7 @@ export default function Home() {
       setRegistrants(new Map());
       setEntryCounter(0);
       setAutoBackupCounter(0);
+      lastBackupCountRef.current = 0;
       setEditingEntry(null);
       setDeletingEntry(null);
 

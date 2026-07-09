@@ -56,7 +56,7 @@ export default function DeleteEntryModal({
 
         <div className="mb-4">
           <label className="block mb-2 font-bold text-sm">
-            Type "{entry.bib}" to confirm:
+            Type &quot;{entry.bib}&quot; to confirm:
           </label>
           <input
             type="text"

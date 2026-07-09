@@ -188,7 +188,7 @@ export default function TimingTab({
               inputMode="numeric"
               value={bibNumber}
               onChange={(e) => setBibNumber(e.target.value)}
-              onKeyPress={handleKeyPress}
+              onKeyDown={handleKeyPress}
               placeholder="Enter bib number"
               className="w-full p-3 text-lg border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
             />

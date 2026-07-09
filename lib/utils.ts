@@ -1,15 +1,33 @@
 import type { ClockCheckResult } from "./types";
 
 export const formatElapsedTime = (ms: number): string => {
-  const totalSeconds = Math.floor(ms / 1000);
+  // A negative elapsed time means a finish was recorded before its wave's
+  // start time (misconfigured/edited start). Surface it clearly with a leading
+  // "-" instead of rendering garbage like "-1:-1:-5".
+  const sign = ms < 0 ? "-" : "";
+  const totalSeconds = Math.floor(Math.abs(ms) / 1000);
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
 
   // Always show hours, even if 0
-  return `${hours}:${String(minutes).padStart(2, "0")}:${String(
+  return `${sign}${hours}:${String(minutes).padStart(2, "0")}:${String(
     seconds
   ).padStart(2, "0")}`;
+};
+
+/**
+ * Escape a value for safe inclusion in a CSV cell (RFC 4180).
+ * Wraps the value in double quotes and doubles any internal quotes when it
+ * contains a comma, quote, or newline. Without this, a name like "Smith, Jr."
+ * or 'O"Brien' would shift or break columns in the exported results.
+ */
+export const csvField = (value: string | number | null | undefined): string => {
+  const s = value === null || value === undefined ? "" : String(value);
+  if (/[",\r\n]/.test(s)) {
+    return `"${s.replace(/"/g, '""')}"`;
+  }
+  return s;
 };
 
 export const getDateString = (): string => {
@@ -59,7 +77,7 @@ export const verifySystemClock = async (): Promise<ClockCheckResult> => {
       diffSeconds,
       ok: diffSeconds < 60,
     };
-  } catch (error) {
+  } catch {
     return {
       localTime: new Date().toLocaleTimeString("en-US", { hour12: false }),
       ok: null,
