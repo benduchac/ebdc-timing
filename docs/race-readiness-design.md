@@ -15,8 +15,14 @@ function offline; anything that claims data is safe must be provably true.
 
 - **Done:** Phase 1 — offline-capable PWA (Serwist service worker, installable),
   deployed to Vercel, verified working offline. See [Deployment](#deployment).
-- **In progress:** the design below (Phases 2.5, 3). Phase 2 (real leaderboard)
-  and Phase 4 (clock + dry run) follow.
+- **Done:** Phase 2.5 — routing split (`/` public placeholder, `/operator`
+  gated), `OperatorGate` client-side passphrase gate, `POST /api/auth`. The PWA
+  `start_url` now points at `/operator`. **Not yet live in production** until
+  `PUBLISH_SECRET` is set as a Vercel env var (see
+  [Provisioning checklist](#provisioning-checklist-operatorowner)) — until then
+  `/operator` always shows "Operator access is not configured yet."
+- **In progress:** Phase 3 (cloud backup + race entity + recovery). Phase 2
+  (real leaderboard) and Phase 4 (clock + dry run) follow.
 
 ---
 
@@ -34,8 +40,8 @@ bare domain and get results; operator bookmarks `/operator`. Today the full
 operator app is served at `/` with Vercel protection off — that exposure is
 exactly what this closes.
 
-Currently `/results` holds a placeholder; under this design the public results
-move to `/` (or `/results` stays and `/` redirects — implementation detail).
+**Decided:** public results live at `/` (placeholder for now); `/results`
+redirects to `/` for old links.
 
 ---
 
@@ -242,19 +248,23 @@ the badge was already warning about.
 
 ## Provisioning checklist (operator/owner)
 
-Before Phase 3 can function, in the Vercel project:
-1. Create a private KV/Redis store (Upstash via Marketplace); it sets the
-   connection env vars automatically.
-2. Set `PUBLISH_SECRET` env var = the operator passphrase.
+In the Vercel project:
+1. Set `PUBLISH_SECRET` env var = the operator passphrase. **Needed now** —
+   until this is set, `/operator` refuses everyone (safe default, but also
+   locks out the real operator).
+2. Create a private KV/Redis store (Upstash via Marketplace) — needed before
+   Phase 3 (backup/sync) can function; it sets the connection env vars
+   automatically.
 3. Redeploy.
 
 ---
 
 ## Build order
 
-1. **Phase 2.5** — routing split (public `/`, gated `/operator`) + passphrase
-   gate + `POST /api/auth`. Closes the current exposure. *No provisioning needed
-   to build; gate is live once `PUBLISH_SECRET` is set.*
+1. **Phase 2.5** *(done — code)* — routing split (public `/`, gated
+   `/operator`) + passphrase gate + `POST /api/auth`. Closes the current
+   exposure. *No provisioning needed to build; gate is live once
+   `PUBLISH_SECRET` is set in production.*
 2. **Phase 3** — Race entity + `/api/backup` + `/api/races` + client sync + badge
    + race menu/recovery + readiness state. *Needs the KV store provisioned.*
 3. **Phase 2** — the real public leaderboard + publish pipeline. **Deferred:
@@ -267,8 +277,9 @@ Before Phase 3 can function, in the Vercel project:
 ## Deployment
 
 - Vercel, auto-building from `main`. Production URL:
-  `https://ebdc-timing-benduchacs-projects.vercel.app` (`/` operator today,
-  `/results` placeholder).
+  `https://ebdc-timing-benduchacs-projects.vercel.app` (`/` public placeholder,
+  `/operator` gated app — gate only opens once `PUBLISH_SECRET` is set, see
+  [Provisioning checklist](#provisioning-checklist-operatorowner)).
 - **Deployment Protection** must stay off for production (else anonymous users
   get a 302 to Vercel SSO and racers can't load results).
 - Vercel fails builds on Next.js versions with known CVEs — keep Next patched

@@ -10,6 +10,7 @@ interface SettingsModalProps {
   onExportBackup: () => void;
   onImportBackup: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onResetApp: () => void;
+  onLock: () => void;
   entryCount: number;
   registrantCount: number;
 }
@@ -20,6 +21,7 @@ export default function SettingsModal({
   onExportBackup,
   onImportBackup,
   onResetApp,
+  onLock,
   entryCount,
   registrantCount,
 }: SettingsModalProps) {
@@ -159,6 +161,21 @@ export default function SettingsModal({
                 />
               </label>
             </div>
+          </div>
+
+          {/* Session */}
+          <div className="border-2 border-gray-200 rounded-lg p-4">
+            <h3 className="font-bold mb-3">🔒 Session</h3>
+            <button
+              onClick={onLock}
+              className="w-full py-2 bg-gray-700 text-white rounded-lg font-semibold hover:bg-gray-800"
+            >
+              Lock Operator App
+            </button>
+            <p className="text-xs text-gray-500 mt-2">
+              Requires the operator passphrase to unlock again. Data already
+              saved locally is unaffected.
+            </p>
           </div>
 
           {/* Danger Zone */}

@@ -37,13 +37,21 @@ catches lint errors (which block the build) and type errors in one pass.
 
 ## Architecture
 
-Single-page app. `app/page.tsx` is the top-level container and **owns all
-state** — registrants, entries, wave start times, modal state — and passes it
+Two routes: `/` is the public results placeholder (static, no state); `/operator`
+is the actual app. `app/operator/page.tsx` is the top-level container and **owns
+all state** — registrants, entries, wave start times, modal state — and passes it
 down to three tabs plus modals. State flows down via props; children call
 handler callbacks to mutate. There is no global store or context.
 
-- `app/page.tsx` — state owner, persistence effects, CSV/backup export, all
-  entry mutation handlers.
+- `app/operator/page.tsx` — state owner, persistence effects, CSV/backup
+  export, all entry mutation handlers. Wrapped in `OperatorGate`.
+- `components/OperatorGate.tsx` — client-side passphrase gate for `/operator`;
+  validates against `POST /api/auth`, caches the passphrase in localStorage so
+  the app keeps working offline after the first unlock.
+- `app/api/auth/route.ts` — validates the passphrase against the
+  `PUBLISH_SECRET` env var. See `docs/race-readiness-design.md` "Auth model".
+- `app/page.tsx` / `app/results/page.tsx` — public placeholder + redirect to
+  `/`; no data dependency.
 - `lib/db.ts` — Dexie schema (`entries`, `raceState`, `setupConfig`) and the
   `Registrant` / `Entry` / `RaceState` / `SetupConfig` types. `clearAllData()`.
 - `lib/types.ts` — re-exports DB types plus view types (`WaveStartTimes`,
@@ -86,8 +94,8 @@ handler callbacks to mutate. There is no global store or context.
 - **Auto-backup**: every 10 newly recorded entries, a JSON backup is
   auto-downloaded (driven by an effect on `entries` so it captures committed
   state). Manual export/import lives in `SettingsModal`.
-- On load, `page.tsx` restores `raceState` if present, else falls back to
-  `setupConfig` for wave times.
+- On load, `operator/page.tsx` restores `raceState` if present, else falls back
+  to `setupConfig` for wave times.
 
 ## Conventions & gotchas
 

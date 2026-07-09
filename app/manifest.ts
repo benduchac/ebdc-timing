@@ -5,7 +5,8 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "EBDC Timing - C510",
     short_name: "EBDC Timing",
     description: "East Bay Dirt Classic race timing system",
-    start_url: "/",
+    // The installable PWA is the operator app, not the public results page.
+    start_url: "/operator",
     display: "standalone",
     background_color: "#ffffff",
     theme_color: "#9333ea",
