@@ -107,6 +107,20 @@ handler callbacks to mutate. There is no global store or context.
   (`ok: null`). Clock accuracy matters for results, but the app must work with no
   internet.
 
+## In-progress: race-readiness work
+
+The plan to make this fully race-ready — offline PWA (done), a public results
+page, confirmed cloud backup with per-race identity and recovery, and a gated
+operator surface — is specced in **`docs/race-readiness-design.md`**. Read that
+before building on the backup/sync/leaderboard/auth work; it's the source of
+truth and records the decisions and open items. Phase status also lives in the
+task list.
+
+**Recommended race-day workflow** (baked into the design): create the race and do
+all setup — load registrant CSV, set wave times — while on good internet, confirm
+"fully synced", *then* move to scoring. Creating/syncing online registers the
+race id in the cloud, which is what makes a lost/dead scoring laptop recoverable.
+
 ## Race-day operating notes
 
 - The app assumes a browser tab kept open for the whole race; `beforeunload`
