@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="96" fill="#9333ea"/>
+  <text x="256" y="230" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif"
+        font-size="150" font-weight="700" fill="#ffffff" text-anchor="middle">C510</text>
+  <text x="256" y="330" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif"
+        font-size="66" font-weight="600" fill="#e9d5ff" text-anchor="middle" letter-spacing="6">EBDC</text>
+  <text x="256" y="420" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif"
+        font-size="110" text-anchor="middle">🚴</text>
+</svg>
