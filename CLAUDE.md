@@ -102,15 +102,26 @@ context.
   page (buckets computed server-side instead).
 - `app/page.tsx` / `app/results/page.tsx` — redirect to the latest race's
   `/[slug]` (placeholder if none exist) / redirect to `/`.
+- `components/PageBackground.tsx` — the site background image, as a
+  `position: fixed` layer, not `background-attachment: fixed` on the
+  content container. See the gotcha below before adding a new page's
+  background any other way.
+- `components/CopyLinkButton.tsx` — copies the public leaderboard link;
+  shows a "Copied!" flash that fades over 3s (CSS keyframe in
+  `globals.css`) instead of `alert()`. Resolves `window.location.origin` at
+  click time, not from a prop, so it's never evaluated during SSR.
 - `lib/db.ts` — Dexie schema (`entries`, `raceState`, `setupConfig`) and the
   `Registrant` / `Entry` / `RaceState` / `SetupConfig` types. `clearAllData()`.
 - `lib/types.ts` — re-exports DB types plus view types (`WaveStartTimes`,
   `ClockCheckResult`), plus the Phase 3 race types (`Race`, `RaceSnapshot`,
   `RaceIndexEntry` — all three carry `slug`).
 - `lib/utils.ts` — `formatElapsedTime`, `formatDurationHMS` ("Xh Ym Zs" for
-  plain-language duration deltas), `csvField` (RFC 4180 CSV escaping),
-  `getDateString`, `downloadFile`, `verifySystemClock`, `getClockSeverity`
-  (fine/caution/alert/unknown from a `ClockCheckResult`).
+  plain-language duration deltas), `formatRelativeTime` ("Xs/Xm/Xh ago",
+  shared by `SyncBadge` and `SetupChecklist`'s clock panel), `normalizeBib`
+  (strips leading zeros — see gotcha below), `csvField` (RFC 4180 CSV
+  escaping), `getDateString`, `downloadFile`, `verifySystemClock`,
+  `TIME_SOURCE_LABEL`, `getClockSeverity` (fine/caution/alert/unknown from a
+  `ClockCheckResult`).
 - `lib/categories.ts` — age/gender categorization (`calculateAge`,
   `getAgeCategory`, `filterByCategory`, `getTopEntries`). `computeCategoryBuckets`
   is the one place actual bucketing happens; only call it somewhere with real
@@ -128,8 +139,10 @@ context.
   `CategoryLeaderboardGrid` directly with server-computed buckets instead).
 
 ### Modals
-`EditModal`, `DeleteEntryModal`, `WaveTimeEditModal`, `SettingsModal`
-(clock check, backup import/export, reset).
+`EditModal`, `DeleteEntryModal`, `WaveTimeEditModal`, `WaveTimesSetupModal`,
+`SettingsModal` (clock check, backup import/export, session lock, Switch
+Race, and — dev builds only — a "Reset to Blank Slate" button; see gotcha
+below).
 
 ## Data model & timing semantics
 
@@ -192,6 +205,30 @@ context.
   `https://time.now` on the site footer, README, or an About screen. Keep
   the README "Credits" section (or equivalent) if you touch `/api/time` or
   the README's structure — don't drop it silently.
+- **Always normalize bibs with `normalizeBib`** (strips leading zeros) at
+  every point one is stored, looked up, or compared — CSV upload, manual
+  add/edit, timing lookup, duplicate detection, entry editing, delete
+  confirmations. Without it, a registrant loaded as "001" silently fails to
+  match an operator typing "1" at the finish line. Don't reimplement the
+  stripping inline — same divergent-copy risk as `formatElapsedTime`.
+- **Page backgrounds must use `PageBackground`, not
+  `background-attachment: fixed` directly.** Two distinct rendering bugs
+  motivated this: (1) a vertical scrollbar appearing/disappearing shrinks
+  viewport width, which resizes any `cover`-sized fixed background —
+  fixed globally via `scrollbar-gutter: stable` in `globals.css`, not by
+  the component; (2) mobile browser chrome collapsing/expanding during
+  scroll is known to jank `attachment: fixed` specifically (preventive,
+  not confirmed against a reported symptom) — `PageBackground`'s
+  `position: fixed` avoids it.
+- **The Settings "Reset to Blank Slate" button is dev-only** (gated by
+  `isDev={process.env.NODE_ENV !== "production"}` in
+  `app/operator/page.tsx`), added for repeatedly re-testing the setup flow
+  without minting a new race each time. Its own code comment says "remove
+  before release" — that's still the intent; it hasn't been removed
+  because it's still in active use for dev testing. Confirmed hidden in a
+  production build. Don't confuse it with "Switch to a Different Race"
+  (the real, production, non-destructive escape hatch) when reading
+  `SettingsModal`'s Danger Zone.
 
 ## In-progress: race-readiness work
 

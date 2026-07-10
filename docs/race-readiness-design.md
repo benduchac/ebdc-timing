@@ -33,11 +33,11 @@ function offline; anything that claims data is safe must be provably true.
   "fine", with caution (5-30s) and alert (>=30s) tiers, auto-run whenever a
   race becomes active, surfaced in Settings and as the first panel of the
   Registration-tab setup checklist.
-- **Built, not yet pushed to production:** Phase 2 (public leaderboard).
-  Every race gets a permanent, shareable URL — `/[slug]`, derived from the
-  race label (e.g. "EBDC 7/9" → `/ebdc-7-9`), assigned once server-side on
-  first sync and deduped on collision (`-2`, `-3`, ...; labels themselves are
-  allowed to repeat, only the slug is disambiguated). `/` redirects to the
+- **Done, deployed:** Phase 2 (public leaderboard). Every race gets a
+  permanent, shareable URL — `/[slug]`, derived from the race label (e.g.
+  "EBDC 7/9" → `/ebdc-7-9`), assigned once server-side on first sync and
+  deduped on collision (`-2`, `-3`, ...; labels themselves are allowed to
+  repeat, only the slug is disambiguated). `/` redirects to the
   most-recently-synced race's slug, or shows a placeholder if none exist yet.
   Privacy: ages are never shown (removed entirely, not just for minors —
   simpler than a name-redaction rule); full names are shown because consent
@@ -47,10 +47,15 @@ function offline; anything that claims data is safe must be provably true.
   the `/[slug]` Server Component, and only the resulting PII-free `Entry[]`
   arrays are passed to the client-rendered leaderboard. Unresolved finishers
   (unmatched bib, no wave assigned) are excluded from the public view.
-  Verified end-to-end in a real browser: slug generation, dedup on a
-  duplicate label, the `/` redirect, mobile rendering (table is horizontally
-  scrollable within its card, confirmed by actually scrolling it), and that
-  no age/edit-delete/CSV-export ever appears on the public page.
+  Auto-refreshes every 20s via `router.refresh()`.
+- **Done, deployed:** post-launch polish pass — setup checklist redesign
+  (three actionable panels replacing the old readiness banner; see CLAUDE.md
+  for the full rationale), bib normalization (`normalizeBib` — "001"/"01"/"1"
+  all resolve to the same rider everywhere a bib is used), a dev-only
+  "Reset to Blank Slate" button for repeat setup-flow testing, and assorted
+  UI cleanup (green secondary buttons, richer clock-check detail text, a
+  non-blocking "Copied!" link-copy affordance, background-rendering fixes
+  for both a desktop scrollbar-width bug and a preventive mobile one).
 - **Next:** the rest of Phase 4 (full offline dry run). Deferred separately:
   a UI reskin (visual polish, explicitly no functionality changes — planned
   for after the leaderboard, in its own branch) and a stretch-goal photo
@@ -330,7 +335,7 @@ In the Vercel project:
    checklist.
 3. **Phase 4, clock half** *(done — deployed)* — clock-verification
    hardening. Full offline dry run still open.
-4. **Phase 2** *(built, not yet pushed)* — the public leaderboard, at
+4. **Phase 2** *(done — deployed)* — the public leaderboard, at
    `/[slug]` per race. Spec resolved in conversation, not deferred anymore:
    no ages shown (uniformly, not just for minors), full names shown for
    everyone (consent handled by the event's existing waiver, not tracked in
