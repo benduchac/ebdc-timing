@@ -17,6 +17,34 @@ export const formatElapsedTime = (ms: number): string => {
 };
 
 /**
+ * Normalizes a bib number by stripping leading zeros, so "001", "01", and
+ * "1" all resolve to the same identity ("1"). Bibs are always numeric in
+ * this app (registrant sorting already assumes `parseInt` works on them),
+ * so there's no case where a leading zero is meaningful — apply this
+ * anywhere a bib is stored, looked up, or compared (registrant map keys,
+ * recorded entries, duplicate checks) so a rider isn't missed just because
+ * the operator typed "1" for a bib registered as "001".
+ */
+export const normalizeBib = (bib: string): string => {
+  const stripped = bib.trim().replace(/^0+/, "");
+  return stripped === "" ? "0" : stripped;
+};
+
+/**
+ * Formats how long ago a moment was, as "Xs ago" / "Xm ago" / "Xh ago".
+ * Shared by SyncBadge and SetupChecklist's clock panel so there's one
+ * relative-time formatter, not divergent copies.
+ */
+export const formatRelativeTime = (fromMs: number, nowMs: number): string => {
+  const seconds = Math.max(0, Math.round((nowMs - fromMs) / 1000));
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.round(minutes / 60);
+  return `${hours}h ago`;
+};
+
+/**
  * Escape a value for safe inclusion in a CSV cell (RFC 4180).
  * Wraps the value in double quotes and doubles any internal quotes when it
  * contains a comma, quote, or newline. Without this, a name like "Smith, Jr."
@@ -71,11 +99,15 @@ export const downloadFile = (
   URL.revokeObjectURL(url);
 };
 
+// Friendly display name for whatever service /api/time currently proxies —
+// keep in sync with app/api/time/route.ts if the source ever changes again.
+export const TIME_SOURCE_LABEL = "time.now";
+
 export const verifySystemClock = async (): Promise<ClockCheckResult> => {
   try {
-    // Proxied through our own /api/time (see that route for why): timeapi.io
-    // doesn't send CORS headers, so calling it directly from the browser is
-    // silently blocked even though it works fine from curl or a server.
+    // Proxied through our own /api/time (see that route for why): most
+    // simple time APIs don't send CORS headers, so calling them directly
+    // from the browser is silently blocked even though curl/a server works.
     const response = await fetch("/api/time");
     const data = await response.json();
     if (!response.ok || !data.ok) {

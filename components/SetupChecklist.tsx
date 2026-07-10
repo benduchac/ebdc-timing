@@ -1,11 +1,17 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import type { ClockCheckResult } from "@/lib/types";
-import { getClockSeverity } from "@/lib/utils";
+import {
+  getClockSeverity,
+  formatRelativeTime,
+  TIME_SOURCE_LABEL,
+} from "@/lib/utils";
 
 interface SetupChecklistProps {
   registrantCount: number;
   clockCheck: ClockCheckResult | null;
+  clockCheckedAt: number | null;
   checkingClock: boolean;
   onCheckClock: () => void;
   waveStartTimes: { A: Date; B: Date; C: Date };
@@ -21,6 +27,11 @@ function formatTime(d: Date): string {
   });
 }
 
+// Green, light-weight secondary style — these are routine setup actions, not
+// primary calls to action, so a heavy solid button read as too visually loud.
+const ACTION_BUTTON =
+  "w-full py-1.5 bg-green-100 text-green-800 rounded font-semibold text-sm hover:bg-green-200 disabled:opacity-50 disabled:hover:bg-green-100";
+
 // Registration-tab-only setup checklist — three actionable panels, each
 // completable without leaving this screen. Collapses to a single calm line
 // once all three are done. Deliberately doesn't include sync status: that
@@ -30,6 +41,7 @@ function formatTime(d: Date): string {
 export default function SetupChecklist({
   registrantCount,
   clockCheck,
+  clockCheckedAt,
   checkingClock,
   onCheckClock,
   waveStartTimes,
@@ -42,6 +54,14 @@ export default function SetupChecklist({
   const clockProblem =
     clockSeverity === "caution" || clockSeverity === "alert";
 
+  // Re-render periodically so the clock panel's "Xs/Xm ago" stays current
+  // without needing a state change to trigger it.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 5000);
+    return () => clearInterval(id);
+  }, []);
+
   const allDone = registrantsLoaded && clockFine && waveTimesConfirmed;
 
   if (allDone) {
@@ -52,6 +72,18 @@ export default function SetupChecklist({
       </div>
     );
   }
+
+  const clockDetail = (): string => {
+    if (clockSeverity === "unknown") {
+      return checkingClock ? "Checking…" : "Not checked yet";
+    }
+    const checkedAgo =
+      clockCheckedAt !== null ? ` ${formatRelativeTime(clockCheckedAt, now)}` : "";
+    const base = `Verified via ${TIME_SOURCE_LABEL}${checkedAgo} — off by ${clockCheck?.diffSeconds}s`;
+    return clockProblem
+      ? `${base}. Every finish time will be wrong by about this much.`
+      : base;
+  };
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
@@ -69,16 +101,12 @@ export default function SetupChecklist({
           {clockFine ? "✓" : clockProblem ? "⚠" : "○"} 1. Check Clock
         </div>
         <div className="text-xs text-gray-600 mb-2 min-h-[2.5em]">
-          {clockFine && `Verified — off by ${clockCheck?.diffSeconds}s`}
-          {clockProblem &&
-            `Off by ${clockCheck?.diffSeconds}s — every finish time will be wrong by about this much`}
-          {clockSeverity === "unknown" &&
-            (checkingClock ? "Checking…" : "Not checked yet")}
+          {clockDetail()}
         </div>
         <button
           onClick={onCheckClock}
           disabled={checkingClock}
-          className="w-full py-1.5 bg-purple-600 text-white rounded font-semibold text-sm hover:bg-purple-700 disabled:opacity-50"
+          className={ACTION_BUTTON}
         >
           {checkingClock
             ? "Checking…"
@@ -106,7 +134,7 @@ export default function SetupChecklist({
         </div>
         <button
           onClick={() => document.getElementById("csvInput")?.click()}
-          className="w-full py-1.5 bg-purple-600 text-white rounded font-semibold text-sm hover:bg-purple-700"
+          className={ACTION_BUTTON}
         >
           📄 Upload CSV
         </button>
@@ -130,10 +158,7 @@ export default function SetupChecklist({
               )} · C ${formatTime(waveStartTimes.C)}`
             : "Estimates are fine — adjust later as needed"}
         </div>
-        <button
-          onClick={onOpenWaveTimesModal}
-          className="w-full py-1.5 bg-purple-600 text-white rounded font-semibold text-sm hover:bg-purple-700"
-        >
+        <button onClick={onOpenWaveTimesModal} className={ACTION_BUTTON}>
           🕒 {waveTimesConfirmed ? "Edit" : "Set"} Wave Times
         </button>
       </div>

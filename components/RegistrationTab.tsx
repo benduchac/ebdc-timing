@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { Registrant } from "@/lib/types";
 import { calculateAge } from "@/lib/categories";
+import { normalizeBib } from "@/lib/utils";
 
 interface RegistrationTabProps {
   registrants: Map<string, Registrant>;
@@ -84,7 +85,6 @@ export default function RegistrationTab({
         const lines = csv.split("\n");
         const newRegistrants = new Map<string, Registrant>();
 
-        let loadedCount = 0;
         for (let i = 1; i < lines.length; i++) {
           const line = lines[i].trim();
           if (!line) continue;
@@ -94,7 +94,7 @@ export default function RegistrationTab({
 
           // Support both old format (4 cols) and new format (6 cols)
           if (cleanFields.length >= 4) {
-            const bib = cleanFields[0].trim();
+            const bib = normalizeBib(cleanFields[0]);
             const firstName = cleanFields[1].trim();
             const lastName = cleanFields[2].trim();
             const wave = cleanFields[3].trim().toUpperCase() as "A" | "B" | "C";
@@ -120,13 +120,11 @@ export default function RegistrationTab({
                   ? gender
                   : "n/a",
               });
-              loadedCount++;
             }
           }
         }
 
         onUpdateRegistrants(newRegistrants);
-        alert(`Successfully loaded ${loadedCount} registrants!`);
       } catch (error) {
         alert("Error loading CSV: " + (error as Error).message);
       }
@@ -164,13 +162,23 @@ export default function RegistrationTab({
   const handleSaveRegistrant = () => {
     if (!editingRegistrant) return;
 
-    const { bib, firstName, lastName, wave, dob, gender, isNew, originalBib } =
-      editingRegistrant;
+    const {
+      bib: rawBib,
+      firstName,
+      lastName,
+      wave,
+      dob,
+      gender,
+      isNew,
+      originalBib,
+    } = editingRegistrant;
 
-    if (!bib || !firstName || !lastName) {
+    if (!rawBib || !firstName || !lastName) {
       alert("Please fill in Bib, First Name, and Last Name");
       return;
     }
+
+    const bib = normalizeBib(rawBib);
 
     // Check for duplicate bib (but allow same bib if editing existing)
     if (isNew && registrants.has(bib)) {
@@ -208,7 +216,7 @@ export default function RegistrationTab({
   };
 
   const confirmDelete = () => {
-    if (!deleteConfirmBib || deleteTypedBib !== deleteConfirmBib) {
+    if (!deleteConfirmBib || normalizeBib(deleteTypedBib) !== deleteConfirmBib) {
       alert("Please type the bib number exactly to confirm deletion");
       return;
     }

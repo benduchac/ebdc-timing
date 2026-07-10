@@ -16,6 +16,8 @@ interface SettingsModalProps {
   clockCheck: ClockCheckResult | null;
   checkingClock: boolean;
   onCheckClock: () => void;
+  isDev: boolean;
+  onDevResetOnboarding: () => void;
 }
 
 export default function SettingsModal({
@@ -31,6 +33,8 @@ export default function SettingsModal({
   clockCheck,
   checkingClock,
   onCheckClock,
+  isDev,
+  onDevResetOnboarding,
 }: SettingsModalProps) {
   if (!isOpen) return null;
 
@@ -196,6 +200,24 @@ export default function SettingsModal({
               cloud backup is untouched and can still be reopened later.
               Warns first if there are unsynced changes.
             </p>
+
+            {isDev && (
+              <>
+                <button
+                  onClick={onDevResetOnboarding}
+                  className="w-full py-2 mt-3 bg-purple-800 text-white rounded-lg font-semibold hover:bg-purple-900"
+                >
+                  🧪 [Dev] Reset to Blank Slate
+                </button>
+                <p className="text-xs text-gray-500 mt-2">
+                  Dev-only, not in production builds. Clears registrants AND
+                  finish times, and resets the Check Clock / Load
+                  Registrants / Set Wave Times checklist — same state as a
+                  freshly created race, but stays on this race id (no new
+                  race minted, no trip through the race menu).
+                </p>
+              </>
+            )}
           </div>
         </div>
 

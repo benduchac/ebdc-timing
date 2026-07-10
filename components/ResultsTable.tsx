@@ -62,7 +62,9 @@ export default function ResultsTable({
   if (entries.length === 0) {
     return (
       <div className="bg-white rounded-lg shadow p-8 text-center text-gray-500">
-        No finishers yet. Record your first finish!
+        {editable
+          ? "No finishers yet. Record your first finish!"
+          : "No finishers yet. Check back once the race is underway."}
       </div>
     );
   }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { SyncStatus } from "@/lib/useCloudSync";
+import { formatRelativeTime } from "@/lib/utils";
 
 interface SyncBadgeProps {
   status: SyncStatus;
@@ -10,15 +11,6 @@ interface SyncBadgeProps {
 }
 
 const FRESH_WINDOW_MS = 30_000;
-
-function relativeTime(fromIso: string, nowMs: number): string {
-  const seconds = Math.max(0, Math.round((nowMs - new Date(fromIso).getTime()) / 1000));
-  if (seconds < 60) return `${seconds}s ago`;
-  const minutes = Math.round(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.round(minutes / 60);
-  return `${hours}h ago`;
-}
 
 // See docs/race-readiness-design.md "Sync indicator". Alarm is driven by
 // status (dirty flag), never by elapsed time alone — a quiet stretch between
@@ -71,7 +63,11 @@ export default function SyncBadge({ status, lastSyncedAt, error }: SyncBadgeProp
           : "bg-gray-100 text-gray-600"
       }`}
     >
-      {isFresh ? "✓ Backed up" : lastSyncedAt ? `Backed up ${relativeTime(lastSyncedAt, now)}` : "✓ Backed up"}
+      {isFresh
+        ? "✓ Backed up"
+        : lastSyncedAt
+        ? `Backed up ${formatRelativeTime(new Date(lastSyncedAt).getTime(), now)}`
+        : "✓ Backed up"}
     </div>
   );
 }

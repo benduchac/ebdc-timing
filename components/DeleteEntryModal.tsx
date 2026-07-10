@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { Entry } from "@/lib/types";
+import { normalizeBib } from "@/lib/utils";
 
 interface DeleteEntryModalProps {
   entry: Entry;
@@ -17,7 +18,7 @@ export default function DeleteEntryModal({
   const [typedBib, setTypedBib] = useState("");
 
   const handleConfirm = () => {
-    if (typedBib !== entry.bib) {
+    if (normalizeBib(typedBib) !== entry.bib) {
       alert(`Please type "${entry.bib}" exactly to confirm deletion`);
       return;
     }

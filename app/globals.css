@@ -24,3 +24,25 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Reserve the vertical scrollbar's width at all times, whether or not the
+   page currently needs to scroll. Without this, crossing the "tall enough
+   to scroll" threshold shrinks the viewport width by the scrollbar's width,
+   which makes any position:fixed / background-attachment:fixed element
+   using background-size:cover visibly resize (PageBackground included) —
+   this is what fixes it, not the fixed-vs-attachment choice itself. */
+html {
+  scrollbar-gutter: stable;
+}
+
+/* "Copied!" feedback (CopyLinkButton) — fully visible for the first ~60% of
+   the duration, then fades out, rather than a blocking alert(). */
+@keyframes fadeOut {
+  0%,
+  60% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}

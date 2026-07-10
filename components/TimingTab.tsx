@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import type { Registrant, Entry } from "@/lib/types";
-import { formatElapsedTime } from "@/lib/utils";
+import { formatElapsedTime, normalizeBib } from "@/lib/utils";
 import WaveStatusBoxes from "./WaveStatusBoxes";
 import TopTenLeaderboard from "./TopTenLeaderboard";
 
@@ -50,10 +50,11 @@ export default function TimingTab({
       return;
     }
 
-    const rider = registrants.get(bibNumber.trim());
+    const normalizedBib = normalizeBib(bibNumber);
+    const rider = registrants.get(normalizedBib);
 
     // Check for duplicate
-    const existingEntry = entries.find((e) => e.bib === bibNumber.trim());
+    const existingEntry = entries.find((e) => e.bib === normalizedBib);
 
     if (rider) {
       setRiderInfo(rider);
@@ -62,7 +63,7 @@ export default function TimingTab({
           existingEntry.finishTimeMs
         ).toLocaleTimeString("en-US", { hour12: true });
         setErrorMessage(
-          `⚠️ DUPLICATE! Bib #${bibNumber.trim()} already finished at ${existingTime}. Press Enter to record again, or fix bib number.`
+          `⚠️ DUPLICATE! Bib #${normalizedBib} already finished at ${existingTime}. Press Enter to record again, or fix bib number.`
         );
       } else {
         setErrorMessage("");
@@ -74,11 +75,11 @@ export default function TimingTab({
           existingEntry.finishTimeMs
         ).toLocaleTimeString("en-US", { hour12: true });
         setErrorMessage(
-          `⚠️ DUPLICATE! Bib #${bibNumber.trim()} already finished at ${existingTime}. Press Enter to record again, or fix bib number.`
+          `⚠️ DUPLICATE! Bib #${normalizedBib} already finished at ${existingTime}. Press Enter to record again, or fix bib number.`
         );
       } else {
         setErrorMessage(
-          `⚠️ Bib #${bibNumber} not found in registration. Entry will still be recorded.`
+          `⚠️ Bib #${normalizedBib} not found in registration. Entry will still be recorded.`
         );
       }
     }
@@ -91,11 +92,13 @@ export default function TimingTab({
       return;
     }
 
+    const normalizedBib = normalizeBib(bibNumber);
+
     // Check for duplicate bib
-    const existingEntry = entries.find((e) => e.bib === bibNumber.trim());
+    const existingEntry = entries.find((e) => e.bib === normalizedBib);
     if (existingEntry) {
       const confirmed = confirm(
-        `Record duplicate bib #${bibNumber.trim()} again?\n\n` +
+        `Record duplicate bib #${normalizedBib} again?\n\n` +
           `OK = Record duplicate\n` +
           `Cancel = Fix bib number`
       );
@@ -107,14 +110,14 @@ export default function TimingTab({
     }
 
     const now = new Date();
-    const rider = registrants.get(bibNumber.trim());
+    const rider = registrants.get(normalizedBib);
 
     const wave = rider ? rider.wave : null;
     const firstName = rider ? rider.firstName : "Unknown";
     const lastName = rider ? rider.lastName : "Rider";
 
     const entry: Omit<Entry, "id"> = {
-      bib: bibNumber.trim(),
+      bib: normalizedBib,
       wave,
       firstName,
       lastName,

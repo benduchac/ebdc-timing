@@ -27,8 +27,10 @@ import WaveTimeEditModal from "@/components/WaveTimeEditModal";
 import SettingsModal from "@/components/SettingsModal";
 import SyncBadge from "@/components/SyncBadge";
 import SetupChecklist from "@/components/SetupChecklist";
+import CopyLinkButton from "@/components/CopyLinkButton";
 import WaveTimesSetupModal from "@/components/WaveTimesSetupModal";
 import RaceMenuScreen from "@/components/RaceMenuScreen";
+import PageBackground from "@/components/PageBackground";
 import OperatorGate, {
   clearStoredPassphrase,
   getStoredPassphrase,
@@ -60,6 +62,7 @@ export default function OperatorPage() {
   // also see it. Auto-runs whenever a race becomes active (see effect below).
   const [clockCheck, setClockCheck] = useState<ClockCheckResult | null>(null);
   const [checkingClock, setCheckingClock] = useState(false);
+  const [clockCheckedAt, setClockCheckedAt] = useState<number | null>(null);
 
   // Wave start times - initialize with defaults
   const [waveStartTimes, setWaveStartTimes] = useState<{
@@ -305,6 +308,7 @@ export default function OperatorPage() {
     setCheckingClock(true);
     const result = await verifySystemClock();
     setClockCheck(result);
+    setClockCheckedAt(Date.now());
     setCheckingClock(false);
   };
 
@@ -678,13 +682,43 @@ export default function OperatorPage() {
     window.location.reload();
   };
 
-  const handleCopyLink = (slug: string) => {
-    const url = `${window.location.origin}/${slug}`;
-    navigator.clipboard
-      .writeText(url)
-      .then(() => alert(`Copied: ${url}`))
-      .catch(() => alert(url));
+  // Dev-only convenience so the whole setup->scoring flow can be re-tested
+  // repeatedly without minting a new race each time. Returns to the same
+  // blank-slate state as a freshly created race (registrants, entries, and
+  // the onboarding tiles all reset) but keeps activeRace/sync intact — that's
+  // the point, versus "Switch Race" which abandons the race entirely. Remove
+  // before release (see SettingsModal's isDev gate).
+  const handleDevResetOnboarding = () => {
+    if (
+      !confirm(
+        "[Dev] Clear all riders AND finish times, and reset the onboarding " +
+          "tiles (Check Clock, Load Registrants, Set Wave Times)?\n\nStays on " +
+          "the current race — this returns it to a blank slate, same as a " +
+          "freshly created race."
+      )
+    )
+      return;
+    setRegistrants(new Map());
+    setEntries([]);
+    setEntryCounter(0);
+    setEditingEntry(null);
+    setDeletingEntry(null);
+    setClockCheck(null);
+    setClockCheckedAt(null);
+    setWaveTimesConfirmed(false);
+    setActiveTab("registration");
+
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+    setWaveStartTimes({
+      A: new Date(`${year}-${month}-${day}T09:00:00`),
+      B: new Date(`${year}-${month}-${day}T09:15:00`),
+      C: new Date(`${year}-${month}-${day}T09:30:00`),
+    });
   };
+
 
   if (!loaded) {
     return (
@@ -704,10 +738,8 @@ export default function OperatorPage() {
 
   return (
     <OperatorGate>
-      <div
-        className="min-h-screen p-4 bg-cover bg-center bg-no-repeat bg-fixed"
-        style={{ backgroundImage: "url(/timing_bg.webp)" }}
-      >
+      <PageBackground />
+      <div className="min-h-screen p-4">
         <div className="max-w-6xl mx-auto bg-white rounded-xl shadow-2xl p-6">
           {/* Header */}
           <div className="flex justify-between items-start mb-6 border-b-4 border-purple-600 pb-4">
@@ -723,13 +755,16 @@ export default function OperatorPage() {
                   {activeRace.slug ? (
                     <>
                       {" · "}
-                      <button
-                        onClick={() => handleCopyLink(activeRace.slug!)}
+                      <a
+                        href={`/${activeRace.slug}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="underline hover:text-purple-600"
-                        title="Copy public leaderboard link"
+                        title="Open public leaderboard in a new tab"
                       >
                         {activeRace.slug}
-                      </button>
+                      </a>
+                      <CopyLinkButton path={`/${activeRace.slug}`} />
                     </>
                   ) : (
                     <> · #{activeRace.id.slice(0, 8)} (link pending first sync)</>
@@ -766,6 +801,7 @@ export default function OperatorPage() {
             <SetupChecklist
               registrantCount={registrants.size}
               clockCheck={clockCheck}
+              clockCheckedAt={clockCheckedAt}
               checkingClock={checkingClock}
               onCheckClock={handleClockCheck}
               waveStartTimes={waveStartTimes}
@@ -941,6 +977,8 @@ export default function OperatorPage() {
             clockCheck={clockCheck}
             checkingClock={checkingClock}
             onCheckClock={handleClockCheck}
+            isDev={process.env.NODE_ENV !== "production"}
+            onDevResetOnboarding={handleDevResetOnboarding}
           />
         </div>
       </div>

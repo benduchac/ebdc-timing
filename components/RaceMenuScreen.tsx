@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { Race, RaceIndexEntry, RaceSnapshot } from "@/lib/types";
 import { getStoredPassphrase } from "./OperatorGate";
+import PageBackground from "./PageBackground";
 
 interface RaceMenuScreenProps {
   onCreate: (label: string) => void;
@@ -105,11 +106,10 @@ export default function RaceMenuScreen({ onCreate, onOpen }: RaceMenuScreenProps
   };
 
   return (
-    <div
-      className="min-h-screen p-4 bg-cover bg-center bg-no-repeat bg-fixed flex items-center justify-center"
-      style={{ backgroundImage: "url(/timing_bg.webp)" }}
-    >
-      <div className="max-w-lg w-full bg-white rounded-xl shadow-2xl p-8">
+    <>
+      <PageBackground />
+      <div className="min-h-screen p-4 flex items-center justify-center">
+        <div className="max-w-lg w-full bg-white rounded-xl shadow-2xl p-8">
         <div className="text-4xl font-bold text-purple-600 mb-1 text-center">
           C510
         </div>
@@ -195,6 +195,7 @@ export default function RaceMenuScreen({ onCreate, onOpen }: RaceMenuScreenProps
           </p>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

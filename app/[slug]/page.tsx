@@ -3,6 +3,7 @@ import { getRedis, kvKeys } from "@/lib/kv";
 import { computeCategoryBuckets } from "@/lib/categories";
 import type { RaceIndexEntry, RaceSnapshot, Registrant } from "@/lib/types";
 import PublicLeaderboardView from "@/components/PublicLeaderboardView";
+import PageBackground from "@/components/PageBackground";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -48,21 +49,23 @@ export default async function RaceLeaderboardPage({ params }: PageProps) {
 
   if (!snapshot) {
     return (
-      <div
-        className="min-h-screen p-4 bg-cover bg-center bg-no-repeat bg-fixed flex items-center justify-center"
-        style={{ backgroundImage: "url(/timing_bg.webp)" }}
-      >
-        <div className="max-w-lg w-full bg-white rounded-xl shadow-2xl p-8 text-center">
-          <div className="text-4xl font-bold text-purple-600 mb-1">C510</div>
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">
-            Race not found
-          </h1>
-          <p className="text-gray-600">
-            This link doesn&apos;t match a race we know about. Double-check
-            the URL, or ask the operator for the current results link.
-          </p>
+      <>
+        <PageBackground />
+        <div className="min-h-screen p-4 flex items-center justify-center">
+          <div className="max-w-lg w-full bg-white rounded-xl shadow-2xl p-8 text-center">
+            <div className="text-4xl font-bold text-purple-600 mb-1">
+              C510
+            </div>
+            <h1 className="text-2xl font-bold text-gray-800 mb-2">
+              Race not found
+            </h1>
+            <p className="text-gray-600">
+              This link doesn&apos;t match a race we know about. Double-check
+              the URL, or ask the operator for the current results link.
+            </p>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
