@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { timingSafeEqual } from "crypto";
+import { checkSecret } from "@/lib/auth";
 
-// Validates the shared operator passphrase against PUBLISH_SECRET. This is
-// the only place the secret is compared — the client never sees it, only a
-// pass/fail. See docs/race-readiness-design.md "Auth model": this endpoint
-// is the client-side gate's bootstrap check; the real boundary is every
-// privileged write/read validating the same secret server-side.
+// Bootstrap check for OperatorGate: validates the passphrase once so the
+// client knows it's safe to cache. Ongoing privileged requests (backup,
+// races) send the same passphrase as a Bearer token instead — see
+// docs/race-readiness-design.md "Auth model".
 export async function POST(request: NextRequest) {
-  const secret = process.env.PUBLISH_SECRET;
-  if (!secret) {
+  if (!process.env.PUBLISH_SECRET) {
     return NextResponse.json(
       { ok: false, error: "Operator access is not configured yet." },
       { status: 503 }
@@ -26,7 +24,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (typeof passphrase !== "string" || !safeCompare(passphrase, secret)) {
+  if (typeof passphrase !== "string" || !checkSecret(passphrase)) {
     return NextResponse.json(
       { ok: false, error: "Incorrect passphrase." },
       { status: 401 }
@@ -34,16 +32,4 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ ok: true });
-}
-
-// Constant-time compare so response timing doesn't leak how many leading
-// characters of a guess were correct.
-function safeCompare(a: string, b: string): boolean {
-  const aBuf = Buffer.from(a);
-  const bBuf = Buffer.from(b);
-  if (aBuf.length !== bBuf.length) {
-    timingSafeEqual(aBuf, aBuf);
-    return false;
-  }
-  return timingSafeEqual(aBuf, bBuf);
 }
