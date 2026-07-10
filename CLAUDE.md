@@ -58,9 +58,12 @@ handler callbacks to mutate. There is no global store or context.
   state change (debounced ~600ms), drives `components/SyncBadge.tsx`. Status
   distinguishes "dirty" (change queued, about to sync — calm) from "error"
   (an attempt actually failed — the alarm state); see the hook's top comment.
-- `components/RaceSetupScreen.tsx` — shown when there's no local `activeRace`;
-  mints a `Race { id, label, createdAt }`. No race-menu/recovery UI yet
-  (deferred — see race-readiness doc "Race lifecycle & recovery").
+- `components/RaceMenuScreen.tsx` — shown when there's no local `activeRace`;
+  if online, lists races from `GET /api/races` to resume (pulls
+  `race:{id}:latest` via `GET /api/backup?id=`), always offers Start New
+  (mints a `Race { id, label, createdAt }`). Offline: Start New only.
+- `components/ReadinessBanner.tsx` — pre-scoring checklist (race created /
+  registrants loaded / fully synced); warns, doesn't block.
 - `app/page.tsx` / `app/results/page.tsx` — public placeholder + redirect to
   `/`; no data dependency.
 - `lib/db.ts` — Dexie schema (`entries`, `raceState`, `setupConfig`) and the

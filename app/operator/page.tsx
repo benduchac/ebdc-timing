@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { db, clearAllData } from "@/lib/db";
-import type { Registrant, Entry, Race } from "@/lib/types";
+import type { Registrant, Entry, Race, RaceSnapshot } from "@/lib/types";
 import {
   downloadFile,
   getDateString,
@@ -19,7 +19,8 @@ import DeleteEntryModal from "@/components/DeleteEntryModal";
 import WaveTimeEditModal from "@/components/WaveTimeEditModal";
 import SettingsModal from "@/components/SettingsModal";
 import SyncBadge from "@/components/SyncBadge";
-import RaceSetupScreen from "@/components/RaceSetupScreen";
+import ReadinessBanner from "@/components/ReadinessBanner";
+import RaceMenuScreen from "@/components/RaceMenuScreen";
 import OperatorGate, {
   clearStoredPassphrase,
   getStoredPassphrase,
@@ -262,6 +263,22 @@ export default function OperatorPage() {
     });
   };
 
+  const handleOpenRace = (race: Race, snapshot: RaceSnapshot) => {
+    setActiveRace(race);
+    setWaveStartTimes({
+      A: new Date(snapshot.waveStartTimes.A),
+      B: new Date(snapshot.waveStartTimes.B),
+      C: new Date(snapshot.waveStartTimes.C),
+    });
+    setRegistrants(new Map(snapshot.registrants));
+    setEntries(snapshot.entries);
+    setEntryCounter(snapshot.entryCounter);
+    setCloudLastSyncedAt(snapshot.lastSaved);
+    if (snapshot.entries.length > 0) {
+      setActiveTab("timing");
+    }
+  };
+
   const handleUpdateRegistrants = (newRegistrants: Map<string, Registrant>) => {
     setRegistrants(newRegistrants);
   };
@@ -491,6 +508,19 @@ export default function OperatorPage() {
   };
 
   const handleResetApp = async () => {
+    // Guard against silently discarding unsynced work — see
+    // docs/race-readiness-design.md "Guard destructive actions".
+    const hasData = registrants.size > 0 || entries.length > 0;
+    const isSynced = syncStatus === "synced" && cloudLastSyncedAt !== null;
+    if (hasData && !isSynced) {
+      const proceed = confirm(
+        "⚠️ This race has NOT been confirmed backed up to the cloud.\n\n" +
+          "Resetting now discards any unsynced changes locally — they will " +
+          "not be recoverable from the cloud.\n\nContinue anyway?"
+      );
+      if (!proceed) return;
+    }
+
     try {
       await clearAllData();
 
@@ -500,8 +530,8 @@ export default function OperatorPage() {
       setEditingEntry(null);
       setDeletingEntry(null);
       // A reset ends this race locally — its cloud backup is untouched (a
-      // fresh race id next time can't clobber it). The next load shows
-      // RaceSetupScreen again.
+      // fresh race id next time can't clobber it). The next load shows the
+      // race menu again.
       setActiveRace(null);
       setCloudLastSyncedAt(null);
 
@@ -538,7 +568,7 @@ export default function OperatorPage() {
   if (!activeRace) {
     return (
       <OperatorGate>
-        <RaceSetupScreen onCreate={handleCreateRace} />
+        <RaceMenuScreen onCreate={handleCreateRace} onOpen={handleOpenRace} />
       </OperatorGate>
     );
   }
@@ -588,6 +618,12 @@ export default function OperatorPage() {
               error={syncError}
             />
           </div>
+
+          <ReadinessBanner
+            registrantCount={registrants.size}
+            syncStatus={syncStatus}
+            cloudLastSyncedAt={cloudLastSyncedAt}
+          />
 
           {/* Tab Navigation */}
           <div className="flex gap-1 mb-4 border-b-2 border-gray-200">

@@ -19,8 +19,16 @@ function offline; anything that claims data is safe must be provably true.
   gated), `OperatorGate` client-side passphrase gate, `POST /api/auth`. The PWA
   `start_url` now points at `/operator`. `PUBLISH_SECRET` is set in Vercel and
   the gate is confirmed live in production.
-- **Next:** Phase 3 (cloud backup + race entity + recovery). Phase 2 (real
-  leaderboard) and Phase 4 (clock + dry run) follow.
+- **Built, not yet pushed to production:** Phase 3 (cloud backup + race
+  entity + recovery). Backend (`/api/backup`, `/api/races`, Upstash Redis) and
+  full client wiring (race creation, best-effort sync + badge, race menu +
+  recovery-aware startup, readiness banner, guarded reset) are done and
+  verified end-to-end in a real browser, including the core scenario: wipe
+  local IndexedDB entirely, reopen, recover the race from the cloud with all
+  registrants/entries/wave-times intact. Committed locally; pending a final
+  local pass before pushing.
+- **Next:** Phase 2 (real leaderboard, deferred/needs spec) and Phase 4
+  (clock hardening + full offline dry run).
 
 ---
 
@@ -261,8 +269,9 @@ In the Vercel project:
 1. **Phase 2.5** *(done — deployed and verified)* — routing split (public `/`,
    gated `/operator`) + passphrase gate + `POST /api/auth`. Closes the
    exposure that motivated this work.
-2. **Phase 3** — Race entity + `/api/backup` + `/api/races` + client sync + badge
-   + race menu/recovery + readiness state. *Needs the KV store provisioned.*
+2. **Phase 3** *(done — built and locally verified, not yet pushed)* — Race
+   entity + `/api/backup` + `/api/races` + client sync + badge + race
+   menu/recovery + readiness state.
 3. **Phase 2** — the real public leaderboard + publish pipeline. **Deferred:
    needs product spec** (what it shows; minors display). Reuses this same
    endpoint/storage/auth foundation.
