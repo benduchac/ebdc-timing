@@ -15,12 +15,16 @@ export interface Race {
   id: string;
   label: string;
   createdAt: string; // ISO, set once at race creation
+  // Public leaderboard URL slug (see lib/slug.ts). Assigned server-side on
+  // first successful sync, so it's absent client-side until then.
+  slug?: string;
 }
 
 export interface RaceSnapshot {
   raceId: string;
   label: string;
   createdAt: string; // ISO, set once at race creation (matches Race.createdAt)
+  slug: string; // always present once persisted — server assigns it, never the client
   waveStartTimes: { A: string; B: string; C: string };
   registrants: [string, Registrant][];
   entries: Entry[];
@@ -33,6 +37,7 @@ export interface RaceSnapshot {
 export interface RaceIndexEntry {
   id: string;
   label: string;
+  slug: string;
   createdAt: string;
   lastSaved: string;
   entryCount: number;

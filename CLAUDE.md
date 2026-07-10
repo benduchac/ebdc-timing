@@ -37,11 +37,14 @@ catches lint errors (which block the build) and type errors in one pass.
 
 ## Architecture
 
-Two routes: `/` is the public results placeholder (static, no state); `/operator`
-is the actual app. `app/operator/page.tsx` is the top-level container and **owns
-all state** — registrants, entries, wave start times, modal state — and passes it
-down to three tabs plus modals. State flows down via props; children call
-handler callbacks to mutate. There is no global store or context.
+Three route families: `/[slug]` is a public, unauthenticated, per-race
+leaderboard (Server Component, reads Redis directly, no client state); `/`
+redirects to the latest race's `/[slug]`, or shows a placeholder; `/operator`
+is the actual app. `app/operator/page.tsx` is the top-level container and
+**owns all state** — registrants, entries, wave start times, modal state —
+and passes it down to three tabs plus modals. State flows down via props;
+children call handler callbacks to mutate. There is no global store or
+context.
 
 - `app/operator/page.tsx` — state owner, persistence effects, CSV/backup
   export, all entry mutation handlers. Wrapped in `OperatorGate`.
@@ -69,25 +72,49 @@ handler callbacks to mutate. There is no global store or context.
   Most simple time APIs (including the current one, `time.now`) don't send
   CORS headers, so the browser must go through our own server, not call them
   directly.
-- `app/page.tsx` / `app/results/page.tsx` — public placeholder + redirect to
-  `/`; no data dependency.
+- `app/[slug]/page.tsx` — public leaderboard for one race. Server Component;
+  reads `race:{id}:latest` directly from Redis (no round trip through our
+  own API), computes category buckets server-side via
+  `computeCategoryBuckets`, and only passes the resulting PII-free `Entry[]`
+  arrays to `components/PublicLeaderboardView.tsx` — real registrant data
+  (DOB) never reaches the client. Unresolved finishers (no wave assigned)
+  are excluded.
+- `lib/slug.ts` — `slugify`/`assignSlug`: turns a race label into its public
+  URL slug (`"EBDC 7/9"` → `"ebdc-7-9"`), deduped on collision (`-2`, `-3`,
+  ...). Assigned once server-side on a race's first sync
+  (`app/api/backup/route.ts`), never recomputed — reused from `races:index`
+  on every later sync.
+- `components/CategoryLeaderboardGrid.tsx` — pure presentational category
+  grid; takes pre-bucketed `Entry[]` arrays only, no registrants/DOB. Shared
+  by both the operator's `CategoryLeaderboards.tsx` (thin wrapper that calls
+  `computeCategoryBuckets` with the real local registrants) and the public
+  page (buckets computed server-side instead).
+- `app/page.tsx` / `app/results/page.tsx` — redirect to the latest race's
+  `/[slug]` (placeholder if none exist) / redirect to `/`.
 - `lib/db.ts` — Dexie schema (`entries`, `raceState`, `setupConfig`) and the
   `Registrant` / `Entry` / `RaceState` / `SetupConfig` types. `clearAllData()`.
 - `lib/types.ts` — re-exports DB types plus view types (`WaveStartTimes`,
   `ClockCheckResult`), plus the Phase 3 race types (`Race`, `RaceSnapshot`,
-  `RaceIndexEntry`).
+  `RaceIndexEntry` — all three carry `slug`).
 - `lib/utils.ts` — `formatElapsedTime`, `formatDurationHMS` ("Xh Ym Zs" for
   plain-language duration deltas), `csvField` (RFC 4180 CSV escaping),
   `getDateString`, `downloadFile`, `verifySystemClock`, `getClockSeverity`
   (fine/caution/alert/unknown from a `ClockCheckResult`).
-- `lib/categories.ts` — age/gender categorization for leaderboards
-  (`calculateAge`, `getAgeCategory`, `filterByCategory`, `getTopEntries`).
+- `lib/categories.ts` — age/gender categorization (`calculateAge`,
+  `getAgeCategory`, `filterByCategory`, `getTopEntries`). `computeCategoryBuckets`
+  is the one place actual bucketing happens; only call it somewhere with real
+  `registrants` data (server-side, or the operator's own local state) — never
+  pass registrants into a client component for the public page.
 
 ### Tabs (`components/`)
 - `RegistrationTab` — CSV upload + manual add/edit/delete of registrants.
 - `TimingTab` — the live finish-recording UI (bib input, record/unknown
   buttons, recent finishers, wave status, top-10).
-- `ResultsTable` + `CategoryLeaderboards` — the Results tab views.
+- `ResultsTable` + `CategoryLeaderboards` — the Results tab views. Both are
+  reused by the public `/[slug]` page too (`ResultsTable`'s `onEditEntry`/
+  `onDeleteEntry` are optional — omitted there, which also hides the Actions
+  column; `CategoryLeaderboards` is operator-only, the public page uses
+  `CategoryLeaderboardGrid` directly with server-computed buckets instead).
 
 ### Modals
 `EditModal`, `DeleteEntryModal`, `WaveTimeEditModal`, `SettingsModal`

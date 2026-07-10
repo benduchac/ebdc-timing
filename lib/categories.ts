@@ -99,3 +99,50 @@ export function getTopEntries(entries: Entry[], count: number = 10): Entry[] {
     })
     .slice(0, count);
 }
+
+export interface CategoryBuckets {
+  overallMale: Entry[];
+  overallFemale: Entry[];
+  juniorMale: Entry[];
+  juniorFemale: Entry[];
+  masters: Entry[];
+}
+
+function sortByElapsed(entries: Entry[]): Entry[] {
+  return [...entries].sort((a, b) => {
+    if (a.elapsedMs === null || b.elapsedMs === null) return 0;
+    return a.elapsedMs - b.elapsedMs;
+  });
+}
+
+/**
+ * Buckets finishers into the standard category groups. Deliberately returns
+ * plain Entry[] arrays, not registrant/DOB data — Entry already carries
+ * everything a leaderboard needs to render (name, bib, wave, times), so the
+ * caller can hand these buckets to a public/client-facing component without
+ * ever exposing birthdate. Bucketing itself still needs real DOB/gender
+ * (via filterByCategory), so this must only be called somewhere with access
+ * to the real `registrants` map — a server-side context for the public
+ * leaderboard, not passed as a client component prop.
+ */
+export function computeCategoryBuckets(
+  entries: Entry[],
+  registrants: Map<string, Registrant>
+): CategoryBuckets {
+  const finished = (list: Entry[]) =>
+    sortByElapsed(list.filter((e) => e.wave !== null && e.elapsedMs !== null));
+
+  return {
+    overallMale: finished(filterByCategory(entries, registrants, "male")),
+    overallFemale: finished(filterByCategory(entries, registrants, "female")),
+    juniorMale: finished(
+      filterByCategory(entries, registrants, "male", "junior")
+    ),
+    juniorFemale: finished(
+      filterByCategory(entries, registrants, "female", "junior")
+    ),
+    masters: finished(
+      filterByCategory(entries, registrants, undefined, "masters")
+    ),
+  };
+}

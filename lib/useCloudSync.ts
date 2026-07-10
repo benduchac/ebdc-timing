@@ -23,6 +23,7 @@ export interface CloudSync {
   status: SyncStatus;
   lastSyncedAt: string | null;
   error: string | null;
+  slug: string | null;
   syncNow: () => void;
 }
 
@@ -42,6 +43,7 @@ export function useCloudSync(
     initialLastSyncedAt
   );
   const [error, setError] = useState<string | null>(null);
+  const [slug, setSlug] = useState<string | null>(null);
 
   // Only the latest in-flight request's result may resolve the status — an
   // older, slower request landing after a newer one must not overwrite it
@@ -100,6 +102,7 @@ export function useCloudSync(
       const data = await res.json();
       setStatus("synced");
       setLastSyncedAt(data.lastSaved);
+      setSlug(data.slug ?? null);
       setError(null);
     } catch {
       if (generation !== generationRef.current) return;
@@ -140,5 +143,5 @@ export function useCloudSync(
     return () => window.removeEventListener("online", syncNow);
   }, [syncNow]);
 
-  return { status, lastSyncedAt, error, syncNow };
+  return { status, lastSyncedAt, error, slug, syncNow };
 }

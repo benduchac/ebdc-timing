@@ -19,27 +19,42 @@ function offline; anything that claims data is safe must be provably true.
   gated), `OperatorGate` client-side passphrase gate, `POST /api/auth`. The PWA
   `start_url` now points at `/operator`. `PUBLISH_SECRET` is set in Vercel and
   the gate is confirmed live in production.
-- **Built, not yet pushed to production:** Phase 3 (cloud backup + race
-  entity + recovery). Backend (`/api/backup`, `/api/races`, Upstash Redis) and
-  full client wiring (race creation, best-effort sync + badge, race menu +
-  recovery-aware startup, readiness banner, guarded reset) are done and
-  verified end-to-end in a real browser, including the core scenario: wipe
-  local IndexedDB entirely, reopen, recover the race from the cloud with all
-  registrants/entries/wave-times intact. Committed locally; pending a final
-  local pass before pushing.
-- **Built, not yet pushed to production:** Phase 4's clock-verification half
-  (the dry-run half is still open). `worldtimeapi.org` (the original source)
-  is dead — replaced with `time.now`'s API, proxied through our own
-  `GET /api/time` since most simple time APIs (including the replacement)
-  don't send CORS headers, so calling them directly from the browser is
-  silently blocked. Threshold tightened from <60s to <5s "fine", with
-  caution (5-30s) and alert (>=30s) tiers — a finish-line clock times
-  individual races, not just roughly tells time, and drift silently shifts
-  every recorded elapsed time by that amount. Auto-runs whenever a race
-  becomes active; surfaced in both Settings and the Registration-tab
+- **Done, deployed:** Phase 3 (cloud backup + race entity + recovery).
+  Backend (`/api/backup`, `/api/races`, Upstash Redis) and full client wiring
+  (race creation, best-effort sync + badge, race menu + recovery-aware
+  startup, readiness banner, guarded reset) verified end-to-end in a real
+  browser, including the core scenario: wipe local IndexedDB entirely,
+  reopen, recover the race from the cloud with all registrants/entries/
+  wave-times intact.
+- **Done, deployed:** Phase 4's clock-verification half (the dry-run half is
+  still open). `worldtimeapi.org` (the original source) is dead — replaced
+  with `time.now`'s API, proxied through `GET /api/time` since most simple
+  time APIs don't send CORS headers. Threshold tightened from <60s to <5s
+  "fine", with caution (5-30s) and alert (>=30s) tiers, auto-run whenever a
+  race becomes active, surfaced in Settings and the Registration-tab
   readiness banner.
-- **Next:** Phase 2 (real leaderboard, deferred/needs spec) and the rest of
-  Phase 4 (full offline dry run).
+- **Built, not yet pushed to production:** Phase 2 (public leaderboard).
+  Every race gets a permanent, shareable URL — `/[slug]`, derived from the
+  race label (e.g. "EBDC 7/9" → `/ebdc-7-9`), assigned once server-side on
+  first sync and deduped on collision (`-2`, `-3`, ...; labels themselves are
+  allowed to repeat, only the slug is disambiguated). `/` redirects to the
+  most-recently-synced race's slug, or shows a placeholder if none exist yet.
+  Privacy: ages are never shown (removed entirely, not just for minors —
+  simpler than a name-redaction rule); full names are shown because consent
+  is handled by policy (the existing mandatory event waiver), not tracked in
+  the app. DOB never leaves the server — category bucketing
+  (`computeCategoryBuckets` in `lib/categories.ts`) happens server-side in
+  the `/[slug]` Server Component, and only the resulting PII-free `Entry[]`
+  arrays are passed to the client-rendered leaderboard. Unresolved finishers
+  (unmatched bib, no wave assigned) are excluded from the public view.
+  Verified end-to-end in a real browser: slug generation, dedup on a
+  duplicate label, the `/` redirect, mobile rendering (table is horizontally
+  scrollable within its card, confirmed by actually scrolling it), and that
+  no age/edit-delete/CSV-export ever appears on the public page.
+- **Next:** the rest of Phase 4 (full offline dry run). Deferred separately:
+  a UI reskin (visual polish, explicitly no functionality changes — planned
+  for after the leaderboard, in its own branch) and a stretch-goal photo
+  matching feature (finish-line photos matched to finishers by timestamp).
 
 ---
 
@@ -49,7 +64,8 @@ Two surfaces, clearly separated:
 
 | Surface | Path | Access |
 |---|---|---|
-| Public results / leaderboard | `/` | public, read-only |
+| Public results / leaderboard | `/[slug]` (e.g. `/ebdc-7-9`) | public, read-only |
+| Public landing / redirect | `/` | public — redirects to the latest race's `/[slug]`, or a placeholder if none exist |
 | Operator app (scoring/editing) | `/operator` | passphrase-gated |
 
 **Decided default** (confirmable): public leaderboard at `/` so racers hit the
@@ -57,8 +73,10 @@ bare domain and get results; operator bookmarks `/operator`. Today the full
 operator app is served at `/` with Vercel protection off — that exposure is
 exactly what this closes.
 
-**Decided:** public results live at `/` (placeholder for now); `/results`
-redirects to `/` for old links.
+**Decided:** every race gets its own permanent, shareable URL derived from
+its label (`/[slug]`); `/` is a convenience redirect to whichever race
+synced most recently, so a bookmark/share from the bare domain still lands
+on the correct permanent link. `/results` redirects to `/` for old links.
 
 ---
 
@@ -67,7 +85,7 @@ redirects to `/` for old links.
 A single shared **operator passphrase**. One secret, three jobs:
 
 1. Unlocks the operator UI (client-side gate).
-2. Authorizes every cloud **write** (backup POST, later the publish POST).
+2. Authorizes every cloud **write** (backup POST).
 3. Gates every **private read** (restore/download of the full snapshot).
 
 **The real boundary is server-side.** The client gate is hygiene — client code
@@ -129,7 +147,7 @@ Keys:
 
 ## Endpoints
 
-All secret-gated **except** the public leaderboard read.
+All secret-gated **except** the public leaderboard.
 
 | Method / path | Purpose | Auth |
 |---|---|---|
@@ -137,7 +155,15 @@ All secret-gated **except** the public leaderboard read.
 | `POST /api/backup` | Write snapshot; update `latest`, `history`, `races:index` | secret |
 | `GET /api/races` | List the registry for the race menu | secret |
 | `GET /api/backup?id=` | Pull a race's latest snapshot (restore) | secret |
-| (Phase 2) publish read | Public leaderboard projection | public |
+| `GET /` , `GET /[slug]` | Public leaderboard | public |
+
+The public leaderboard isn't a separate publish pipeline — no data is ever
+copied to a public-facing store. `/[slug]` is a Server Component that reads
+`race:{id}:latest` directly (same private Redis, same keys the operator
+syncs to) and does the PII filtering (DOB → category, never raw) at render
+time, server-side, before anything reaches the client. Simpler than the
+originally-sketched separate "publish read" endpoint, and avoids ever having
+two copies of the data to keep in sync.
 
 ---
 
@@ -242,9 +268,17 @@ the badge was already warning about.
 
 ## Privacy
 
-- **Public leaderboard = a projection**, not the raw data. No raw DOB. **OPEN:**
-  how minors appear (reg data includes under-18 riders) — full name vs first name
-  + last initial; show age/category or not. Decide before going public.
+- **Public leaderboard = a projection**, not the raw data. No raw DOB, ever —
+  category bucketing happens server-side and only the resulting entries
+  (name, bib, wave, time) are sent to the client. **Decided:** no ages shown
+  publicly at all (not just for minors — simpler than a redaction rule, and
+  applies uniformly). Full names ARE shown for everyone, including minors —
+  this is intentionally handled by policy, not app logic: consent to appear
+  on the leaderboard is folded into the event's existing mandatory
+  waiver/registration checkbox (photos, media, liability, etc.), so it's
+  already covered before the app ever sees a registrant. The app does not
+  track a per-registrant opt-in flag — that was considered and deliberately
+  rejected as unnecessary complexity for a low-volume community event.
 - **Private backup = full snapshot with PII**, secret-gated read only.
 
 ---

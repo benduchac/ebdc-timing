@@ -30,6 +30,7 @@ export interface RaceState {
   raceId?: string;
   raceLabel?: string;
   raceCreatedAt?: string; // ISO
+  raceSlug?: string; // assigned server-side on first sync; absent until then
   // Last snapshot timestamp the cloud actually acked for this race. Restored
   // on load purely for the "Backed up Nm ago" idle badge text; the badge's
   // dirty/synced status itself is re-earned each session, not trusted from

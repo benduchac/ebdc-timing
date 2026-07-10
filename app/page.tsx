@@ -1,15 +1,41 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { getRedis, kvKeys } from "@/lib/kv";
+import type { RaceIndexEntry } from "@/lib/types";
 
 export const metadata: Metadata = {
   title: "Live Results - East Bay Dirt Classic",
   description: "Live results for the East Bay Dirt Classic (C510).",
 };
 
-// Public landing page. The live leaderboard is not designed yet (Phase 2,
-// deferred — see docs/race-readiness-design.md) — this route reserves the
-// bare domain for racers and gives a clear "coming soon" landing. It
-// intentionally has no data/backend dependency.
-export default function PublicResultsPage() {
+// Public landing page. If a race exists, redirects to its permanent
+// /[slug] leaderboard URL (see docs/race-readiness-design.md "Surfaces &
+// routing") — the address bar ends up on the shareable link, not the
+// "whatever's currently active" one. With no races yet, falls back to a
+// "coming soon" placeholder.
+export default async function PublicResultsPage() {
+  let latestSlug: string | null = null;
+  try {
+    const redis = getRedis();
+    if (redis) {
+      const index = (await redis.get<RaceIndexEntry[]>(kvKeys.racesIndex)) ?? [];
+      // Races synced before slugs existed won't have one until they sync
+      // again — exclude them here rather than redirect to "/undefined".
+      const slugged = index.filter((r) => r.slug);
+      if (slugged.length > 0) {
+        latestSlug = [...slugged].sort((a, b) =>
+          b.lastSaved.localeCompare(a.lastSaved)
+        )[0].slug;
+      }
+    }
+  } catch {
+    // Redis unreachable — fall through to the placeholder below.
+  }
+
+  if (latestSlug) {
+    redirect(`/${latestSlug}`);
+  }
+
   return (
     <div
       className="min-h-screen p-4 bg-cover bg-center bg-no-repeat bg-fixed flex items-center justify-center"

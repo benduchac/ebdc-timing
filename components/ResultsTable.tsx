@@ -5,8 +5,8 @@ import { formatElapsedTime } from "@/lib/utils";
 
 interface ResultsTableProps {
   entries: Entry[];
-  onEditEntry: (id: number) => void;
-  onDeleteEntry?: (id: number) => void; // Optional for backward compatibility
+  onEditEntry?: (id: number) => void;
+  onDeleteEntry?: (id: number) => void;
 }
 
 export default function ResultsTable({
@@ -14,6 +14,11 @@ export default function ResultsTable({
   onEditEntry,
   onDeleteEntry,
 }: ResultsTableProps) {
+  // Read-only when no handlers are supplied — the public leaderboard reuses
+  // this component with neither, so the Actions column doesn't render at
+  // all rather than showing dead buttons.
+  const editable = !!onEditEntry || !!onDeleteEntry;
+
   // Separate valid entries from unknown
   const validEntries = entries.filter((e) => e.wave !== null);
   const unknownEntries = entries.filter((e) => e.wave === null);
@@ -65,7 +70,7 @@ export default function ResultsTable({
   return (
     <div className="bg-white rounded-lg shadow overflow-hidden">
       <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
-        <table className="w-full text-sm">
+        <table className="w-full text-xs sm:text-sm">
           <thead className="bg-purple-600 text-white sticky top-0">
             <tr>
               <th className="p-2 text-left">Overall</th>
@@ -75,7 +80,7 @@ export default function ResultsTable({
               <th className="p-2 text-left">Wave</th>
               <th className="p-2 text-left">Finish Time</th>
               <th className="p-2 text-left">Elapsed</th>
-              <th className="p-2 text-left">Actions</th>
+              {editable && <th className="p-2 text-left">Actions</th>}
             </tr>
           </thead>
           <tbody>
@@ -126,24 +131,28 @@ export default function ResultsTable({
                       ? formatElapsedTime(entry.elapsedMs)
                       : "N/A"}
                   </td>
-                  <td className="p-2">
-                    <button
-                      onClick={() => onEditEntry(entry.id)}
-                      className="text-purple-600 hover:text-purple-800 mr-2"
-                      title="Edit"
-                    >
-                      ✏️
-                    </button>
-                    {onDeleteEntry && (
-                      <button
-                        onClick={() => onDeleteEntry(entry.id)}
-                        className="text-red-600 hover:text-red-800"
-                        title="Delete"
-                      >
-                        🗑️
-                      </button>
-                    )}
-                  </td>
+                  {editable && (
+                    <td className="p-2">
+                      {onEditEntry && (
+                        <button
+                          onClick={() => onEditEntry(entry.id)}
+                          className="text-purple-600 hover:text-purple-800 mr-2"
+                          title="Edit"
+                        >
+                          ✏️
+                        </button>
+                      )}
+                      {onDeleteEntry && (
+                        <button
+                          onClick={() => onDeleteEntry(entry.id)}
+                          className="text-red-600 hover:text-red-800"
+                          title="Delete"
+                        >
+                          🗑️
+                        </button>
+                      )}
+                    </td>
+                  )}
                 </tr>
               );
             })}
@@ -169,7 +178,7 @@ export default function ResultsTable({
                   </td>
                   <td className="p-2">
                     <span className="inline-block px-2 py-1 rounded-full text-xs font-bold bg-yellow-400 text-gray-900">
-                      ASSIGN WAVE
+                      No Wave Assigned
                     </span>
                   </td>
                   <td className="p-2">
@@ -181,24 +190,28 @@ export default function ResultsTable({
                     })}
                   </td>
                   <td className="p-2 font-bold">-</td>
-                  <td className="p-2">
-                    <button
-                      onClick={() => onEditEntry(entry.id)}
-                      className="text-purple-600 hover:text-purple-800 mr-2"
-                      title="Edit"
-                    >
-                      ✏️
-                    </button>
-                    {onDeleteEntry && (
-                      <button
-                        onClick={() => onDeleteEntry(entry.id)}
-                        className="text-red-600 hover:text-red-800"
-                        title="Delete"
-                      >
-                        🗑️
-                      </button>
-                    )}
-                  </td>
+                  {editable && (
+                    <td className="p-2">
+                      {onEditEntry && (
+                        <button
+                          onClick={() => onEditEntry(entry.id)}
+                          className="text-purple-600 hover:text-purple-800 mr-2"
+                          title="Edit"
+                        >
+                          ✏️
+                        </button>
+                      )}
+                      {onDeleteEntry && (
+                        <button
+                          onClick={() => onDeleteEntry(entry.id)}
+                          className="text-red-600 hover:text-red-800"
+                          title="Delete"
+                        >
+                          🗑️
+                        </button>
+                      )}
+                    </td>
+                  )}
                 </tr>
               );
             })}

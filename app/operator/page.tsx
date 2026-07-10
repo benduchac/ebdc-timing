@@ -112,6 +112,7 @@ export default function OperatorPage() {
               id: state.raceId,
               label: state.raceLabel || "Untitled Race",
               createdAt: state.raceCreatedAt || state.lastSaved,
+              slug: state.raceSlug,
             });
           } else if (state.entries.length > 0 || state.registrants.length > 0) {
             // Local data from before race identity existed (Phase 3) — mint
@@ -174,6 +175,7 @@ export default function OperatorPage() {
               raceId: activeRace?.id,
               raceLabel: activeRace?.label,
               raceCreatedAt: activeRace?.createdAt,
+              raceSlug: activeRace?.slug,
               cloudLastSyncedAt: cloudLastSyncedAt ?? undefined,
               waveStartTimes: {
                 A: waveStartTimes.A.toISOString(),
@@ -256,6 +258,7 @@ export default function OperatorPage() {
     status: syncStatus,
     lastSyncedAt: cloudSyncedAt,
     error: syncError,
+    slug: syncedSlug,
   } = useCloudSync(
     { race: activeRace, waveStartTimes, registrants, entries, entryCounter },
     getStoredPassphrase,
@@ -265,6 +268,15 @@ export default function OperatorPage() {
   useEffect(() => {
     if (cloudSyncedAt) setCloudLastSyncedAt(cloudSyncedAt);
   }, [cloudSyncedAt]);
+
+  // The server assigns the public URL slug on first sync — thread it back
+  // into activeRace once we learn it, so the header/share-link can show it.
+  useEffect(() => {
+    if (syncedSlug && activeRace && activeRace.slug !== syncedSlug) {
+      setActiveRace({ ...activeRace, slug: syncedSlug });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [syncedSlug]);
 
   const handleClockCheck = async () => {
     setCheckingClock(true);
@@ -457,6 +469,7 @@ export default function OperatorPage() {
       raceId: activeRace?.id,
       raceLabel: activeRace?.label,
       raceCreatedAt: activeRace?.createdAt,
+      raceSlug: activeRace?.slug,
       waveStartTimes: {
         A: waveStartTimes.A.toISOString(),
         B: waveStartTimes.B.toISOString(),
@@ -516,6 +529,7 @@ export default function OperatorPage() {
             id: backup.raceId,
             label: backup.raceLabel || "Imported Race",
             createdAt: backup.raceCreatedAt || new Date().toISOString(),
+            slug: backup.raceSlug,
           });
         }
 
@@ -608,6 +622,14 @@ export default function OperatorPage() {
     window.location.reload();
   };
 
+  const handleCopyLink = (slug: string) => {
+    const url = `${window.location.origin}/${slug}`;
+    navigator.clipboard
+      .writeText(url)
+      .then(() => alert(`Copied: ${url}`))
+      .catch(() => alert(url));
+  };
+
   if (!loaded) {
     return (
       <OperatorGate>
@@ -641,7 +663,21 @@ export default function OperatorPage() {
               <p className="text-gray-600 italic">Race Timing System</p>
               {activeRace && (
                 <p className="text-xs text-gray-400 mt-1">
-                  {activeRace.label} · #{activeRace.id.slice(0, 8)}
+                  {activeRace.label}
+                  {activeRace.slug ? (
+                    <>
+                      {" · "}
+                      <button
+                        onClick={() => handleCopyLink(activeRace.slug!)}
+                        className="underline hover:text-purple-600"
+                        title="Copy public leaderboard link"
+                      >
+                        {activeRace.slug}
+                      </button>
+                    </>
+                  ) : (
+                    <> · #{activeRace.id.slice(0, 8)} (link pending first sync)</>
+                  )}
                 </p>
               )}
             </div>
