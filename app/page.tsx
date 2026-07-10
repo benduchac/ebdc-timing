@@ -34,7 +34,7 @@ export default function PublicResultsPage() {
         </div>
 
         <p className="mt-6 text-sm text-gray-500">
-          Every dollar saved goes to the food bank 🚴💚
+          Proudly supporting the Alameda County Community Food Bank 🚴💚
         </p>
       </div>
     </div>
