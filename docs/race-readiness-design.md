@@ -22,8 +22,8 @@ function offline; anything that claims data is safe must be provably true.
 - **Done, deployed:** Phase 3 (cloud backup + race entity + recovery).
   Backend (`/api/backup`, `/api/races`, Upstash Redis) and full client wiring
   (race creation, best-effort sync + badge, race menu + recovery-aware
-  startup, readiness banner, guarded reset) verified end-to-end in a real
-  browser, including the core scenario: wipe local IndexedDB entirely,
+  startup, setup checklist, guarded Switch Race) verified end-to-end in a
+  real browser, including the core scenario: wipe local IndexedDB entirely,
   reopen, recover the race from the cloud with all registrants/entries/
   wave-times intact.
 - **Done, deployed:** Phase 4's clock-verification half (the dry-run half is
@@ -31,8 +31,8 @@ function offline; anything that claims data is safe must be provably true.
   with `time.now`'s API, proxied through `GET /api/time` since most simple
   time APIs don't send CORS headers. Threshold tightened from <60s to <5s
   "fine", with caution (5-30s) and alert (>=30s) tiers, auto-run whenever a
-  race becomes active, surfaced in Settings and the Registration-tab
-  readiness banner.
+  race becomes active, surfaced in Settings and as the first panel of the
+  Registration-tab setup checklist.
 - **Built, not yet pushed to production:** Phase 2 (public leaderboard).
   Every race gets a permanent, shareable URL — `/[slug]`, derived from the
   race label (e.g. "EBDC 7/9" → `/ebdc-7-9`), assigned once server-side on
@@ -224,18 +224,29 @@ The id can't be permanently lost once it has reached the cloud.
 
 ---
 
-## "Ready for the field" readiness
+## Setup checklist
 
-The operator surface shows an explicit pre-scoring readiness state:
+The Registration tab shows a three-panel checklist, each panel independently
+actionable without leaving the tab:
 
-- Race created ✓
-- Registrants synced ✓
-- Wave times set ✓
-- **Fully synced at [time]**
+1. **Check Clock** — runs the drift check (auto-runs once when a race
+   becomes active too); shows the actual drift and a Recheck button.
+2. **Load Registrants** — button opens the CSV file picker directly.
+3. **Set Wave Times** — opens a combined modal for all three waves at once,
+   distinct from the Timing tab's per-wave editor (that one's for
+   mid/post-race correction and warns about recalculating existing entries;
+   this one is for initial best-estimate setup, usually before any entries
+   exist). "Done" tracks *reviewed*, not *correct* — wave times always have
+   a value (defaults), so there's no way to detect correctness, only whether
+   the operator engaged with the step at least once.
 
-Warn before entering scoring (or going offline) with **unsynced setup**. The one
-hard rule: **a race is not recovery-proof until its first successful sync** — if
-created offline, the app says so plainly.
+Once all three are done, the checklist collapses to a single calm summary
+line. **Deliberately excludes sync status** — that's `SyncBadge`'s
+permanent job (visible on every tab); an earlier version duplicated it here
+as a fourth checklist item and it was just confusing, the same signal
+unlabeled right next to the real one. The one hard rule that sync itself
+still enforces: **a race is not recovery-proof until its first successful
+sync** — the badge, not this checklist, is what says so.
 
 ---
 
@@ -314,15 +325,16 @@ In the Vercel project:
 1. **Phase 2.5** *(done — deployed and verified)* — routing split (public `/`,
    gated `/operator`) + passphrase gate + `POST /api/auth`. Closes the
    exposure that motivated this work.
-2. **Phase 3** *(done — built and locally verified, not yet pushed)* — Race
-   entity + `/api/backup` + `/api/races` + client sync + badge + race
-   menu/recovery + readiness state.
-3. **Phase 2** — the real public leaderboard + publish pipeline. **Deferred:
-   needs product spec** (what it shows; minors display). Reuses this same
-   endpoint/storage/auth foundation.
-4. **Phase 4** *(clock-verification half done — built and locally verified,
-   not yet pushed; full offline dry run still open)* — clock-verification
-   hardening + full offline dry run.
+2. **Phase 3** *(done — deployed)* — Race entity + `/api/backup` +
+   `/api/races` + client sync + badge + race menu/recovery + setup
+   checklist.
+3. **Phase 4, clock half** *(done — deployed)* — clock-verification
+   hardening. Full offline dry run still open.
+4. **Phase 2** *(built, not yet pushed)* — the public leaderboard, at
+   `/[slug]` per race. Spec resolved in conversation, not deferred anymore:
+   no ages shown (uniformly, not just for minors), full names shown for
+   everyone (consent handled by the event's existing waiver, not tracked in
+   the app), DOB never leaves the server.
 
 ---
 

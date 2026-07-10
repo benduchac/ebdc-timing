@@ -65,9 +65,20 @@ context.
   if online, lists races from `GET /api/races` to resume (pulls
   `race:{id}:latest` via `GET /api/backup?id=`), always offers Start New
   (mints a `Race { id, label, createdAt }`). Offline: Start New only.
-- `components/ReadinessBanner.tsx` — pre-scoring checklist (race created /
-  registrants loaded / fully synced / clock verified); warns, doesn't block.
-  Registration-tab only — not a persistent status bar during live scoring.
+- `components/SetupChecklist.tsx` — three-panel setup checklist (Registration
+  tab only): Check Clock / Load Registrants / Set Wave Times, each with its
+  own status and a direct action button (no leaving the tab to complete any
+  of them). Collapses to a single summary line once all three are done.
+  Deliberately excludes sync status — that's `SyncBadge`'s job; duplicating
+  it here as a checklist item (an earlier version did) was just confusing,
+  same signal unlabeled right next to the real one.
+- `components/WaveTimesSetupModal.tsx` — sets all three wave start times at
+  once, for initial setup. Distinct from `WaveTimeEditModal` (Timing tab),
+  which corrects one wave mid/post-race and explicitly warns about
+  recalculating existing entries — that framing doesn't fit "give me your
+  best estimate before the race starts." `RaceState.waveTimesConfirmed` /
+  `RaceSnapshot.waveTimesConfirmed` tracks "has this been reviewed," not "is
+  it correct" (defaults always look like a valid value, reviewed or not).
 - `app/api/time/route.ts` — proxies the clock-check time source server-side.
   Most simple time APIs (including the current one, `time.now`) don't send
   CORS headers, so the browser must go through our own server, not call them
@@ -163,10 +174,13 @@ context.
   uploaded CSV and can contain commas/quotes.
 - Wave start times are `Date` objects in state but persisted as ISO strings;
   convert at the boundaries.
-- Destructive actions (reset, delete registrant/entry) require typed
-  confirmation — preserve that pattern. "Switch to a Different Race" is
-  lighter-weight (no typed confirmation) since it doesn't destroy anything —
-  it just returns to the race menu.
+- Destructive actions (delete registrant/entry) require typed confirmation —
+  preserve that pattern. There's no separate "Reset App" anymore — it used
+  to be a harder-confirmation version of the exact same underlying action as
+  "Switch to a Different Race" (both cleared local state and returned to the
+  race menu), which was confusing once cloud backup made both equally safe
+  and recoverable; Switch Race is now the only escape hatch, with a
+  confirm() only when there's genuinely unsynced data at risk.
 - `verifySystemClock` (via `/api/time`) degrades gracefully offline
   (`ok: null`). A drifted device clock silently shifts every recorded
   elapsed time by the drift amount (wave start is typed independently of the

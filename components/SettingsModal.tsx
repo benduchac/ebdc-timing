@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { getClockSeverity } from "@/lib/utils";
 import type { ClockCheckResult } from "@/lib/types";
 
@@ -9,7 +8,6 @@ interface SettingsModalProps {
   onClose: () => void;
   onExportBackup: () => void;
   onImportBackup: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  onResetApp: () => void;
   onSwitchRace: () => void;
   onLock: () => void;
   entryCount: number;
@@ -25,7 +23,6 @@ export default function SettingsModal({
   onClose,
   onExportBackup,
   onImportBackup,
-  onResetApp,
   onSwitchRace,
   onLock,
   entryCount,
@@ -35,23 +32,9 @@ export default function SettingsModal({
   checkingClock,
   onCheckClock,
 }: SettingsModalProps) {
-  const [showResetConfirm, setShowResetConfirm] = useState(false);
-  const [resetTyped, setResetTyped] = useState("");
-
   if (!isOpen) return null;
 
   const clockSeverity = getClockSeverity(clockCheck);
-
-  const handleResetConfirm = () => {
-    if (resetTyped !== "RESET") {
-      alert('Please type "RESET" to confirm');
-      return;
-    }
-    onResetApp();
-    setShowResetConfirm(false);
-    setResetTyped("");
-    onClose();
-  };
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -197,78 +180,22 @@ export default function SettingsModal({
           <div className="border-2 border-red-300 rounded-lg p-4 bg-red-50">
             <h3 className="font-bold mb-3 text-red-700">🚨 Danger Zone</h3>
 
-            <div className="mb-3 pb-3 border-b border-red-200">
-              <div className="text-sm text-red-700 mb-2">
-                Currently on: <strong>{raceLabel}</strong>
-              </div>
-              <button
-                onClick={onSwitchRace}
-                className="w-full py-2 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600"
-              >
-                Switch to a Different Race
-              </button>
-              <p className="text-xs text-gray-500 mt-2">
-                On the wrong race? This clears the local working copy and
-                returns to the race menu — this race&apos;s cloud backup is
-                untouched and can still be reopened later. Warns first if
-                there are unsynced changes.
-              </p>
+            <div className="text-sm text-red-700 mb-2">
+              Currently on: <strong>{raceLabel}</strong> ({registrantCount}{" "}
+              registrants, {entryCount} timing entries)
             </div>
-
-            {!showResetConfirm ? (
-              <button
-                onClick={() => setShowResetConfirm(true)}
-                className="w-full py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700"
-              >
-                Reset App & Clear All Data
-              </button>
-            ) : (
-              <div className="space-y-3">
-                <div className="text-red-700 text-sm">
-                  This will permanently delete:
-                  <ul className="list-disc ml-5 mt-1">
-                    <li>{registrantCount} registrants</li>
-                    <li>{entryCount} timing entries</li>
-                    <li>All wave start times</li>
-                  </ul>
-                </div>
-
-                <div>
-                  <label className="block mb-1 font-bold text-sm text-red-700">
-                    Type &quot;RESET&quot; to confirm:
-                  </label>
-                  <input
-                    type="text"
-                    value={resetTyped}
-                    onChange={(e) =>
-                      setResetTyped(e.target.value.toUpperCase())
-                    }
-                    placeholder="RESET"
-                    className="w-full p-2 border-2 border-red-300 rounded-lg focus:border-red-500 focus:outline-none"
-                    autoFocus
-                  />
-                </div>
-
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleResetConfirm}
-                    disabled={resetTyped !== "RESET"}
-                    className="flex-1 py-2 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Confirm Reset
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowResetConfirm(false);
-                      setResetTyped("");
-                    }}
-                    className="flex-1 py-2 bg-gray-400 text-white rounded-lg font-bold hover:bg-gray-500"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
+            <button
+              onClick={onSwitchRace}
+              className="w-full py-2 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600"
+            >
+              Switch to a Different Race
+            </button>
+            <p className="text-xs text-gray-500 mt-2">
+              On the wrong race, or starting fresh? This clears the local
+              working copy and returns to the race menu — this race&apos;s
+              cloud backup is untouched and can still be reopened later.
+              Warns first if there are unsynced changes.
+            </p>
           </div>
         </div>
 

@@ -14,6 +14,7 @@ export type SyncStatus = "never" | "syncing" | "synced" | "dirty" | "error";
 interface SyncInput {
   race: Race | null;
   waveStartTimes: { A: Date; B: Date; C: Date };
+  waveTimesConfirmed: boolean;
   registrants: Map<string, Registrant>;
   entries: Entry[];
   entryCounter: number;
@@ -54,8 +55,14 @@ export function useCloudSync(
   latestInputRef.current = input;
 
   const performSync = useCallback(async () => {
-    const { race, waveStartTimes, registrants, entries, entryCounter } =
-      latestInputRef.current;
+    const {
+      race,
+      waveStartTimes,
+      waveTimesConfirmed,
+      registrants,
+      entries,
+      entryCounter,
+    } = latestInputRef.current;
     if (!race) return;
 
     const passphrase = getPassphrase();
@@ -84,6 +91,7 @@ export function useCloudSync(
             B: waveStartTimes.B.toISOString(),
             C: waveStartTimes.C.toISOString(),
           },
+          waveTimesConfirmed,
           registrants: Array.from(registrants.entries()),
           entries,
           entryCounter,
@@ -131,6 +139,7 @@ export function useCloudSync(
   }, [
     input.race?.id,
     input.waveStartTimes,
+    input.waveTimesConfirmed,
     input.registrants,
     input.entries,
     input.entryCounter,

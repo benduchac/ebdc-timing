@@ -36,6 +36,12 @@ export interface RaceState {
   // dirty/synced status itself is re-earned each session, not trusted from
   // a prior one (see docs/race-readiness-design.md "Sync indicator").
   cloudLastSyncedAt?: string;
+  // True once the operator has explicitly saved wave times via the setup
+  // checklist or edited one via the Timing tab — tracks "has this been
+  // reviewed," not "is it correct" (defaults are always a valid-looking
+  // value, reviewed or not). Synced to the cloud snapshot too so recovery on
+  // a different machine doesn't force re-confirmation.
+  waveTimesConfirmed?: boolean;
   waveStartTimes: {
     A: string;
     B: string;

@@ -26,7 +26,8 @@ import DeleteEntryModal from "@/components/DeleteEntryModal";
 import WaveTimeEditModal from "@/components/WaveTimeEditModal";
 import SettingsModal from "@/components/SettingsModal";
 import SyncBadge from "@/components/SyncBadge";
-import ReadinessBanner from "@/components/ReadinessBanner";
+import SetupChecklist from "@/components/SetupChecklist";
+import WaveTimesSetupModal from "@/components/WaveTimesSetupModal";
 import RaceMenuScreen from "@/components/RaceMenuScreen";
 import OperatorGate, {
   clearStoredPassphrase,
@@ -55,7 +56,7 @@ export default function OperatorPage() {
   // already exists locally).
   const [loaded, setLoaded] = useState(false);
 
-  // System clock check — lifted out of SettingsModal so ReadinessBanner can
+  // System clock check — lifted out of SettingsModal so SetupChecklist can
   // also see it. Auto-runs whenever a race becomes active (see effect below).
   const [clockCheck, setClockCheck] = useState<ClockCheckResult | null>(null);
   const [checkingClock, setCheckingClock] = useState(false);
@@ -76,6 +77,11 @@ export default function OperatorPage() {
       C: new Date(`${year}-${month}-${day}T09:30:00`),
     };
   });
+  // True once wave times have been explicitly reviewed/saved (setup
+  // checklist or Timing tab edit) — not "are they correct," just "were they
+  // looked at." See lib/db.ts's RaceState.waveTimesConfirmed comment.
+  const [waveTimesConfirmed, setWaveTimesConfirmed] = useState(false);
+  const [showWaveTimesModal, setShowWaveTimesModal] = useState(false);
 
   // Modal state
   const [editingEntry, setEditingEntry] = useState<Entry | null>(null);
@@ -106,6 +112,7 @@ export default function OperatorPage() {
           setEntries(state.entries);
           setEntryCounter(state.entryCounter);
           setCloudLastSyncedAt(state.cloudLastSyncedAt ?? null);
+          setWaveTimesConfirmed(state.waveTimesConfirmed ?? false);
 
           if (state.raceId) {
             setActiveRace({
@@ -177,6 +184,7 @@ export default function OperatorPage() {
               raceCreatedAt: activeRace?.createdAt,
               raceSlug: activeRace?.slug,
               cloudLastSyncedAt: cloudLastSyncedAt ?? undefined,
+              waveTimesConfirmed,
               waveStartTimes: {
                 A: waveStartTimes.A.toISOString(),
                 B: waveStartTimes.B.toISOString(),
@@ -195,7 +203,15 @@ export default function OperatorPage() {
     };
 
     saveState();
-  }, [entries, waveStartTimes, registrants, entryCounter, activeRace, cloudLastSyncedAt]);
+  }, [
+    entries,
+    waveStartTimes,
+    registrants,
+    entryCounter,
+    activeRace,
+    cloudLastSyncedAt,
+    waveTimesConfirmed,
+  ]);
 
   // Save wave times to setup config
   useEffect(() => {
@@ -260,7 +276,14 @@ export default function OperatorPage() {
     error: syncError,
     slug: syncedSlug,
   } = useCloudSync(
-    { race: activeRace, waveStartTimes, registrants, entries, entryCounter },
+    {
+      race: activeRace,
+      waveStartTimes,
+      waveTimesConfirmed,
+      registrants,
+      entries,
+      entryCounter,
+    },
     getStoredPassphrase,
     cloudLastSyncedAt
   );
@@ -316,6 +339,7 @@ export default function OperatorPage() {
     setEntries(snapshot.entries);
     setEntryCounter(snapshot.entryCounter);
     setCloudLastSyncedAt(snapshot.lastSaved);
+    setWaveTimesConfirmed(snapshot.waveTimesConfirmed ?? false);
     if (snapshot.entries.length > 0) {
       setActiveTab("timing");
     }
@@ -382,6 +406,7 @@ export default function OperatorPage() {
       [wave]: newDateTime,
     };
     setWaveStartTimes(updatedWaveStartTimes);
+    setWaveTimesConfirmed(true);
 
     // Recalculate all entries for this wave
     const updatedEntries = entries.map((entry) => {
@@ -407,6 +432,44 @@ export default function OperatorPage() {
         `✅ Wave ${wave} start time updated!\nRecalculated ${affectedCount} entries.`
       );
     }
+  };
+
+  // Setup-checklist path: all three waves at once, before (usually) any
+  // entries exist. Still recalculates existing ones for correctness, just
+  // without WaveTimeEditModal's per-wave "N entries affected" ceremony —
+  // that framing fits a mid-race correction, not initial setup.
+  const handleConfirmWaveTimes = (times: {
+    A: string;
+    B: string;
+    C: string;
+  }) => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+    const newWaveStartTimes = {
+      A: new Date(`${year}-${month}-${day}T${times.A}`),
+      B: new Date(`${year}-${month}-${day}T${times.B}`),
+      C: new Date(`${year}-${month}-${day}T${times.C}`),
+    };
+
+    setWaveStartTimes(newWaveStartTimes);
+    setWaveTimesConfirmed(true);
+
+    setEntries((prev) =>
+      prev.map((entry) => {
+        if (!entry.wave) return entry;
+        const elapsedMs =
+          entry.finishTimeMs - newWaveStartTimes[entry.wave].getTime();
+        return {
+          ...entry,
+          elapsedMs,
+          elapsedTime: formatElapsedTime(elapsedMs),
+        };
+      })
+    );
+
+    setShowWaveTimesModal(false);
   };
 
   const handleExportCSV = () => {
@@ -475,6 +538,7 @@ export default function OperatorPage() {
         B: waveStartTimes.B.toISOString(),
         C: waveStartTimes.C.toISOString(),
       },
+      waveTimesConfirmed,
       registrants: Array.from(registrants.entries()),
       entryCounter,
       entries,
@@ -514,6 +578,7 @@ export default function OperatorPage() {
             B: new Date(backup.waveStartTimes.B),
             C: new Date(backup.waveStartTimes.C),
           });
+          setWaveTimesConfirmed(!!backup.waveTimesConfirmed);
         }
         if (backup.registrants) {
           setRegistrants(new Map(backup.registrants));
@@ -581,6 +646,7 @@ export default function OperatorPage() {
     setDeletingEntry(null);
     setActiveRace(null);
     setCloudLastSyncedAt(null);
+    setWaveTimesConfirmed(false);
 
     const today = new Date();
     const year = today.getFullYear();
@@ -591,16 +657,6 @@ export default function OperatorPage() {
       B: new Date(`${year}-${month}-${day}T09:15:00`),
       C: new Date(`${year}-${month}-${day}T09:30:00`),
     });
-  };
-
-  const handleResetApp = async () => {
-    if (!confirmDiscardUnsyncedChanges("Resetting")) return;
-    try {
-      await clearLocalRaceState();
-      setActiveTab("registration");
-    } catch (error) {
-      alert("Error resetting app: " + (error as Error).message);
-    }
   };
 
   // "Whoops, wrong race" escape hatch — lighter-weight than Reset (no typed
@@ -707,11 +763,14 @@ export default function OperatorPage() {
           </div>
 
           {activeTab === "registration" && (
-            <ReadinessBanner
+            <SetupChecklist
               registrantCount={registrants.size}
-              syncStatus={syncStatus}
-              cloudLastSyncedAt={cloudLastSyncedAt}
               clockCheck={clockCheck}
+              checkingClock={checkingClock}
+              onCheckClock={handleClockCheck}
+              waveStartTimes={waveStartTimes}
+              waveTimesConfirmed={waveTimesConfirmed}
+              onOpenWaveTimesModal={() => setShowWaveTimesModal(true)}
             />
           )}
 
@@ -861,12 +920,19 @@ export default function OperatorPage() {
             />
           )}
 
+          {showWaveTimesModal && (
+            <WaveTimesSetupModal
+              currentTimes={waveStartTimes}
+              onSave={handleConfirmWaveTimes}
+              onClose={() => setShowWaveTimesModal(false)}
+            />
+          )}
+
           <SettingsModal
             isOpen={showSettings}
             onClose={() => setShowSettings(false)}
             onExportBackup={handleExportBackup}
             onImportBackup={handleImportBackup}
-            onResetApp={handleResetApp}
             onSwitchRace={handleSwitchRace}
             onLock={handleLock}
             entryCount={entries.length}
