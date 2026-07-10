@@ -50,6 +50,17 @@ handler callbacks to mutate. There is no global store or context.
   the app keeps working offline after the first unlock.
 - `app/api/auth/route.ts` — validates the passphrase against the
   `PUBLISH_SECRET` env var. See `docs/race-readiness-design.md` "Auth model".
+- `app/api/backup/route.ts` (`POST`/`GET`) + `app/api/races/route.ts`
+  (`GET`) — cloud backup and the race registry, backed by Upstash Redis
+  (`lib/kv.ts`). All three privileged routes share `lib/auth.ts`'s
+  `isAuthorized` (expects `Authorization: Bearer <passphrase>`).
+- `lib/useCloudSync.ts` — best-effort `POST /api/backup` on every relevant
+  state change (debounced ~600ms), drives `components/SyncBadge.tsx`. Status
+  distinguishes "dirty" (change queued, about to sync — calm) from "error"
+  (an attempt actually failed — the alarm state); see the hook's top comment.
+- `components/RaceSetupScreen.tsx` — shown when there's no local `activeRace`;
+  mints a `Race { id, label, createdAt }`. No race-menu/recovery UI yet
+  (deferred — see race-readiness doc "Race lifecycle & recovery").
 - `app/page.tsx` / `app/results/page.tsx` — public placeholder + redirect to
   `/`; no data dependency.
 - `lib/db.ts` — Dexie schema (`entries`, `raceState`, `setupConfig`) and the
@@ -87,13 +98,18 @@ handler callbacks to mutate. There is no global store or context.
 ## Persistence
 
 - `raceState` holds the full snapshot (entries, registrants as `[bib, Registrant][]`,
-  wave times as ISO strings, counter). Saved on every relevant state change via a
+  wave times as ISO strings, counter, plus `raceId`/`raceLabel`/`raceCreatedAt`/
+  `cloudLastSyncedAt`). Saved on every relevant state change via a
   transactional clear+add.
 - `setupConfig` holds just wave start times (HH:MM:SS) so they survive a reset of
   race data.
-- **Auto-backup**: every 10 newly recorded entries, a JSON backup is
-  auto-downloaded (driven by an effect on `entries` so it captures committed
-  state). Manual export/import lives in `SettingsModal`.
+- **Cloud sync**: `useCloudSync` best-effort POSTs the snapshot to
+  `/api/backup` on every relevant state change (replaced the old every-10-
+  entries auto-download JSON). Manual JSON export/import still lives in
+  `SettingsModal` as the offline/USB-stick escape hatch.
+- `raceState.raceId` is optional — pre-Phase-3 local records lack it;
+  `operator/page.tsx`'s load effect mints one on the spot if there's existing
+  data but no id, so old local data migrates without user action.
 - On load, `operator/page.tsx` restores `raceState` if present, else falls back
   to `setupConfig` for wave times.
 

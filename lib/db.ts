@@ -24,6 +24,17 @@ export interface Entry {
 
 export interface RaceState {
   id?: number;
+  // Phase 3 race identity — optional because pre-existing local records
+  // predate it; app/operator/page.tsx mints these on load if absent so old
+  // data migrates seamlessly instead of forcing a new race.
+  raceId?: string;
+  raceLabel?: string;
+  raceCreatedAt?: string; // ISO
+  // Last snapshot timestamp the cloud actually acked for this race. Restored
+  // on load purely for the "Backed up Nm ago" idle badge text; the badge's
+  // dirty/synced status itself is re-earned each session, not trusted from
+  // a prior one (see docs/race-readiness-design.md "Sync indicator").
+  cloudLastSyncedAt?: string;
   waveStartTimes: {
     A: string;
     B: string;

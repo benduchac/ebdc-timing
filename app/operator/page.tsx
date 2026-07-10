@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { db, clearAllData } from "@/lib/db";
-import type { Registrant, Entry } from "@/lib/types";
+import type { Registrant, Entry, Race } from "@/lib/types";
 import {
   downloadFile,
   getDateString,
   formatElapsedTime,
   csvField,
 } from "@/lib/utils";
+import { useCloudSync } from "@/lib/useCloudSync";
 import RegistrationTab from "@/components/RegistrationTab";
 import TimingTab from "@/components/TimingTab";
 import ResultsTable from "@/components/ResultsTable";
@@ -17,7 +18,12 @@ import EditModal from "@/components/EditModal";
 import DeleteEntryModal from "@/components/DeleteEntryModal";
 import WaveTimeEditModal from "@/components/WaveTimeEditModal";
 import SettingsModal from "@/components/SettingsModal";
-import OperatorGate, { clearStoredPassphrase } from "@/components/OperatorGate";
+import SyncBadge from "@/components/SyncBadge";
+import RaceSetupScreen from "@/components/RaceSetupScreen";
+import OperatorGate, {
+  clearStoredPassphrase,
+  getStoredPassphrase,
+} from "@/components/OperatorGate";
 
 type TabType = "registration" | "timing" | "results";
 
@@ -29,10 +35,17 @@ export default function OperatorPage() {
   );
   const [entries, setEntries] = useState<Entry[]>([]);
   const [entryCounter, setEntryCounter] = useState(0);
-  const [autoBackupCounter, setAutoBackupCounter] = useState(0);
-  // Number of entries that existed at the last auto-backup. Used to trigger a
-  // fresh backup every 10 newly recorded entries.
-  const lastBackupCountRef = useRef(0);
+
+  // Race identity (Phase 3) — null until a race is created or restored from
+  // local/imported state. Drives the cloud sync gate below.
+  const [activeRace, setActiveRace] = useState<Race | null>(null);
+  const [cloudLastSyncedAt, setCloudLastSyncedAt] = useState<string | null>(
+    null
+  );
+  // True once the initial IndexedDB load has resolved — gates whether we
+  // show RaceSetupScreen (avoids flashing it before we know if a race
+  // already exists locally).
+  const [loaded, setLoaded] = useState(false);
 
   // Wave start times - initialize with defaults
   const [waveStartTimes, setWaveStartTimes] = useState<{
@@ -79,9 +92,24 @@ export default function OperatorPage() {
           setRegistrants(new Map(state.registrants));
           setEntries(state.entries);
           setEntryCounter(state.entryCounter);
-          // Baseline the auto-backup counter to restored data so reloading
-          // doesn't immediately trigger a backup download.
-          lastBackupCountRef.current = state.entries.length;
+          setCloudLastSyncedAt(state.cloudLastSyncedAt ?? null);
+
+          if (state.raceId) {
+            setActiveRace({
+              id: state.raceId,
+              label: state.raceLabel || "Untitled Race",
+              createdAt: state.raceCreatedAt || state.lastSaved,
+            });
+          } else if (state.entries.length > 0 || state.registrants.length > 0) {
+            // Local data from before race identity existed (Phase 3) — mint
+            // one now so syncing can begin, rather than treating in-progress
+            // work as having no race.
+            setActiveRace({
+              id: crypto.randomUUID(),
+              label: `East Bay Dirt Classic – ${new Date().toLocaleDateString()}`,
+              createdAt: new Date().toISOString(),
+            });
+          }
 
           // If there are entries, go to timing tab
           if (state.entries.length > 0) {
@@ -110,6 +138,8 @@ export default function OperatorPage() {
         }
       } catch (error) {
         console.error("Error loading persisted state:", error);
+      } finally {
+        setLoaded(true);
       }
     };
 
@@ -119,14 +149,19 @@ export default function OperatorPage() {
   // Save state to IndexedDB after changes
   useEffect(() => {
     const saveState = async () => {
-      // Only save if we have registrants or entries
-      if (registrants.size > 0 || entries.length > 0) {
+      // Save once a race exists, even before any registrants/entries — a
+      // refresh right after "Start Race" shouldn't lose the new race id.
+      if (activeRace || registrants.size > 0 || entries.length > 0) {
         try {
           // Atomic replace so a rapid follow-up save can't interleave between
           // the clear and the add and momentarily empty the store.
           await db.transaction("rw", db.raceState, async () => {
             await db.raceState.clear();
             await db.raceState.add({
+              raceId: activeRace?.id,
+              raceLabel: activeRace?.label,
+              raceCreatedAt: activeRace?.createdAt,
+              cloudLastSyncedAt: cloudLastSyncedAt ?? undefined,
               waveStartTimes: {
                 A: waveStartTimes.A.toISOString(),
                 B: waveStartTimes.B.toISOString(),
@@ -145,7 +180,7 @@ export default function OperatorPage() {
     };
 
     saveState();
-  }, [entries, waveStartTimes, registrants, entryCounter]);
+  }, [entries, waveStartTimes, registrants, entryCounter, activeRace, cloudLastSyncedAt]);
 
   // Save wave times to setup config
   useEffect(() => {
@@ -201,22 +236,32 @@ export default function OperatorPage() {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [entries]);
 
-  // Auto-backup every 10 newly recorded entries. Runs as an effect (after the
-  // entries state is committed) so the downloaded backup includes the entry
-  // that triggered it — a synchronous call in the record handler would miss it.
+  // Cloud sync (Phase 3) — best-effort POST to /api/backup on every relevant
+  // state change, replacing the old every-10-entries auto-download. See
+  // docs/race-readiness-design.md "Backup sync behavior".
+  const {
+    status: syncStatus,
+    lastSyncedAt: cloudSyncedAt,
+    error: syncError,
+  } = useCloudSync(
+    { race: activeRace, waveStartTimes, registrants, entries, entryCounter },
+    getStoredPassphrase,
+    cloudLastSyncedAt
+  );
+
   useEffect(() => {
-    const since = entries.length - lastBackupCountRef.current;
-    if (since >= 10) {
-      handleAutoBackup();
-      lastBackupCountRef.current = entries.length;
-      setAutoBackupCounter(0);
-    } else {
-      setAutoBackupCounter(Math.max(0, since));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entries]);
+    if (cloudSyncedAt) setCloudLastSyncedAt(cloudSyncedAt);
+  }, [cloudSyncedAt]);
 
   // Handlers
+  const handleCreateRace = (label: string) => {
+    setActiveRace({
+      id: crypto.randomUUID(),
+      label,
+      createdAt: new Date().toISOString(),
+    });
+  };
+
   const handleUpdateRegistrants = (newRegistrants: Map<string, Registrant>) => {
     setRegistrants(newRegistrants);
   };
@@ -362,6 +407,9 @@ export default function OperatorPage() {
     const backup = {
       exportDate: new Date().toISOString(),
       event: "East Bay Dirt Classic - C510",
+      raceId: activeRace?.id,
+      raceLabel: activeRace?.label,
+      raceCreatedAt: activeRace?.createdAt,
       waveStartTimes: {
         A: waveStartTimes.A.toISOString(),
         B: waveStartTimes.B.toISOString(),
@@ -412,12 +460,16 @@ export default function OperatorPage() {
         }
         if (backup.entries) {
           setEntries(backup.entries);
-          // Baseline auto-backup to imported data so it doesn't immediately
-          // re-download a backup.
-          lastBackupCountRef.current = backup.entries.length;
         }
         if (backup.entryCounter) {
           setEntryCounter(backup.entryCounter);
+        }
+        if (backup.raceId) {
+          setActiveRace({
+            id: backup.raceId,
+            label: backup.raceLabel || "Imported Race",
+            createdAt: backup.raceCreatedAt || new Date().toISOString(),
+          });
         }
 
         alert(
@@ -438,28 +490,6 @@ export default function OperatorPage() {
     event.target.value = "";
   };
 
-  const handleAutoBackup = () => {
-    const backup = {
-      exportDate: new Date().toISOString(),
-      event: "East Bay Dirt Classic - C510",
-      waveStartTimes: {
-        A: waveStartTimes.A.toISOString(),
-        B: waveStartTimes.B.toISOString(),
-        C: waveStartTimes.C.toISOString(),
-      },
-      registrants: Array.from(registrants.entries()),
-      entryCounter,
-      entries,
-    };
-
-    const json = JSON.stringify(backup, null, 2);
-    downloadFile(
-      json,
-      `EBDC-auto-backup-${getDateString()}.json`,
-      "application/json"
-    );
-  };
-
   const handleResetApp = async () => {
     try {
       await clearAllData();
@@ -467,10 +497,13 @@ export default function OperatorPage() {
       setEntries([]);
       setRegistrants(new Map());
       setEntryCounter(0);
-      setAutoBackupCounter(0);
-      lastBackupCountRef.current = 0;
       setEditingEntry(null);
       setDeletingEntry(null);
+      // A reset ends this race locally — its cloud backup is untouched (a
+      // fresh race id next time can't clobber it). The next load shows
+      // RaceSetupScreen again.
+      setActiveRace(null);
+      setCloudLastSyncedAt(null);
 
       // Reset wave times to defaults
       const today = new Date();
@@ -494,6 +527,22 @@ export default function OperatorPage() {
     window.location.reload();
   };
 
+  if (!loaded) {
+    return (
+      <OperatorGate>
+        <div />
+      </OperatorGate>
+    );
+  }
+
+  if (!activeRace) {
+    return (
+      <OperatorGate>
+        <RaceSetupScreen onCreate={handleCreateRace} />
+      </OperatorGate>
+    );
+  }
+
   return (
     <OperatorGate>
       <div
@@ -509,6 +558,11 @@ export default function OperatorPage() {
                 East Bay Dirt Classic
               </h1>
               <p className="text-gray-600 italic">Race Timing System</p>
+              {activeRace && (
+                <p className="text-xs text-gray-400 mt-1">
+                  {activeRace.label} · #{activeRace.id.slice(0, 8)}
+                </p>
+              )}
             </div>
             <button
               onClick={() => setShowSettings(true)}
@@ -528,13 +582,11 @@ export default function OperatorPage() {
             <div className="bg-green-100 px-3 py-1 rounded-full">
               <span className="font-semibold">{entries.length}</span> finishers
             </div>
-            {entries.length > 0 && (
-              <div className="bg-yellow-100 px-3 py-1 rounded-full">
-                Auto-backup in{" "}
-                <span className="font-semibold">{10 - autoBackupCounter}</span>{" "}
-                entries
-              </div>
-            )}
+            <SyncBadge
+              status={syncStatus}
+              lastSyncedAt={cloudLastSyncedAt}
+              error={syncError}
+            />
           </div>
 
           {/* Tab Navigation */}
