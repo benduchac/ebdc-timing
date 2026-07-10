@@ -27,8 +27,19 @@ function offline; anything that claims data is safe must be provably true.
   local IndexedDB entirely, reopen, recover the race from the cloud with all
   registrants/entries/wave-times intact. Committed locally; pending a final
   local pass before pushing.
-- **Next:** Phase 2 (real leaderboard, deferred/needs spec) and Phase 4
-  (clock hardening + full offline dry run).
+- **Built, not yet pushed to production:** Phase 4's clock-verification half
+  (the dry-run half is still open). `worldtimeapi.org` (the original source)
+  is dead — replaced with `time.now`'s API, proxied through our own
+  `GET /api/time` since most simple time APIs (including the replacement)
+  don't send CORS headers, so calling them directly from the browser is
+  silently blocked. Threshold tightened from <60s to <5s "fine", with
+  caution (5-30s) and alert (>=30s) tiers — a finish-line clock times
+  individual races, not just roughly tells time, and drift silently shifts
+  every recorded elapsed time by that amount. Auto-runs whenever a race
+  becomes active; surfaced in both Settings and the Registration-tab
+  readiness banner.
+- **Next:** Phase 2 (real leaderboard, deferred/needs spec) and the rest of
+  Phase 4 (full offline dry run).
 
 ---
 
@@ -275,7 +286,9 @@ In the Vercel project:
 3. **Phase 2** — the real public leaderboard + publish pipeline. **Deferred:
    needs product spec** (what it shows; minors display). Reuses this same
    endpoint/storage/auth foundation.
-4. **Phase 4** — clock-verification hardening + full offline dry run.
+4. **Phase 4** *(clock-verification half done — built and locally verified,
+   not yet pushed; full offline dry run still open)* — clock-verification
+   hardening + full offline dry run.
 
 ---
 

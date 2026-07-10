@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { formatDurationHMS } from "@/lib/utils";
 
 interface WaveTimeEditModalProps {
   wave: "A" | "B" | "C";
@@ -93,7 +94,7 @@ export default function WaveTimeEditModal({
             <div className="mt-2 text-sm text-gray-600">
               📊 This is{" "}
               <strong>
-                {timeDiff.diffSec} seconds {timeDiff.direction}
+                {formatDurationHMS(timeDiff.diffSec)} {timeDiff.direction}
               </strong>{" "}
               than current
             </div>

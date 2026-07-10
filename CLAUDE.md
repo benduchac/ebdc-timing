@@ -63,15 +63,23 @@ handler callbacks to mutate. There is no global store or context.
   `race:{id}:latest` via `GET /api/backup?id=`), always offers Start New
   (mints a `Race { id, label, createdAt }`). Offline: Start New only.
 - `components/ReadinessBanner.tsx` — pre-scoring checklist (race created /
-  registrants loaded / fully synced); warns, doesn't block.
+  registrants loaded / fully synced / clock verified); warns, doesn't block.
+  Registration-tab only — not a persistent status bar during live scoring.
+- `app/api/time/route.ts` — proxies the clock-check time source server-side.
+  Most simple time APIs (including the current one, `time.now`) don't send
+  CORS headers, so the browser must go through our own server, not call them
+  directly.
 - `app/page.tsx` / `app/results/page.tsx` — public placeholder + redirect to
   `/`; no data dependency.
 - `lib/db.ts` — Dexie schema (`entries`, `raceState`, `setupConfig`) and the
   `Registrant` / `Entry` / `RaceState` / `SetupConfig` types. `clearAllData()`.
 - `lib/types.ts` — re-exports DB types plus view types (`WaveStartTimes`,
-  `ClockCheckResult`).
-- `lib/utils.ts` — `formatElapsedTime`, `csvField` (RFC 4180 CSV escaping),
-  `getDateString`, `downloadFile`, `verifySystemClock`.
+  `ClockCheckResult`), plus the Phase 3 race types (`Race`, `RaceSnapshot`,
+  `RaceIndexEntry`).
+- `lib/utils.ts` — `formatElapsedTime`, `formatDurationHMS` ("Xh Ym Zs" for
+  plain-language duration deltas), `csvField` (RFC 4180 CSV escaping),
+  `getDateString`, `downloadFile`, `verifySystemClock`, `getClockSeverity`
+  (fine/caution/alert/unknown from a `ClockCheckResult`).
 - `lib/categories.ts` — age/gender categorization for leaderboards
   (`calculateAge`, `getAgeCategory`, `filterByCategory`, `getTopEntries`).
 
@@ -129,10 +137,16 @@ handler callbacks to mutate. There is no global store or context.
 - Wave start times are `Date` objects in state but persisted as ISO strings;
   convert at the boundaries.
 - Destructive actions (reset, delete registrant/entry) require typed
-  confirmation — preserve that pattern.
-- `verifySystemClock` calls `worldtimeapi.org` and degrades gracefully offline
-  (`ok: null`). Clock accuracy matters for results, but the app must work with no
-  internet.
+  confirmation — preserve that pattern. "Switch to a Different Race" is
+  lighter-weight (no typed confirmation) since it doesn't destroy anything —
+  it just returns to the race menu.
+- `verifySystemClock` (via `/api/time`) degrades gracefully offline
+  (`ok: null`). A drifted device clock silently shifts every recorded
+  elapsed time by the drift amount (wave start is typed independently of the
+  device clock; finish times are captured from it) — so this is checked
+  automatically whenever a race becomes active, not just on request.
+  worldtimeapi.org (the original source) is dead; don't resurrect it if you
+  see it referenced in old context.
 
 ## In-progress: race-readiness work
 

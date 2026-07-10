@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { verifySystemClock } from "@/lib/utils";
+import { getClockSeverity } from "@/lib/utils";
 import type { ClockCheckResult } from "@/lib/types";
 
 interface SettingsModalProps {
@@ -10,9 +10,14 @@ interface SettingsModalProps {
   onExportBackup: () => void;
   onImportBackup: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onResetApp: () => void;
+  onSwitchRace: () => void;
   onLock: () => void;
   entryCount: number;
   registrantCount: number;
+  raceLabel: string;
+  clockCheck: ClockCheckResult | null;
+  checkingClock: boolean;
+  onCheckClock: () => void;
 }
 
 export default function SettingsModal({
@@ -21,23 +26,21 @@ export default function SettingsModal({
   onExportBackup,
   onImportBackup,
   onResetApp,
+  onSwitchRace,
   onLock,
   entryCount,
   registrantCount,
+  raceLabel,
+  clockCheck,
+  checkingClock,
+  onCheckClock,
 }: SettingsModalProps) {
-  const [clockCheck, setClockCheck] = useState<ClockCheckResult | null>(null);
-  const [checking, setChecking] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [resetTyped, setResetTyped] = useState("");
 
   if (!isOpen) return null;
 
-  const handleClockCheck = async () => {
-    setChecking(true);
-    const result = await verifySystemClock();
-    setClockCheck(result);
-    setChecking(false);
-  };
+  const clockSeverity = getClockSeverity(clockCheck);
 
   const handleResetConfirm = () => {
     if (resetTyped !== "RESET") {
@@ -70,27 +73,31 @@ export default function SettingsModal({
 
             {!clockCheck ? (
               <button
-                onClick={handleClockCheck}
-                disabled={checking}
+                onClick={onCheckClock}
+                disabled={checkingClock}
                 className="w-full py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 disabled:opacity-50"
               >
-                {checking ? "Checking..." : "Verify System Clock"}
+                {checkingClock ? "Checking..." : "Verify System Clock"}
               </button>
             ) : (
               <div
                 className={`p-3 rounded-lg ${
-                  clockCheck.ok === true
+                  clockSeverity === "fine"
                     ? "bg-green-50 border border-green-300"
-                    : clockCheck.ok === false
+                    : clockSeverity === "caution"
+                    ? "bg-amber-50 border border-amber-300"
+                    : clockSeverity === "alert"
                     ? "bg-red-50 border border-red-300"
                     : "bg-yellow-50 border border-yellow-300"
                 }`}
               >
                 <div className="font-bold mb-2">
-                  {clockCheck.ok === true
+                  {clockSeverity === "fine"
                     ? "✅ Clock OK"
-                    : clockCheck.ok === false
-                    ? "⚠️ Clock Drift Detected"
+                    : clockSeverity === "caution"
+                    ? "⚠️ Minor Clock Drift"
+                    : clockSeverity === "alert"
+                    ? "🚨 Significant Clock Drift"
                     : "⚠️ Unable to Verify"}
                 </div>
 
@@ -115,6 +122,13 @@ export default function SettingsModal({
                       </div>
                     </>
                   )}
+                  {(clockSeverity === "caution" ||
+                    clockSeverity === "alert") && (
+                    <div className="text-red-700 font-semibold">
+                      Every recorded finish time will be off by about this
+                      much. Fix your device&apos;s clock before scoring.
+                    </div>
+                  )}
                   {clockCheck.error && (
                     <div className="text-gray-600 italic">
                       {clockCheck.error}
@@ -123,10 +137,11 @@ export default function SettingsModal({
                 </div>
 
                 <button
-                  onClick={handleClockCheck}
-                  className="mt-3 w-full py-1 bg-gray-200 rounded font-semibold hover:bg-gray-300 text-sm"
+                  onClick={onCheckClock}
+                  disabled={checkingClock}
+                  className="mt-3 w-full py-1 bg-gray-200 rounded font-semibold hover:bg-gray-300 text-sm disabled:opacity-50"
                 >
-                  Recheck
+                  {checkingClock ? "Checking..." : "Recheck"}
                 </button>
               </div>
             )}
@@ -181,6 +196,24 @@ export default function SettingsModal({
           {/* Danger Zone */}
           <div className="border-2 border-red-300 rounded-lg p-4 bg-red-50">
             <h3 className="font-bold mb-3 text-red-700">🚨 Danger Zone</h3>
+
+            <div className="mb-3 pb-3 border-b border-red-200">
+              <div className="text-sm text-red-700 mb-2">
+                Currently on: <strong>{raceLabel}</strong>
+              </div>
+              <button
+                onClick={onSwitchRace}
+                className="w-full py-2 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600"
+              >
+                Switch to a Different Race
+              </button>
+              <p className="text-xs text-gray-500 mt-2">
+                On the wrong race? This clears the local working copy and
+                returns to the race menu — this race&apos;s cloud backup is
+                untouched and can still be reopened later. Warns first if
+                there are unsynced changes.
+              </p>
+            </div>
 
             {!showResetConfirm ? (
               <button

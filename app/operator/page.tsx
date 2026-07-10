@@ -2,12 +2,19 @@
 
 import { useState, useEffect } from "react";
 import { db, clearAllData } from "@/lib/db";
-import type { Registrant, Entry, Race, RaceSnapshot } from "@/lib/types";
+import type {
+  Registrant,
+  Entry,
+  Race,
+  RaceSnapshot,
+  ClockCheckResult,
+} from "@/lib/types";
 import {
   downloadFile,
   getDateString,
   formatElapsedTime,
   csvField,
+  verifySystemClock,
 } from "@/lib/utils";
 import { useCloudSync } from "@/lib/useCloudSync";
 import RegistrationTab from "@/components/RegistrationTab";
@@ -47,6 +54,11 @@ export default function OperatorPage() {
   // show RaceSetupScreen (avoids flashing it before we know if a race
   // already exists locally).
   const [loaded, setLoaded] = useState(false);
+
+  // System clock check — lifted out of SettingsModal so ReadinessBanner can
+  // also see it. Auto-runs whenever a race becomes active (see effect below).
+  const [clockCheck, setClockCheck] = useState<ClockCheckResult | null>(null);
+  const [checkingClock, setCheckingClock] = useState(false);
 
   // Wave start times - initialize with defaults
   const [waveStartTimes, setWaveStartTimes] = useState<{
@@ -253,6 +265,24 @@ export default function OperatorPage() {
   useEffect(() => {
     if (cloudSyncedAt) setCloudLastSyncedAt(cloudSyncedAt);
   }, [cloudSyncedAt]);
+
+  const handleClockCheck = async () => {
+    setCheckingClock(true);
+    const result = await verifySystemClock();
+    setClockCheck(result);
+    setCheckingClock(false);
+  };
+
+  // Auto-run once whenever a race becomes active (fresh create, opened from
+  // the race menu, or restored on load) — a finish-line clock check
+  // shouldn't require the operator to remember to open Settings. Requires
+  // internet, so this is a no-op offline; ReadinessBanner surfaces that as
+  // "not verified" rather than silently assuming the clock is fine.
+  useEffect(() => {
+    if (!activeRace) return;
+    handleClockCheck();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeRace?.id]);
 
   // Handlers
   const handleCreateRace = (label: string) => {
@@ -507,48 +537,69 @@ export default function OperatorPage() {
     event.target.value = "";
   };
 
-  const handleResetApp = async () => {
-    // Guard against silently discarding unsynced work — see
-    // docs/race-readiness-design.md "Guard destructive actions".
+  // Guard against silently discarding unsynced work before any action that
+  // abandons the current race locally — see docs/race-readiness-design.md
+  // "Guard destructive actions". Deliberately strict (literal "synced", not
+  // "has ever synced") — unlike ReadinessBanner's informational status, this
+  // is the actual data-loss checkpoint, so a change still mid-flight should
+  // still prompt.
+  const confirmDiscardUnsyncedChanges = (verb: string): boolean => {
     const hasData = registrants.size > 0 || entries.length > 0;
     const isSynced = syncStatus === "synced" && cloudLastSyncedAt !== null;
-    if (hasData && !isSynced) {
-      const proceed = confirm(
-        "⚠️ This race has NOT been confirmed backed up to the cloud.\n\n" +
-          "Resetting now discards any unsynced changes locally — they will " +
-          "not be recoverable from the cloud.\n\nContinue anyway?"
-      );
-      if (!proceed) return;
-    }
+    if (!hasData || isSynced) return true;
+    return confirm(
+      "⚠️ This race has NOT been confirmed backed up to the cloud.\n\n" +
+        `${verb} now discards any unsynced changes locally — they will not ` +
+        "be recoverable from the cloud.\n\nContinue anyway?"
+    );
+  };
 
+  // Clears the local working copy only. The current race's cloud backup is
+  // untouched either way (storage is keyed per race id) — the next load
+  // shows the race menu, where it can still be resumed via "Open".
+  const clearLocalRaceState = async () => {
+    await clearAllData();
+
+    setEntries([]);
+    setRegistrants(new Map());
+    setEntryCounter(0);
+    setEditingEntry(null);
+    setDeletingEntry(null);
+    setActiveRace(null);
+    setCloudLastSyncedAt(null);
+
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+    const day = String(today.getDate()).padStart(2, "0");
+    setWaveStartTimes({
+      A: new Date(`${year}-${month}-${day}T09:00:00`),
+      B: new Date(`${year}-${month}-${day}T09:15:00`),
+      C: new Date(`${year}-${month}-${day}T09:30:00`),
+    });
+  };
+
+  const handleResetApp = async () => {
+    if (!confirmDiscardUnsyncedChanges("Resetting")) return;
     try {
-      await clearAllData();
-
-      setEntries([]);
-      setRegistrants(new Map());
-      setEntryCounter(0);
-      setEditingEntry(null);
-      setDeletingEntry(null);
-      // A reset ends this race locally — its cloud backup is untouched (a
-      // fresh race id next time can't clobber it). The next load shows the
-      // race menu again.
-      setActiveRace(null);
-      setCloudLastSyncedAt(null);
-
-      // Reset wave times to defaults
-      const today = new Date();
-      const year = today.getFullYear();
-      const month = String(today.getMonth() + 1).padStart(2, "0");
-      const day = String(today.getDate()).padStart(2, "0");
-      setWaveStartTimes({
-        A: new Date(`${year}-${month}-${day}T09:00:00`),
-        B: new Date(`${year}-${month}-${day}T09:15:00`),
-        C: new Date(`${year}-${month}-${day}T09:30:00`),
-      });
-
+      await clearLocalRaceState();
       setActiveTab("registration");
     } catch (error) {
       alert("Error resetting app: " + (error as Error).message);
+    }
+  };
+
+  // "Whoops, wrong race" escape hatch — lighter-weight than Reset (no typed
+  // confirmation) since it doesn't destroy anything; it just returns to the
+  // race menu so a different race can be opened.
+  const handleSwitchRace = async () => {
+    if (!confirmDiscardUnsyncedChanges("Switching races")) return;
+    try {
+      await clearLocalRaceState();
+      setActiveTab("registration");
+      setShowSettings(false);
+    } catch (error) {
+      alert("Error switching races: " + (error as Error).message);
     }
   };
 
@@ -619,11 +670,14 @@ export default function OperatorPage() {
             />
           </div>
 
-          <ReadinessBanner
-            registrantCount={registrants.size}
-            syncStatus={syncStatus}
-            cloudLastSyncedAt={cloudLastSyncedAt}
-          />
+          {activeTab === "registration" && (
+            <ReadinessBanner
+              registrantCount={registrants.size}
+              syncStatus={syncStatus}
+              cloudLastSyncedAt={cloudLastSyncedAt}
+              clockCheck={clockCheck}
+            />
+          )}
 
           {/* Tab Navigation */}
           <div className="flex gap-1 mb-4 border-b-2 border-gray-200">
@@ -777,9 +831,14 @@ export default function OperatorPage() {
             onExportBackup={handleExportBackup}
             onImportBackup={handleImportBackup}
             onResetApp={handleResetApp}
+            onSwitchRace={handleSwitchRace}
             onLock={handleLock}
             entryCount={entries.length}
             registrantCount={registrants.size}
+            raceLabel={activeRace.label}
+            clockCheck={clockCheck}
+            checkingClock={checkingClock}
+            onCheckClock={handleClockCheck}
           />
         </div>
       </div>
