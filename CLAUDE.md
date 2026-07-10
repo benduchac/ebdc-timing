@@ -147,6 +147,10 @@ handler callbacks to mutate. There is no global store or context.
   automatically whenever a race becomes active, not just on request.
   worldtimeapi.org (the original source) is dead; don't resurrect it if you
   see it referenced in old context.
+- **Time.Now's free API requires attribution** (their ToS): a link back to
+  `https://time.now` on the site footer, README, or an About screen. Keep
+  the README "Credits" section (or equivalent) if you touch `/api/time` or
+  the README's structure — don't drop it silently.
 
 ## In-progress: race-readiness work
 

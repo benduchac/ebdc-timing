@@ -76,6 +76,10 @@ amber/red means fix the device's clock before scoring — see
 `docs/race-readiness-design.md` for why a drifted clock is a bigger deal
 than it sounds.
 
+## Credits
+
+Clock verification uses the free [World Time API by Time.Now](https://time.now).
+
 ---
 
 Built for C510 • Proudly supporting the Alameda County Community Food Bank 🚴💚
