@@ -54,45 +54,45 @@ export default function WaveTimeEditModal({
   const timeDiff = getTimeDiff();
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-        <h2 className="text-xl font-bold mb-4 text-purple-600">
-          ✏️ Edit Wave {wave} Start Time
+    <div className="fixed inset-0 bg-ink/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-chalk rounded-lg shadow-xl max-w-md w-full p-6">
+        <h2 className="font-display uppercase tracking-tight text-xl mb-4 text-moss-dark">
+          Edit wave {wave} start time
         </h2>
 
-        <div className="mb-4 p-3 bg-yellow-50 border-2 border-yellow-400 rounded-lg">
-          <div className="font-bold text-yellow-800 mb-1">⚠️ Important</div>
-          <div className="text-sm text-yellow-700">
+        <div className="mb-4 p-3 bg-warning-soft border-2 border-warning/50 rounded-lg">
+          <div className="font-bold text-clay-dark mb-1">Important</div>
+          <div className="text-sm text-ink-soft">
             Changing this will recalculate{" "}
             <strong>{affectedEntries} existing entries</strong> for Wave {wave}.
             All elapsed times will be updated based on the new start time.
           </div>
         </div>
 
-        <div className="mb-4 p-3 bg-gray-100 rounded-lg">
-          <div className="text-sm font-semibold text-gray-600 mb-1">
-            Current Start Time:
+        <div className="mb-4 p-3 bg-sand rounded-lg">
+          <div className="text-sm font-semibold text-ink-soft mb-1">
+            Current start time:
           </div>
-          <div className="text-xl font-mono font-bold text-gray-800">
+          <div className="text-xl font-mono font-bold text-ink tabular-nums">
             {currentTime.toLocaleTimeString("en-US", { hour12: true })}
           </div>
         </div>
 
         <div className="mb-4">
-          <label className="block mb-2 font-bold text-sm">
-            New Start Time (HH:MM:SS)
+          <label className="block mb-2 font-semibold text-sm text-ink-soft">
+            New start time (HH:MM:SS)
           </label>
           <input
             type="time"
             step="1"
             value={newTime}
             onChange={(e) => setNewTime(e.target.value)}
-            className="w-full p-3 text-lg font-mono border-2 border-purple-300 rounded-lg focus:border-purple-500 focus:outline-none"
+            className="w-full p-3 text-lg font-mono border-2 border-clay/40 bg-sand rounded-lg focus:border-clay focus:outline-none"
           />
 
           {timeDiff && timeDiff.diffSec > 0 && (
-            <div className="mt-2 text-sm text-gray-600">
-              📊 This is{" "}
+            <div className="mt-2 text-sm text-ink-soft">
+              This is{" "}
               <strong>
                 {formatDurationHMS(timeDiff.diffSec)} {timeDiff.direction}
               </strong>{" "}
@@ -104,20 +104,20 @@ export default function WaveTimeEditModal({
         <div className="flex gap-2">
           <button
             onClick={handleSave}
-            className="flex-1 py-3 bg-purple-600 text-white rounded-lg font-bold hover:bg-purple-700 transition"
+            className="flex-1 py-3 bg-clay text-chalk rounded-lg font-bold hover:bg-clay-dark transition"
           >
-            Update & Recalculate
+            Update &amp; recalculate
           </button>
           <button
             onClick={onClose}
-            className="flex-1 py-3 bg-gray-300 text-gray-800 rounded-lg font-bold hover:bg-gray-400 transition"
+            className="flex-1 py-3 bg-ink/15 text-ink rounded-lg font-bold hover:bg-ink/25 transition"
           >
             Cancel
           </button>
         </div>
 
-        <div className="mt-3 text-xs text-gray-500 text-center">
-          💡 Use this when start line crew radios the actual wave release time
+        <div className="mt-3 text-xs text-ink-soft text-center">
+          Use this when start line crew radios the actual wave release time
         </div>
       </div>
     </div>

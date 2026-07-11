@@ -7,6 +7,7 @@ import {
   formatRelativeTime,
   TIME_SOURCE_LABEL,
 } from "@/lib/utils";
+import { CheckIcon, WarningIcon } from "@/components/icons";
 
 interface SetupChecklistProps {
   registrantCount: number;
@@ -27,10 +28,10 @@ function formatTime(d: Date): string {
   });
 }
 
-// Green, light-weight secondary style — these are routine setup actions, not
+// Light-weight secondary style — these are routine setup actions, not
 // primary calls to action, so a heavy solid button read as too visually loud.
 const ACTION_BUTTON =
-  "w-full py-1.5 bg-green-100 text-green-800 rounded font-semibold text-sm hover:bg-green-200 disabled:opacity-50 disabled:hover:bg-green-100";
+  "w-full py-1.5 bg-success-soft text-moss-dark rounded font-semibold text-sm hover:bg-success/20 disabled:opacity-50 disabled:hover:bg-success-soft";
 
 // Registration-tab-only setup checklist — three actionable panels, each
 // completable without leaving this screen. Collapses to a single calm line
@@ -66,8 +67,9 @@ export default function SetupChecklist({
 
   if (allDone) {
     return (
-      <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-2 mb-4 text-sm text-green-800">
-        ✓ Setup complete — {registrantCount} registrant
+      <div className="bg-success-soft border border-success/40 rounded-lg px-4 py-2 mb-4 text-sm text-moss-dark flex items-center gap-2">
+        <CheckIcon className="w-4 h-4 shrink-0" />
+        Setup complete — {registrantCount} registrant
         {registrantCount !== 1 ? "s" : ""}, wave times set, clock verified
       </div>
     );
@@ -91,16 +93,23 @@ export default function SetupChecklist({
       <div
         className={`rounded-lg border-2 p-3 ${
           clockProblem
-            ? "bg-red-50 border-red-300"
+            ? "bg-danger-soft border-danger/40"
             : clockFine
-            ? "bg-green-50 border-green-300"
-            : "bg-gray-50 border-gray-200"
+            ? "bg-success-soft border-success/40"
+            : "bg-sand border-ink/10"
         }`}
       >
-        <div className="font-bold text-sm mb-1">
-          {clockFine ? "✓" : clockProblem ? "⚠" : "○"} 1. Check Clock
+        <div className="font-bold text-sm mb-1 flex items-center gap-1.5">
+          {clockFine ? (
+            <CheckIcon className="w-3.5 h-3.5 text-success shrink-0" />
+          ) : clockProblem ? (
+            <WarningIcon className="w-3.5 h-3.5 text-danger shrink-0" />
+          ) : (
+            <span className="text-ink-soft">○</span>
+          )}
+          1. Check clock
         </div>
-        <div className="text-xs text-gray-600 mb-2 min-h-[2.5em]">
+        <div className="text-xs text-ink-soft mb-2 min-h-[2.5em]">
           {clockDetail()}
         </div>
         <button
@@ -111,7 +120,7 @@ export default function SetupChecklist({
           {checkingClock
             ? "Checking…"
             : clockSeverity === "unknown"
-            ? "Check Now"
+            ? "Check now"
             : "Recheck"}
         </button>
       </div>
@@ -120,14 +129,19 @@ export default function SetupChecklist({
       <div
         className={`rounded-lg border-2 p-3 ${
           registrantsLoaded
-            ? "bg-green-50 border-green-300"
-            : "bg-gray-50 border-gray-200"
+            ? "bg-success-soft border-success/40"
+            : "bg-sand border-ink/10"
         }`}
       >
-        <div className="font-bold text-sm mb-1">
-          {registrantsLoaded ? "✓" : "○"} 2. Load Registrants
+        <div className="font-bold text-sm mb-1 flex items-center gap-1.5">
+          {registrantsLoaded ? (
+            <CheckIcon className="w-3.5 h-3.5 text-success shrink-0" />
+          ) : (
+            <span className="text-ink-soft">○</span>
+          )}
+          2. Load registrants
         </div>
-        <div className="text-xs text-gray-600 mb-2 min-h-[2.5em]">
+        <div className="text-xs text-ink-soft mb-2 min-h-[2.5em]">
           {registrantsLoaded
             ? `${registrantCount} loaded`
             : "Upload a CSV to get started"}
@@ -136,7 +150,7 @@ export default function SetupChecklist({
           onClick={() => document.getElementById("csvInput")?.click()}
           className={ACTION_BUTTON}
         >
-          📄 Upload CSV
+          Upload CSV
         </button>
       </div>
 
@@ -144,14 +158,19 @@ export default function SetupChecklist({
       <div
         className={`rounded-lg border-2 p-3 ${
           waveTimesConfirmed
-            ? "bg-green-50 border-green-300"
-            : "bg-gray-50 border-gray-200"
+            ? "bg-success-soft border-success/40"
+            : "bg-sand border-ink/10"
         }`}
       >
-        <div className="font-bold text-sm mb-1">
-          {waveTimesConfirmed ? "✓" : "○"} 3. Set Wave Times
+        <div className="font-bold text-sm mb-1 flex items-center gap-1.5">
+          {waveTimesConfirmed ? (
+            <CheckIcon className="w-3.5 h-3.5 text-success shrink-0" />
+          ) : (
+            <span className="text-ink-soft">○</span>
+          )}
+          3. Set wave times
         </div>
-        <div className="text-xs text-gray-600 mb-2 min-h-[2.5em]">
+        <div className="text-xs text-ink-soft mb-2 min-h-[2.5em]">
           {waveTimesConfirmed
             ? `A ${formatTime(waveStartTimes.A)} · B ${formatTime(
                 waveStartTimes.B
@@ -159,7 +178,7 @@ export default function SetupChecklist({
             : "Estimates are fine — adjust later as needed"}
         </div>
         <button onClick={onOpenWaveTimesModal} className={ACTION_BUTTON}>
-          🕒 {waveTimesConfirmed ? "Edit" : "Set"} Wave Times
+          {waveTimesConfirmed ? "Edit" : "Set"} wave times
         </button>
       </div>
     </div>

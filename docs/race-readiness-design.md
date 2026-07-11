@@ -70,18 +70,19 @@ Two surfaces, clearly separated:
 | Surface | Path | Access |
 |---|---|---|
 | Public results / leaderboard | `/[slug]` (e.g. `/ebdc-7-9`) | public, read-only |
-| Public landing / redirect | `/` | public — redirects to the latest race's `/[slug]`, or a placeholder if none exist |
-| Operator app (scoring/editing) | `/operator` | passphrase-gated |
-
-**Decided default** (confirmable): public leaderboard at `/` so racers hit the
-bare domain and get results; operator bookmarks `/operator`. Today the full
-operator app is served at `/` with Vercel protection off — that exposure is
-exactly what this closes.
+| Public landing (static brand page) | `/` | public — no race data, never redirects |
+| Operator app (scoring/editing) | `/operator` | passphrase-gated, unlinked |
 
 **Decided:** every race gets its own permanent, shareable URL derived from
-its label (`/[slug]`); `/` is a convenience redirect to whichever race
-synced most recently, so a bookmark/share from the bare domain still lands
-on the correct permanent link. `/results` redirects to `/` for old links.
+its label (`/[slug]`); that link is shared directly per race (the operator
+copies it via `CopyLinkButton`), not discovered by browsing from `/`. `/`
+is a static brand page and does **not** redirect to "the latest race" — an
+earlier version auto-redirected to whichever race synced most recently,
+which meant a cold visit to the bare domain landed a stranger straight on
+someone else's in-progress race once more than one race existed in the
+cloud registry; that's surprising, not useful. `/results` still redirects
+to `/` for old bookmarked links. `/operator` is never linked from any
+public surface — the scorer navigates there directly.
 
 ---
 

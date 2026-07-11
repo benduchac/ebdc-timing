@@ -26,17 +26,17 @@ export default function DeleteEntryModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-        <h2 className="text-xl font-bold mb-2 text-red-600">
-          🗑️ Delete Timing Entry
+    <div className="fixed inset-0 bg-ink/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-chalk rounded-lg shadow-xl max-w-md w-full p-6">
+        <h2 className="font-display uppercase tracking-tight text-xl mb-2 text-danger">
+          Delete timing entry
         </h2>
 
-        <div className="mb-4 p-3 bg-red-50 border-2 border-red-200 rounded-lg">
-          <p className="text-red-800 mb-2">
+        <div className="mb-4 p-3 bg-danger-soft border-2 border-danger/40 rounded-lg">
+          <p className="text-ink mb-2">
             Are you sure you want to delete this timing entry?
           </p>
-          <div className="bg-white rounded p-2 text-sm">
+          <div className="bg-chalk rounded p-2 text-sm">
             <div>
               <strong>Bib:</strong> {entry.bib}
             </div>
@@ -44,19 +44,19 @@ export default function DeleteEntryModal({
               <strong>Name:</strong> {entry.firstName} {entry.lastName}
             </div>
             <div>
-              <strong>Finish Time:</strong> {entry.finishTime}
+              <strong>Finish time:</strong> {entry.finishTime}
             </div>
             <div>
               <strong>Elapsed:</strong> {entry.elapsedTime}
             </div>
           </div>
-          <p className="text-red-600 text-sm mt-2 font-semibold">
-            ⚠️ This cannot be undone! The finish time will be permanently lost.
+          <p className="text-danger text-sm mt-2 font-semibold">
+            This cannot be undone! The finish time will be permanently lost.
           </p>
         </div>
 
         <div className="mb-4">
-          <label className="block mb-2 font-bold text-sm">
+          <label className="block mb-2 font-semibold text-sm text-ink-soft">
             Type &quot;{entry.bib}&quot; to confirm:
           </label>
           <input
@@ -64,7 +64,7 @@ export default function DeleteEntryModal({
             value={typedBib}
             onChange={(e) => setTypedBib(e.target.value)}
             placeholder={entry.bib}
-            className="w-full p-2 border-2 border-gray-300 rounded-lg focus:border-red-500 focus:outline-none"
+            className="w-full p-2 border-2 border-ink/15 bg-sand rounded-lg focus:border-danger focus:outline-none"
             autoFocus
           />
         </div>
@@ -73,13 +73,13 @@ export default function DeleteEntryModal({
           <button
             onClick={handleConfirm}
             disabled={typedBib !== entry.bib}
-            className="flex-1 py-2 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 py-2 bg-danger text-chalk rounded-lg font-bold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Delete Entry
+            Delete entry
           </button>
           <button
             onClick={onCancel}
-            className="flex-1 py-2 bg-gray-400 text-white rounded-lg font-bold hover:bg-gray-500"
+            className="flex-1 py-2 bg-ink/15 text-ink rounded-lg font-bold hover:bg-ink/25"
           >
             Cancel
           </button>

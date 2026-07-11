@@ -2,6 +2,7 @@
 
 import { getClockSeverity } from "@/lib/utils";
 import type { ClockCheckResult } from "@/lib/types";
+import { CheckIcon, WarningIcon } from "@/components/icons";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -41,13 +42,15 @@ export default function SettingsModal({
   const clockSeverity = getClockSeverity(clockCheck);
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-ink/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-chalk rounded-lg shadow-xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold">⚙️ Settings</h2>
+          <h2 className="font-display uppercase tracking-tight text-xl text-moss-dark">
+            Settings
+          </h2>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 text-2xl"
+            className="text-ink-soft hover:text-ink text-2xl leading-none"
           >
             ×
           </button>
@@ -55,48 +58,62 @@ export default function SettingsModal({
 
         <div className="space-y-6">
           {/* Clock Verification */}
-          <div className="border-2 border-gray-200 rounded-lg p-4">
-            <h3 className="font-bold mb-3">⏰ System Clock Check</h3>
+          <div className="border-2 border-ink/10 rounded-lg p-4">
+            <h3 className="font-bold mb-3 text-ink">System clock check</h3>
 
             {!clockCheck ? (
               <button
                 onClick={onCheckClock}
                 disabled={checkingClock}
-                className="w-full py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 disabled:opacity-50"
+                className="w-full py-2 bg-clay text-chalk rounded-lg font-semibold hover:bg-clay-dark disabled:opacity-50"
               >
-                {checkingClock ? "Checking..." : "Verify System Clock"}
+                {checkingClock ? "Checking..." : "Verify system clock"}
               </button>
             ) : (
               <div
                 className={`p-3 rounded-lg ${
                   clockSeverity === "fine"
-                    ? "bg-green-50 border border-green-300"
+                    ? "bg-success-soft border border-success/40"
                     : clockSeverity === "caution"
-                    ? "bg-amber-50 border border-amber-300"
+                    ? "bg-warning-soft border border-warning/40"
                     : clockSeverity === "alert"
-                    ? "bg-red-50 border border-red-300"
-                    : "bg-yellow-50 border border-yellow-300"
+                    ? "bg-danger-soft border border-danger/40"
+                    : "bg-sand border border-ink/10"
                 }`}
               >
-                <div className="font-bold mb-2">
-                  {clockSeverity === "fine"
-                    ? "✅ Clock OK"
-                    : clockSeverity === "caution"
-                    ? "⚠️ Minor Clock Drift"
-                    : clockSeverity === "alert"
-                    ? "🚨 Significant Clock Drift"
-                    : "⚠️ Unable to Verify"}
+                <div className="font-bold mb-2 flex items-center gap-1.5">
+                  {clockSeverity === "fine" ? (
+                    <>
+                      <CheckIcon className="w-4 h-4 text-success shrink-0" />
+                      Clock OK
+                    </>
+                  ) : clockSeverity === "caution" ? (
+                    <>
+                      <WarningIcon className="w-4 h-4 text-warning shrink-0" />
+                      Minor clock drift
+                    </>
+                  ) : clockSeverity === "alert" ? (
+                    <>
+                      <WarningIcon className="w-4 h-4 text-danger shrink-0" />
+                      Significant clock drift
+                    </>
+                  ) : (
+                    <>
+                      <WarningIcon className="w-4 h-4 text-ink-soft shrink-0" />
+                      Unable to verify
+                    </>
+                  )}
                 </div>
 
                 <div className="text-sm space-y-1">
                   <div className="flex justify-between">
-                    <span>Your Computer:</span>
+                    <span>Your computer:</span>
                     <span className="font-mono">{clockCheck.localTime}</span>
                   </div>
                   {clockCheck.serverTime && (
                     <>
                       <div className="flex justify-between">
-                        <span>Internet Time:</span>
+                        <span>Internet time:</span>
                         <span className="font-mono">
                           {clockCheck.serverTime}
                         </span>
@@ -111,13 +128,13 @@ export default function SettingsModal({
                   )}
                   {(clockSeverity === "caution" ||
                     clockSeverity === "alert") && (
-                    <div className="text-red-700 font-semibold">
+                    <div className="text-danger font-semibold">
                       Every recorded finish time will be off by about this
                       much. Fix your device&apos;s clock before scoring.
                     </div>
                   )}
                   {clockCheck.error && (
-                    <div className="text-gray-600 italic">
+                    <div className="text-ink-soft italic">
                       {clockCheck.error}
                     </div>
                   )}
@@ -126,7 +143,7 @@ export default function SettingsModal({
                 <button
                   onClick={onCheckClock}
                   disabled={checkingClock}
-                  className="mt-3 w-full py-1 bg-gray-200 rounded font-semibold hover:bg-gray-300 text-sm disabled:opacity-50"
+                  className="mt-3 w-full py-1 bg-ink/10 rounded font-semibold hover:bg-ink/15 text-sm disabled:opacity-50"
                 >
                   {checkingClock ? "Checking..." : "Recheck"}
                 </button>
@@ -135,10 +152,10 @@ export default function SettingsModal({
           </div>
 
           {/* Data Backup */}
-          <div className="border-2 border-gray-200 rounded-lg p-4">
-            <h3 className="font-bold mb-3">💾 Data Backup</h3>
+          <div className="border-2 border-ink/10 rounded-lg p-4">
+            <h3 className="font-bold mb-3 text-ink">Data backup</h3>
 
-            <div className="text-sm text-gray-600 mb-3">
+            <div className="text-sm text-ink-soft mb-3">
               Current data: {registrantCount} registrants, {entryCount} timing
               entries
             </div>
@@ -146,14 +163,14 @@ export default function SettingsModal({
             <div className="space-y-2">
               <button
                 onClick={onExportBackup}
-                className="w-full py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700"
+                className="w-full py-2 bg-clay text-chalk rounded-lg font-semibold hover:bg-clay-dark"
               >
-                📥 Download Backup JSON
+                Download backup JSON
               </button>
 
               <label className="block">
-                <span className="w-full py-2 bg-yellow-500 text-gray-900 rounded-lg font-semibold hover:bg-yellow-600 cursor-pointer flex items-center justify-center">
-                  📤 Import Backup JSON
+                <span className="w-full py-2 border-2 border-warning text-clay-dark rounded-lg font-semibold hover:bg-warning-soft cursor-pointer flex items-center justify-center">
+                  Import backup JSON
                 </span>
                 <input
                   type="file"
@@ -166,35 +183,35 @@ export default function SettingsModal({
           </div>
 
           {/* Session */}
-          <div className="border-2 border-gray-200 rounded-lg p-4">
-            <h3 className="font-bold mb-3">🔒 Session</h3>
+          <div className="border-2 border-ink/10 rounded-lg p-4">
+            <h3 className="font-bold mb-3 text-ink">Session</h3>
             <button
               onClick={onLock}
-              className="w-full py-2 bg-gray-700 text-white rounded-lg font-semibold hover:bg-gray-800"
+              className="w-full py-2 bg-moss-dark text-chalk rounded-lg font-semibold hover:bg-moss"
             >
-              Lock Operator App
+              Lock operator app
             </button>
-            <p className="text-xs text-gray-500 mt-2">
+            <p className="text-xs text-ink-soft mt-2">
               Requires the operator passphrase to unlock again. Data already
               saved locally is unaffected.
             </p>
           </div>
 
           {/* Danger Zone */}
-          <div className="border-2 border-red-300 rounded-lg p-4 bg-red-50">
-            <h3 className="font-bold mb-3 text-red-700">🚨 Danger Zone</h3>
+          <div className="border-2 border-danger/40 rounded-lg p-4 bg-danger-soft">
+            <h3 className="font-bold mb-3 text-danger">Danger zone</h3>
 
-            <div className="text-sm text-red-700 mb-2">
+            <div className="text-sm text-ink mb-2">
               Currently on: <strong>{raceLabel}</strong> ({registrantCount}{" "}
               registrants, {entryCount} timing entries)
             </div>
             <button
               onClick={onSwitchRace}
-              className="w-full py-2 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600"
+              className="w-full py-2 bg-clay text-chalk rounded-lg font-semibold hover:bg-clay-dark"
             >
-              Switch to a Different Race
+              Switch to a different race
             </button>
-            <p className="text-xs text-gray-500 mt-2">
+            <p className="text-xs text-ink-soft mt-2">
               On the wrong race, or starting fresh? This clears the local
               working copy and returns to the race menu — this race&apos;s
               cloud backup is untouched and can still be reopened later.
@@ -205,11 +222,11 @@ export default function SettingsModal({
               <>
                 <button
                   onClick={onDevResetOnboarding}
-                  className="w-full py-2 mt-3 bg-purple-800 text-white rounded-lg font-semibold hover:bg-purple-900"
+                  className="w-full py-2 mt-3 bg-moss-dark text-chalk rounded-lg font-semibold hover:bg-moss"
                 >
-                  🧪 [Dev] Reset to Blank Slate
+                  [Dev] Reset to blank slate
                 </button>
-                <p className="text-xs text-gray-500 mt-2">
+                <p className="text-xs text-ink-soft mt-2">
                   Dev-only, not in production builds. Clears registrants AND
                   finish times, and resets the Check Clock / Load
                   Registrants / Set Wave Times checklist — same state as a
@@ -224,7 +241,7 @@ export default function SettingsModal({
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="mt-6 w-full py-2 bg-gray-200 rounded-lg font-semibold hover:bg-gray-300"
+          className="mt-6 w-full py-2 bg-ink/10 rounded-lg font-semibold hover:bg-ink/15 text-ink"
         >
           Close
         </button>

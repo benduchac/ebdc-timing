@@ -4,6 +4,9 @@ import { useState } from "react";
 import type { Entry } from "@/lib/types";
 import type { CategoryBuckets } from "@/lib/categories";
 import { formatElapsedTime } from "@/lib/utils";
+import BibChip from "@/components/BibChip";
+import TimeChip from "@/components/TimeChip";
+import RankBadge from "@/components/RankBadge";
 
 interface CategoryLeaderboardGridProps {
   buckets: CategoryBuckets;
@@ -11,7 +14,6 @@ interface CategoryLeaderboardGridProps {
 
 interface LeaderboardCardProps {
   title: string;
-  emoji: string;
   entries: Entry[];
 }
 
@@ -22,16 +24,16 @@ interface LeaderboardCardProps {
 // server-side via lib/categories.ts's computeCategoryBuckets and only ever
 // passes the resulting Entry[] buckets down — birthdate never reaches the
 // client bundle.
-function LeaderboardCard({ title, emoji, entries }: LeaderboardCardProps) {
+function LeaderboardCard({ title, entries }: LeaderboardCardProps) {
   const [showAll, setShowAll] = useState(false);
 
   if (entries.length === 0) {
     return (
-      <div className="bg-white rounded-lg shadow p-4">
-        <h3 className="text-lg font-bold mb-3 text-purple-600">
-          {emoji} {title}
+      <div className="bg-chalk border border-ink/10 rounded-lg p-4">
+        <h3 className="font-display uppercase tracking-tight text-lg mb-3 text-moss-dark">
+          {title}
         </h3>
-        <div className="text-center text-gray-400 text-sm py-8">
+        <div className="text-center text-ink-soft text-sm py-8">
           No finishers yet
         </div>
       </div>
@@ -42,36 +44,32 @@ function LeaderboardCard({ title, emoji, entries }: LeaderboardCardProps) {
   const hasMore = entries.length > 10;
 
   return (
-    <div className="bg-white rounded-lg shadow p-4">
-      <h3 className="text-lg font-bold mb-3 text-purple-600">
-        {emoji} {title}
+    <div className="bg-chalk border border-ink/10 rounded-lg p-4">
+      <h3 className="font-display uppercase tracking-tight text-lg mb-3 text-moss-dark">
+        {title}
       </h3>
       <div className="space-y-2">
         {displayedEntries.map((entry, index) => {
           const place = index + 1;
-          const medalEmoji =
-            place === 1 ? "🥇" : place === 2 ? "🥈" : place === 3 ? "🥉" : "";
 
           return (
             <div
               key={entry.id}
-              className="flex items-center gap-2 text-sm border-b border-gray-100 pb-2"
+              className="flex items-center gap-2 text-sm border-b border-ink/10 pb-2"
             >
-              <div className="w-8 font-bold text-purple-600 flex items-center">
-                {medalEmoji || place}
-              </div>
-              <div className="font-mono text-gray-600">#{entry.bib}</div>
+              <RankBadge place={place} className="w-6 h-6 shrink-0 text-xs" />
+              <BibChip bib={entry.bib} className="text-xs" />
               <div className="flex-1 truncate">
                 <div className="font-semibold">
                   {entry.firstName} {entry.lastName}
                 </div>
-                <div className="text-xs text-gray-500">Wave {entry.wave}</div>
+                <div className="text-xs text-ink-soft">Wave {entry.wave}</div>
               </div>
-              <div className="font-bold text-purple-900">
+              <TimeChip className="text-xs">
                 {entry.elapsedMs !== null
                   ? formatElapsedTime(entry.elapsedMs)
                   : "N/A"}
-              </div>
+              </TimeChip>
             </div>
           );
         })}
@@ -80,13 +78,13 @@ function LeaderboardCard({ title, emoji, entries }: LeaderboardCardProps) {
       {hasMore && (
         <button
           onClick={() => setShowAll(!showAll)}
-          className="w-full mt-3 py-2 bg-purple-100 text-purple-700 rounded-lg font-semibold hover:bg-purple-200 transition"
+          className="w-full mt-3 py-2 bg-sand text-moss-dark rounded-lg font-semibold hover:bg-ink/10 transition"
         >
-          {showAll ? "▲ Show Top 10" : `▼ Show All ${entries.length} Finishers`}
+          {showAll ? "Show top 10" : `Show all ${entries.length} finishers`}
         </button>
       )}
 
-      <div className="mt-3 pt-3 border-t border-gray-200 text-xs text-gray-600 text-center">
+      <div className="mt-3 pt-3 border-t border-ink/10 text-xs text-ink-soft text-center">
         {entries.length} finisher{entries.length !== 1 ? "s" : ""} total
         {hasMore && !showAll && " (showing top 10)"}
       </div>
@@ -99,42 +97,31 @@ export default function CategoryLeaderboardGrid({
 }: CategoryLeaderboardGridProps) {
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-center mb-6">
-        📊 Category Leaderboards
+      <h2 className="font-display uppercase tracking-tight text-2xl text-center mb-6 text-moss-dark">
+        Category leaderboards
       </h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <LeaderboardCard title="Overall male" entries={buckets.overallMale} />
         <LeaderboardCard
-          title="Overall Male"
-          emoji="🚴‍♂️"
-          entries={buckets.overallMale}
-        />
-        <LeaderboardCard
-          title="Overall Female"
-          emoji="🚴‍♀️"
+          title="Overall female"
           entries={buckets.overallFemale}
         />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <LeaderboardCard
-          title="Junior Male (18U)"
-          emoji="🏅"
+          title="Junior male (18U)"
           entries={buckets.juniorMale}
         />
         <LeaderboardCard
-          title="Junior Female (18U)"
-          emoji="🏅"
+          title="Junior female (18U)"
           entries={buckets.juniorFemale}
         />
       </div>
 
       <div className="grid grid-cols-1 gap-4">
-        <LeaderboardCard
-          title="Masters (50+)"
-          emoji="🏆"
-          entries={buckets.masters}
-        />
+        <LeaderboardCard title="Masters (50+)" entries={buckets.masters} />
       </div>
     </div>
   );

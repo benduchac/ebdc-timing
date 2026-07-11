@@ -4,6 +4,8 @@ import { useState } from "react";
 import type { Registrant } from "@/lib/types";
 import { calculateAge } from "@/lib/categories";
 import { normalizeBib } from "@/lib/utils";
+import { EditIcon, TrashIcon } from "@/components/icons";
+import BibChip from "@/components/BibChip";
 
 interface RegistrationTabProps {
   registrants: Map<string, Registrant>;
@@ -69,8 +71,8 @@ export default function RegistrationTab({
     // Warn if there's existing data
     if (registrants.size > 0) {
       const message = hasTimingData
-        ? `🚨 WARNING: You have active timing data!\n\nUploading a new CSV will REPLACE all ${registrants.size} registrants.\n\nExisting timing entries will keep their bib numbers but may no longer match names.\n\nContinue?`
-        : `⚠️ You currently have ${registrants.size} registrants loaded.\n\nUploading a new CSV will REPLACE all current registrants.\n\nContinue?`;
+        ? `WARNING: You have active timing data!\n\nUploading a new CSV will REPLACE all ${registrants.size} registrants.\n\nExisting timing entries will keep their bib numbers but may no longer match names.\n\nContinue?`
+        : `You currently have ${registrants.size} registrants loaded.\n\nUploading a new CSV will REPLACE all current registrants.\n\nContinue?`;
 
       if (!confirm(message)) {
         event.target.value = "";
@@ -239,21 +241,21 @@ export default function RegistrationTab({
     <div className="space-y-4">
       {/* Header with Add button */}
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">
-          👥 Registration ({registrants.size} riders)
+        <h2 className="font-display uppercase tracking-tight text-2xl text-moss-dark">
+          Registration ({registrants.size} riders)
         </h2>
         <button
           onClick={handleAddNew}
-          className="px-4 py-2 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 transition"
+          className="px-4 py-2 bg-success text-chalk rounded-lg font-bold hover:opacity-90 transition"
         >
-          + Add Registrant
+          + Add registrant
         </button>
       </div>
 
       {/* CSV Upload Area */}
       <div
         onClick={() => document.getElementById("csvInput")?.click()}
-        className="bg-gray-50 p-6 rounded-lg text-center border-2 border-purple-400 cursor-pointer hover:bg-gray-100 transition"
+        className="bg-sand p-6 rounded-lg text-center border-2 border-dashed border-clay/50 cursor-pointer hover:border-clay hover:bg-chalk transition"
       >
         <input
           id="csvInput"
@@ -262,10 +264,10 @@ export default function RegistrationTab({
           onChange={handleCSVUpload}
           className="hidden"
         />
-        <p className="text-lg font-semibold mb-2 text-gray-700">
-          📄 Click to Upload Registrants CSV
+        <p className="text-lg font-semibold mb-2 text-ink">
+          Click to upload registrants CSV
         </p>
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-ink-soft">
           Format: Bib, FirstName, LastName, Wave, DOB (optional), Gender
           (optional)
         </p>
@@ -274,23 +276,23 @@ export default function RegistrationTab({
       {/* Wave Summary */}
       {registrants.size > 0 && (
         <div className="grid grid-cols-3 gap-3">
-          <div className="bg-purple-100 rounded-lg p-3 text-center">
-            <div className="text-2xl font-bold text-purple-800">
+          <div className="bg-chalk border border-ink/10 rounded-lg p-3 text-center">
+            <div className="text-2xl font-bold text-moss-dark">
               {waveCounts.A}
             </div>
-            <div className="text-sm text-purple-600">Wave A</div>
+            <div className="text-sm text-ink-soft">Wave A</div>
           </div>
-          <div className="bg-purple-100 rounded-lg p-3 text-center">
-            <div className="text-2xl font-bold text-purple-800">
+          <div className="bg-chalk border border-ink/10 rounded-lg p-3 text-center">
+            <div className="text-2xl font-bold text-moss-dark">
               {waveCounts.B}
             </div>
-            <div className="text-sm text-purple-600">Wave B</div>
+            <div className="text-sm text-ink-soft">Wave B</div>
           </div>
-          <div className="bg-purple-100 rounded-lg p-3 text-center">
-            <div className="text-2xl font-bold text-purple-800">
+          <div className="bg-chalk border border-ink/10 rounded-lg p-3 text-center">
+            <div className="text-2xl font-bold text-moss-dark">
               {waveCounts.C}
             </div>
-            <div className="text-sm text-purple-600">Wave C</div>
+            <div className="text-sm text-ink-soft">Wave C</div>
           </div>
         </div>
       )}
@@ -303,14 +305,14 @@ export default function RegistrationTab({
             placeholder="Search by bib, name..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="flex-1 p-2 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+            className="flex-1 p-2 border-2 border-ink/15 bg-chalk rounded-lg focus:border-clay focus:outline-none"
           />
           <select
             value={sortBy}
             onChange={(e) =>
               setSortBy(e.target.value as "bib" | "name" | "wave")
             }
-            className="p-2 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+            className="p-2 border-2 border-ink/15 bg-chalk rounded-lg focus:border-clay focus:outline-none"
           >
             <option value="bib">Sort by Bib</option>
             <option value="name">Sort by Name</option>
@@ -321,31 +323,33 @@ export default function RegistrationTab({
 
       {/* Registrant Table */}
       {registrants.size > 0 ? (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="max-h-[500px] overflow-y-auto">
+        <div className="bg-chalk border border-ink/10 rounded-lg overflow-hidden">
+          <div className="max-h-[500px] overflow-auto">
             <table className="w-full text-sm">
-              <thead className="bg-purple-600 text-white sticky top-0">
+              <thead className="bg-moss text-chalk sticky top-0 z-10">
                 <tr>
-                  <th className="p-3 text-left">Bib</th>
-                  <th className="p-3 text-left">Name</th>
-                  <th className="p-3 text-left">Wave</th>
-                  <th className="p-3 text-left">Age</th>
-                  <th className="p-3 text-left">Gender</th>
-                  <th className="p-3 text-right">Actions</th>
+                  <th className="p-3 text-left font-semibold">Bib</th>
+                  <th className="p-3 text-left font-semibold">Name</th>
+                  <th className="p-3 text-left font-semibold">Wave</th>
+                  <th className="p-3 text-left font-semibold">Age</th>
+                  <th className="p-3 text-left font-semibold">Gender</th>
+                  <th className="p-3 text-right font-semibold">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredRegistrants.map((registrant) => (
                   <tr
                     key={registrant.bib}
-                    className="border-b border-gray-200 hover:bg-gray-50"
+                    className="border-b border-ink/10 hover:bg-sand/60"
                   >
-                    <td className="p-3 font-bold">{registrant.bib}</td>
+                    <td className="p-3">
+                      <BibChip bib={registrant.bib} className="text-xs" />
+                    </td>
                     <td className="p-3">
                       {registrant.firstName} {registrant.lastName}
                     </td>
                     <td className="p-3">
-                      <span className="inline-block px-2 py-1 rounded bg-purple-100 text-purple-800 font-semibold">
+                      <span className="inline-block px-2 py-1 rounded bg-sand text-moss-dark font-semibold">
                         {registrant.wave}
                       </span>
                     </td>
@@ -354,17 +358,17 @@ export default function RegistrationTab({
                     <td className="p-3 text-right">
                       <button
                         onClick={() => handleEdit(registrant)}
-                        className="text-purple-600 hover:text-purple-800 mr-3"
+                        className="text-moss hover:text-moss-dark mr-3 inline-block align-middle"
                         title="Edit"
                       >
-                        ✏️
+                        <EditIcon />
                       </button>
                       <button
                         onClick={() => handleDeleteRegistrant(registrant.bib)}
-                        className="text-red-600 hover:text-red-800"
+                        className="text-danger hover:opacity-70 inline-block align-middle"
                         title="Delete"
                       >
-                        🗑️
+                        <TrashIcon />
                       </button>
                     </td>
                   </tr>
@@ -374,12 +378,11 @@ export default function RegistrationTab({
           </div>
         </div>
       ) : (
-        <div className="bg-gray-100 rounded-lg p-12 text-center">
-          <div className="text-6xl mb-4">👥</div>
-          <h3 className="text-xl font-bold text-gray-700 mb-2">
-            No Registrants Yet
+        <div className="bg-sand rounded-lg p-12 text-center border border-ink/10">
+          <h3 className="font-display uppercase tracking-tight text-xl text-moss-dark mb-2">
+            No registrants yet
           </h3>
-          <p className="text-gray-500 mb-4">
+          <p className="text-ink-soft mb-4">
             Upload a CSV file or add registrants manually to get started.
           </p>
         </div>
@@ -387,16 +390,16 @@ export default function RegistrationTab({
 
       {/* Edit/Add Modal */}
       {editingRegistrant && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-            <h2 className="text-xl font-bold mb-4">
-              {editingRegistrant.isNew ? "Add Registrant" : "Edit Registrant"}
+        <div className="fixed inset-0 bg-ink/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-chalk rounded-lg shadow-xl max-w-md w-full p-6">
+            <h2 className="font-display uppercase tracking-tight text-xl mb-4 text-moss-dark">
+              {editingRegistrant.isNew ? "Add registrant" : "Edit registrant"}
             </h2>
 
             <div className="space-y-4">
               <div>
-                <label className="block mb-1 font-bold text-sm">
-                  Bib Number
+                <label className="block mb-1 font-semibold text-sm text-ink-soft">
+                  Bib number
                 </label>
                 <input
                   type="text"
@@ -408,14 +411,14 @@ export default function RegistrationTab({
                       bib: e.target.value,
                     })
                   }
-                  className="w-full p-2 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                  className="w-full p-2 border-2 border-ink/15 bg-sand rounded-lg focus:border-clay focus:outline-none"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block mb-1 font-bold text-sm">
-                    First Name
+                  <label className="block mb-1 font-semibold text-sm text-ink-soft">
+                    First name
                   </label>
                   <input
                     type="text"
@@ -426,12 +429,12 @@ export default function RegistrationTab({
                         firstName: e.target.value,
                       })
                     }
-                    className="w-full p-2 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                    className="w-full p-2 border-2 border-ink/15 bg-sand rounded-lg focus:border-clay focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block mb-1 font-bold text-sm">
-                    Last Name
+                  <label className="block mb-1 font-semibold text-sm text-ink-soft">
+                    Last name
                   </label>
                   <input
                     type="text"
@@ -442,13 +445,15 @@ export default function RegistrationTab({
                         lastName: e.target.value,
                       })
                     }
-                    className="w-full p-2 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                    className="w-full p-2 border-2 border-ink/15 bg-sand rounded-lg focus:border-clay focus:outline-none"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block mb-1 font-bold text-sm">Wave</label>
+                <label className="block mb-1 font-semibold text-sm text-ink-soft">
+                  Wave
+                </label>
                 <div className="flex gap-2">
                   {(["A", "B", "C"] as const).map((wave) => (
                     <button
@@ -458,8 +463,8 @@ export default function RegistrationTab({
                       }
                       className={`flex-1 py-2 rounded-lg font-bold transition ${
                         editingRegistrant.wave === wave
-                          ? "bg-purple-600 text-white"
-                          : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                          ? "bg-moss text-chalk"
+                          : "bg-sand text-ink-soft hover:bg-ink/10"
                       }`}
                     >
                       {wave}
@@ -470,8 +475,8 @@ export default function RegistrationTab({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block mb-1 font-bold text-sm">
-                    Date of Birth
+                  <label className="block mb-1 font-semibold text-sm text-ink-soft">
+                    Date of birth
                   </label>
                   <input
                     type="date"
@@ -482,11 +487,13 @@ export default function RegistrationTab({
                         dob: e.target.value,
                       })
                     }
-                    className="w-full p-2 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                    className="w-full p-2 border-2 border-ink/15 bg-sand rounded-lg focus:border-clay focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block mb-1 font-bold text-sm">Gender</label>
+                  <label className="block mb-1 font-semibold text-sm text-ink-soft">
+                    Gender
+                  </label>
                   <select
                     value={editingRegistrant.gender}
                     onChange={(e) =>
@@ -495,7 +502,7 @@ export default function RegistrationTab({
                         gender: e.target.value as "male" | "female" | "n/a",
                       })
                     }
-                    className="w-full p-2 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                    className="w-full p-2 border-2 border-ink/15 bg-sand rounded-lg focus:border-clay focus:outline-none"
                   >
                     <option value="male">Male</option>
                     <option value="female">Female</option>
@@ -508,13 +515,13 @@ export default function RegistrationTab({
             <div className="flex gap-2 mt-6">
               <button
                 onClick={handleSaveRegistrant}
-                className="flex-1 py-2 bg-purple-600 text-white rounded-lg font-bold hover:bg-purple-700"
+                className="flex-1 py-2 bg-clay text-chalk rounded-lg font-bold hover:bg-clay-dark"
               >
-                {editingRegistrant.isNew ? "Add Registrant" : "Save Changes"}
+                {editingRegistrant.isNew ? "Add registrant" : "Save changes"}
               </button>
               <button
                 onClick={() => setEditingRegistrant(null)}
-                className="flex-1 py-2 bg-gray-400 text-white rounded-lg font-bold hover:bg-gray-500"
+                className="flex-1 py-2 bg-ink/15 text-ink rounded-lg font-bold hover:bg-ink/25"
               >
                 Cancel
               </button>
@@ -525,14 +532,14 @@ export default function RegistrationTab({
 
       {/* Delete Confirmation Modal */}
       {deleteConfirmBib && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-            <h2 className="text-xl font-bold mb-2 text-red-600">
-              🗑️ Delete Registrant
+        <div className="fixed inset-0 bg-ink/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-chalk rounded-lg shadow-xl max-w-md w-full p-6">
+            <h2 className="font-display uppercase tracking-tight text-xl mb-2 text-danger">
+              Delete registrant
             </h2>
 
-            <div className="mb-4 p-3 bg-red-50 border-2 border-red-200 rounded-lg">
-              <p className="text-red-800">
+            <div className="mb-4 p-3 bg-danger-soft border-2 border-danger/40 rounded-lg">
+              <p className="text-ink">
                 Are you sure you want to delete{" "}
                 <strong>
                   {registrants.get(deleteConfirmBib)?.firstName}{" "}
@@ -541,15 +548,15 @@ export default function RegistrationTab({
                 (Bib #{deleteConfirmBib})?
               </p>
               {hasTimingData && (
-                <p className="text-red-600 text-sm mt-2">
-                  ⚠️ This rider may have timing entries that will become
+                <p className="text-danger text-sm mt-2">
+                  This rider may have timing entries that will become
                   &quot;Unknown Rider&quot;
                 </p>
               )}
             </div>
 
             <div className="mb-4">
-              <label className="block mb-2 font-bold text-sm">
+              <label className="block mb-2 font-semibold text-sm text-ink-soft">
                 Type &quot;{deleteConfirmBib}&quot; to confirm:
               </label>
               <input
@@ -557,7 +564,7 @@ export default function RegistrationTab({
                 value={deleteTypedBib}
                 onChange={(e) => setDeleteTypedBib(e.target.value)}
                 placeholder={deleteConfirmBib}
-                className="w-full p-2 border-2 border-gray-300 rounded-lg focus:border-red-500 focus:outline-none"
+                className="w-full p-2 border-2 border-ink/15 bg-sand rounded-lg focus:border-danger focus:outline-none"
                 autoFocus
               />
             </div>
@@ -566,7 +573,7 @@ export default function RegistrationTab({
               <button
                 onClick={confirmDelete}
                 disabled={deleteTypedBib !== deleteConfirmBib}
-                className="flex-1 py-2 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 py-2 bg-danger text-chalk rounded-lg font-bold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Delete
               </button>
@@ -575,7 +582,7 @@ export default function RegistrationTab({
                   setDeleteConfirmBib(null);
                   setDeleteTypedBib("");
                 }}
-                className="flex-1 py-2 bg-gray-400 text-white rounded-lg font-bold hover:bg-gray-500"
+                className="flex-1 py-2 bg-ink/15 text-ink rounded-lg font-bold hover:bg-ink/25"
               >
                 Cancel
               </button>

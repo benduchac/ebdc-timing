@@ -27,25 +27,25 @@ export default function SyncBadge({ status, lastSyncedAt, error }: SyncBadgeProp
   if (status === "error") {
     return (
       <div
-        className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-semibold"
+        className="bg-danger-soft text-danger px-3 py-1 rounded-full text-sm font-semibold"
         title={error ?? undefined}
       >
-        ⚠ Not backed up
+        Not backed up
       </div>
     );
   }
 
   if (status === "never") {
     return (
-      <div className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-semibold">
-        ⚠ Not backed up yet
+      <div className="bg-danger-soft text-danger px-3 py-1 rounded-full text-sm font-semibold">
+        Not backed up yet
       </div>
     );
   }
 
   if (status === "syncing" || status === "dirty") {
     return (
-      <div className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm">
+      <div className="bg-chalk/20 text-chalk/80 px-3 py-1 rounded-full text-sm">
         Syncing…
       </div>
     );
@@ -57,17 +57,20 @@ export default function SyncBadge({ status, lastSyncedAt, error }: SyncBadgeProp
 
   return (
     <div
-      className={`px-3 py-1 rounded-full text-sm transition-colors duration-1000 ${
+      className={`px-3 py-1 rounded-full text-sm transition-colors duration-1000 flex items-center gap-1.5 ${
         isFresh
-          ? "bg-green-100 text-green-800 font-semibold"
-          : "bg-gray-100 text-gray-600"
+          ? "bg-success text-chalk font-semibold"
+          : "bg-chalk/20 text-chalk/80"
       }`}
     >
+      {isFresh && (
+        <span className="w-1.5 h-1.5 rounded-full bg-chalk/80 inline-block" />
+      )}
       {isFresh
-        ? "✓ Backed up"
+        ? "Backed up"
         : lastSyncedAt
         ? `Backed up ${formatRelativeTime(new Date(lastSyncedAt).getTime(), now)}`
-        : "✓ Backed up"}
+        : "Backed up"}
     </div>
   );
 }

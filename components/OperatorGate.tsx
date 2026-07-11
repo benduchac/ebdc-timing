@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import PageBackground from "./PageBackground";
+import TrailHero from "./TrailHero";
 
 // Client-side hygiene only — the real boundary is the server validating this
 // same passphrase on every privileged request (see docs/race-readiness-design.md
@@ -62,20 +62,11 @@ export default function OperatorGate({ children }: { children: ReactNode }) {
 
   if (!passphrase) {
     return (
-      <>
-        <PageBackground />
-        <div className="min-h-screen p-4 flex items-center justify-center">
-          <form
-            onSubmit={handleSubmit}
-            className="max-w-sm w-full bg-white rounded-xl shadow-2xl p-8"
-          >
-            <div className="text-4xl font-bold text-purple-600 mb-1 text-center">
-              C510
-            </div>
-            <h1 className="text-xl font-bold text-gray-800 mb-1 text-center">
-              Operator Access
-            </h1>
-            <p className="text-gray-600 text-sm text-center mb-6">
+      <div className="min-h-screen p-4 flex items-center justify-center">
+        <div className="max-w-sm w-full rounded-2xl overflow-hidden shadow-xl border border-ink/10">
+          <TrailHero title="Operator Access" compact />
+          <form onSubmit={handleSubmit} className="bg-chalk p-6 sm:p-8">
+            <p className="text-ink-soft text-sm text-center mb-6">
               Enter the operator passphrase to continue.
             </p>
 
@@ -85,21 +76,21 @@ export default function OperatorGate({ children }: { children: ReactNode }) {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Passphrase"
-              className="w-full border-2 border-gray-300 rounded-lg px-3 py-2 mb-3 focus:border-purple-500 focus:outline-none"
+              className="w-full border-2 border-ink/15 bg-sand rounded-lg px-3 py-2 mb-3 focus:border-clay focus:outline-none"
             />
 
-            {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
+            {error && <p className="text-danger text-sm mb-3">{error}</p>}
 
             <button
               type="submit"
               disabled={submitting || !input}
-              className="w-full py-3 bg-purple-600 text-white rounded-lg font-bold hover:bg-purple-700 disabled:opacity-50"
+              className="w-full py-3 bg-clay text-chalk rounded-lg font-bold hover:bg-clay-dark disabled:opacity-50"
             >
               {submitting ? "Checking…" : "Unlock"}
             </button>
           </form>
         </div>
-      </>
+      </div>
     );
   }
 

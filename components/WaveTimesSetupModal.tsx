@@ -39,12 +39,12 @@ export default function WaveTimesSetupModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-        <h2 className="text-xl font-bold mb-2 text-purple-600">
-          🕒 Set Wave Start Times
+    <div className="fixed inset-0 bg-ink/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-chalk rounded-lg shadow-xl max-w-md w-full p-6">
+        <h2 className="font-display uppercase tracking-tight text-xl mb-2 text-moss-dark">
+          Set wave start times
         </h2>
-        <p className="text-sm text-gray-600 mb-4">
+        <p className="text-sm text-ink-soft mb-4">
           Best estimates are fine — these can be changed later, and any
           finishers already recorded will be recalculated automatically.
         </p>
@@ -52,7 +52,7 @@ export default function WaveTimesSetupModal({
         <div className="space-y-3 mb-6">
           {(["A", "B", "C"] as const).map((wave) => (
             <div key={wave}>
-              <label className="block mb-1 font-bold text-sm">
+              <label className="block mb-1 font-semibold text-sm text-ink-soft">
                 Wave {wave}
               </label>
               <input
@@ -62,7 +62,7 @@ export default function WaveTimesSetupModal({
                 onChange={(e) =>
                   setTimes({ ...times, [wave]: e.target.value })
                 }
-                className="w-full p-2 text-lg font-mono border-2 border-purple-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                className="w-full p-2 text-lg font-mono border-2 border-clay/40 bg-sand rounded-lg focus:border-clay focus:outline-none"
               />
             </div>
           ))}
@@ -71,13 +71,13 @@ export default function WaveTimesSetupModal({
         <div className="flex gap-2">
           <button
             onClick={handleSave}
-            className="flex-1 py-3 bg-purple-600 text-white rounded-lg font-bold hover:bg-purple-700 transition"
+            className="flex-1 py-3 bg-clay text-chalk rounded-lg font-bold hover:bg-clay-dark transition"
           >
-            Save Wave Times
+            Save wave times
           </button>
           <button
             onClick={onClose}
-            className="flex-1 py-3 bg-gray-300 text-gray-800 rounded-lg font-bold hover:bg-gray-400 transition"
+            className="flex-1 py-3 bg-ink/15 text-ink rounded-lg font-bold hover:bg-ink/25 transition"
           >
             Cancel
           </button>

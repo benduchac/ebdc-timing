@@ -91,21 +91,23 @@ export default function EditModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-        <h2 className="text-xl font-bold mb-2">Edit Entry #{entry.id}</h2>
+    <div className="fixed inset-0 bg-ink/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-chalk rounded-lg shadow-xl max-w-md w-full p-6">
+        <h2 className="font-display uppercase tracking-tight text-xl mb-2 text-moss-dark">
+          Edit entry #{entry.id}
+        </h2>
 
         {/* Show current rider name if known */}
         {entry.firstName !== "Unknown" && (
-          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <div className="text-sm text-blue-600 font-semibold">
+          <div className="mb-4 p-3 bg-sand border border-ink/10 rounded-lg">
+            <div className="text-sm text-ink-soft font-semibold">
               Currently:
             </div>
-            <div className="text-lg font-bold text-blue-800">
+            <div className="text-lg font-bold text-ink">
               {entry.firstName} {entry.lastName}
             </div>
-            <div className="text-sm text-blue-600">
-              Bib #{entry.bib} • Wave {entry.wave || "Unknown"}
+            <div className="text-sm text-ink-soft">
+              Bib #{entry.bib} · Wave {entry.wave || "Unknown"}
             </div>
           </div>
         )}
@@ -113,47 +115,51 @@ export default function EditModal({
         <div className="space-y-4">
           {/* Bib Number field */}
           <div>
-            <label className="block mb-2 font-bold text-sm">Bib Number</label>
+            <label className="block mb-2 font-semibold text-sm text-ink-soft">
+              Bib number
+            </label>
             <input
               type="text"
               inputMode="numeric"
               value={editBib}
               onChange={(e) => setEditBib(e.target.value)}
-              className="w-full p-2 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+              className="w-full p-2 border-2 border-ink/15 bg-sand rounded-lg focus:border-clay focus:outline-none"
             />
 
             {/* Show live lookup results */}
             {editBib && (
               <div className="mt-2">
                 {lookedUpRider ? (
-                  <div className="p-2 bg-green-50 border border-green-200 rounded">
-                    <div className="text-sm font-medium text-green-800">
-                      ✓ {lookedUpRider.firstName} {lookedUpRider.lastName}
+                  <div className="p-2 bg-success-soft border border-success/40 rounded">
+                    <div className="text-sm font-medium text-moss-dark">
+                      {lookedUpRider.firstName} {lookedUpRider.lastName}
                     </div>
-                    <div className="text-xs text-green-600">
+                    <div className="text-xs text-ink-soft">
                       Wave {lookedUpRider.wave}
                     </div>
                   </div>
                 ) : editBib.startsWith("UNK-") ? (
-                  <div className="p-2 bg-gray-50 border border-gray-200 rounded text-sm text-gray-600">
+                  <div className="p-2 bg-sand border border-ink/10 rounded text-sm text-ink-soft">
                     Unknown rider - will need manual lookup post-race
                   </div>
                 ) : (
-                  <div className="p-2 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-700">
-                    ⚠️ Bib not found in registration
+                  <div className="p-2 bg-warning-soft border border-warning/40 rounded text-sm text-clay-dark">
+                    Bib not found in registration
                   </div>
                 )}
               </div>
             )}
 
-            <p className="text-xs text-gray-600 mt-1 italic">
-              💡 Changing bib updates rider info
+            <p className="text-xs text-ink-soft mt-1 italic">
+              Changing bib updates rider info
             </p>
           </div>
 
           {/* Wave selection */}
           <div>
-            <label className="block mb-2 font-bold text-sm">Wave</label>
+            <label className="block mb-2 font-semibold text-sm text-ink-soft">
+              Wave
+            </label>
             <div className="flex gap-2">
               {(["A", "B", "C"] as const).map((wave) => (
                 <button
@@ -161,33 +167,33 @@ export default function EditModal({
                   onClick={() => setEditWave(wave)}
                   className={`flex-1 py-2 rounded-lg font-bold transition ${
                     editWave === wave
-                      ? "bg-purple-600 text-white"
-                      : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                      ? "bg-moss text-chalk"
+                      : "bg-sand text-ink-soft hover:bg-ink/10"
                   }`}
                 >
                   {wave}
                 </button>
               ))}
             </div>
-            <p className="text-xs text-gray-600 mt-1 italic">
-              💡 Changing wave recalculates elapsed time
+            <p className="text-xs text-ink-soft mt-1 italic">
+              Changing wave recalculates elapsed time
             </p>
           </div>
 
           {/* Finish Time */}
           <div>
-            <label className="block mb-2 font-bold text-sm">
-              Finish Time (HH:MM:SS)
+            <label className="block mb-2 font-semibold text-sm text-ink-soft">
+              Finish time (HH:MM:SS)
             </label>
             <input
               type="time"
               step="1"
               value={editFinishTime}
               onChange={(e) => setEditFinishTime(e.target.value)}
-              className="w-full p-2 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+              className="w-full p-2 border-2 border-ink/15 bg-sand rounded-lg focus:border-clay focus:outline-none"
             />
-            <p className="text-xs text-gray-600 mt-1 italic">
-              ⚠️ Only change if you have photo timestamp proof
+            <p className="text-xs text-clay-dark mt-1 italic">
+              Only change if you have photo timestamp proof
             </p>
           </div>
         </div>
@@ -196,13 +202,13 @@ export default function EditModal({
         <div className="flex gap-2 mt-6">
           <button
             onClick={handleSave}
-            className="flex-1 py-2 bg-purple-600 text-white rounded-lg font-bold hover:bg-purple-700"
+            className="flex-1 py-2 bg-clay text-chalk rounded-lg font-bold hover:bg-clay-dark"
           >
-            Save Changes
+            Save changes
           </button>
           <button
             onClick={onClose}
-            className="flex-1 py-2 bg-gray-400 text-white rounded-lg font-bold hover:bg-gray-500"
+            className="flex-1 py-2 bg-ink/15 text-ink rounded-lg font-bold hover:bg-ink/25"
           >
             Cancel
           </button>

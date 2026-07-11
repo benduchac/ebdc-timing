@@ -39,8 +39,11 @@ catches lint errors (which block the build) and type errors in one pass.
 
 Three route families: `/[slug]` is a public, unauthenticated, per-race
 leaderboard (Server Component, reads Redis directly, no client state); `/`
-redirects to the latest race's `/[slug]`, or shows a placeholder; `/operator`
-is the actual app. `app/operator/page.tsx` is the top-level container and
+is a static brand landing page with no race data and no redirect — each
+race's leaderboard link is shared directly, not discovered by browsing
+from `/`; `/operator` is the actual app, reached by typing the URL (never
+linked from any public surface). `app/operator/page.tsx` is the top-level
+container and
 **owns all state** — registrants, entries, wave start times, modal state —
 and passes it down to three tabs plus modals. State flows down via props;
 children call handler callbacks to mutate. There is no global store or
@@ -100,8 +103,8 @@ context.
   by both the operator's `CategoryLeaderboards.tsx` (thin wrapper that calls
   `computeCategoryBuckets` with the real local registrants) and the public
   page (buckets computed server-side instead).
-- `app/page.tsx` / `app/results/page.tsx` — redirect to the latest race's
-  `/[slug]` (placeholder if none exist) / redirect to `/`.
+- `app/page.tsx` — static brand landing page (no race data, no redirect);
+  `app/results/page.tsx` — redirects to `/` for old bookmarked links.
 - `components/PageBackground.tsx` — the site background image, as a
   `position: fixed` layer, not `background-attachment: fixed` on the
   content container. See the gotcha below before adding a new page's

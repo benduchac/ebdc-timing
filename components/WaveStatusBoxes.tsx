@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import type { Entry } from "@/lib/types";
 import { formatElapsedTime } from "@/lib/utils";
+import { EditIcon } from "@/components/icons";
 
 interface WaveStatusBoxesProps {
   waveStartTimes: { A: Date; B: Date; C: Date };
@@ -60,26 +61,26 @@ export default function WaveStatusBoxes({
           <button
             key={wave}
             onClick={() => onEditWaveTime(wave)}
-            className="bg-gradient-to-br from-purple-100 to-purple-200 border-2 border-purple-400 rounded-lg p-3 text-center hover:from-purple-200 hover:to-purple-300 hover:border-purple-500 transition-all cursor-pointer group"
+            className="bg-chalk border-2 border-moss/30 rounded-lg p-3 text-center hover:border-moss transition-all cursor-pointer group"
           >
             <div className="flex items-center justify-between mb-1">
-              <div className="text-sm font-bold text-purple-800">
-                WAVE {wave}
+              <div className="font-display uppercase tracking-tight text-sm text-moss-dark">
+                Wave {wave}
               </div>
-              <div className="text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                ✏️
+              <div className="text-moss opacity-0 group-hover:opacity-100 transition-opacity">
+                <EditIcon className="w-3.5 h-3.5" />
               </div>
             </div>
-            <div className="text-2xl font-bold text-purple-900 mb-1 font-mono">
+            <div className="text-2xl font-bold text-ink mb-1 font-mono tabular-nums">
               {elapsedStr}
             </div>
-            <div className="text-xs text-purple-700 mb-1 font-semibold">
+            <div className="text-xs text-moss-dark mb-1 font-semibold">
               {finished}/{total} finished
             </div>
-            <div className="text-xs text-purple-600 font-mono">
+            <div className="text-xs text-ink-soft font-mono">
               Started: {startTimeStr}
             </div>
-            <div className="text-xs text-purple-500 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="text-xs text-ink-soft/70 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
               Click to edit start time
             </div>
           </button>

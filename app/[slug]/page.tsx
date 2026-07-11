@@ -3,7 +3,7 @@ import { getRedis, kvKeys } from "@/lib/kv";
 import { computeCategoryBuckets } from "@/lib/categories";
 import type { RaceIndexEntry, RaceSnapshot, Registrant } from "@/lib/types";
 import PublicLeaderboardView from "@/components/PublicLeaderboardView";
-import PageBackground from "@/components/PageBackground";
+import TrailHero from "@/components/TrailHero";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -49,23 +49,17 @@ export default async function RaceLeaderboardPage({ params }: PageProps) {
 
   if (!snapshot) {
     return (
-      <>
-        <PageBackground />
-        <div className="min-h-screen p-4 flex items-center justify-center">
-          <div className="max-w-lg w-full bg-white rounded-xl shadow-2xl p-8 text-center">
-            <div className="text-4xl font-bold text-purple-600 mb-1">
-              C510
-            </div>
-            <h1 className="text-2xl font-bold text-gray-800 mb-2">
-              Race not found
-            </h1>
-            <p className="text-gray-600">
+      <div className="min-h-screen p-4 flex items-center justify-center">
+        <div className="max-w-lg w-full rounded-2xl overflow-hidden shadow-xl text-center">
+          <TrailHero title="Race not found" compact />
+          <div className="bg-chalk p-6 sm:p-8">
+            <p className="text-ink-soft">
               This link doesn&apos;t match a race we know about. Double-check
               the URL, or ask the operator for the current results link.
             </p>
           </div>
         </div>
-      </>
+      </div>
     );
   }
 

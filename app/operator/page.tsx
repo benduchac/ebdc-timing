@@ -30,7 +30,7 @@ import SetupChecklist from "@/components/SetupChecklist";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import WaveTimesSetupModal from "@/components/WaveTimesSetupModal";
 import RaceMenuScreen from "@/components/RaceMenuScreen";
-import PageBackground from "@/components/PageBackground";
+import { GearIcon } from "@/components/icons";
 import OperatorGate, {
   clearStoredPassphrase,
   getStoredPassphrase,
@@ -433,7 +433,7 @@ export default function OperatorPage() {
     const affectedCount = updatedEntries.filter((e) => e.wave === wave).length;
     if (affectedCount > 0) {
       alert(
-        `✅ Wave ${wave} start time updated!\nRecalculated ${affectedCount} entries.`
+        `Wave ${wave} start time updated!\nRecalculated ${affectedCount} entries.`
       );
     }
   };
@@ -603,7 +603,7 @@ export default function OperatorPage() {
         }
 
         alert(
-          `✅ Loaded backup: ${backup.registrants?.length || 0} registrants, ${
+          `Loaded backup: ${backup.registrants?.length || 0} registrants, ${
             backup.entries?.length || 0
           } entries`
         );
@@ -631,7 +631,7 @@ export default function OperatorPage() {
     const isSynced = syncStatus === "synced" && cloudLastSyncedAt !== null;
     if (!hasData || isSynced) return true;
     return confirm(
-      "⚠️ This race has NOT been confirmed backed up to the cloud.\n\n" +
+      "This race has NOT been confirmed backed up to the cloud.\n\n" +
         `${verb} now discards any unsynced changes locally — they will not ` +
         "be recoverable from the cloud.\n\nContinue anyway?"
     );
@@ -738,115 +738,120 @@ export default function OperatorPage() {
 
   return (
     <OperatorGate>
-      <PageBackground />
-      <div className="min-h-screen p-4">
-        <div className="max-w-6xl mx-auto bg-white rounded-xl shadow-2xl p-6">
-          {/* Header */}
-          <div className="flex justify-between items-start mb-6 border-b-4 border-purple-600 pb-4">
-            <div className="text-center flex-1">
-              <div className="text-4xl font-bold text-purple-600 mb-1">C510</div>
-              <h1 className="text-3xl font-bold text-gray-800">
-                East Bay Dirt Classic
-              </h1>
-              <p className="text-gray-600 italic">Race Timing System</p>
-              {activeRace && (
-                <p className="text-xs text-gray-400 mt-1">
-                  {activeRace.label}
-                  {activeRace.slug ? (
-                    <>
-                      {" · "}
-                      <a
-                        href={`/${activeRace.slug}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="underline hover:text-purple-600"
-                        title="Open public leaderboard in a new tab"
-                      >
-                        {activeRace.slug}
-                      </a>
-                      <CopyLinkButton path={`/${activeRace.slug}`} />
-                    </>
-                  ) : (
-                    <> · #{activeRace.id.slice(0, 8)} (link pending first sync)</>
-                  )}
-                </p>
-              )}
+      <div className="min-h-screen p-2 sm:p-4">
+        <div className="max-w-6xl mx-auto rounded-2xl overflow-hidden shadow-xl">
+          {/* Top bar — the trail photo lives here (and nowhere else in the
+              working screens), so it doesn't compete with the data tables
+              below it. */}
+          <div
+            className="bg-cover bg-center text-chalk px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3"
+            style={{
+              backgroundImage:
+                "linear-gradient(rgba(33,42,28,0.55), rgba(33,42,28,0.72)), url(/timing_bg.webp)",
+            }}
+          >
+            <div className="min-w-0">
+              <div className="font-display uppercase tracking-tight text-lg sm:text-xl truncate">
+                {activeRace.label}
+              </div>
+              <div className="text-xs text-sand/70 mt-0.5">
+                {activeRace.slug ? (
+                  <>
+                    <a
+                      href={`/${activeRace.slug}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline hover:text-flag"
+                      title="Open public leaderboard in a new tab"
+                    >
+                      {activeRace.slug}
+                    </a>
+                    <CopyLinkButton path={`/${activeRace.slug}`} />
+                  </>
+                ) : (
+                  <>#{activeRace.id.slice(0, 8)} (link pending first sync)</>
+                )}
+              </div>
             </div>
-            <button
-              onClick={() => setShowSettings(true)}
-              className="p-2 text-2xl hover:bg-gray-100 rounded-lg transition"
-              title="Settings"
-            >
-              ⚙️
-            </button>
+            <div className="flex items-center gap-3">
+              <SyncBadge
+                status={syncStatus}
+                lastSyncedAt={cloudLastSyncedAt}
+                error={syncError}
+              />
+              <button
+                onClick={() => setShowSettings(true)}
+                className="p-2 text-chalk/80 hover:text-chalk hover:bg-chalk/10 rounded-lg transition"
+                title="Settings"
+              >
+                <GearIcon className="w-5 h-5" />
+              </button>
+            </div>
           </div>
-
-          {/* Status Bar */}
-          <div className="flex gap-4 mb-4 text-sm">
-            <div className="bg-purple-100 px-3 py-1 rounded-full">
-              <span className="font-semibold">{registrants.size}</span>{" "}
-              registrants
-            </div>
-            <div className="bg-green-100 px-3 py-1 rounded-full">
-              <span className="font-semibold">{entries.length}</span> finishers
-            </div>
-            <SyncBadge
-              status={syncStatus}
-              lastSyncedAt={cloudLastSyncedAt}
-              error={syncError}
-            />
-          </div>
-
-          {activeTab === "registration" && (
-            <SetupChecklist
-              registrantCount={registrants.size}
-              clockCheck={clockCheck}
-              clockCheckedAt={clockCheckedAt}
-              checkingClock={checkingClock}
-              onCheckClock={handleClockCheck}
-              waveStartTimes={waveStartTimes}
-              waveTimesConfirmed={waveTimesConfirmed}
-              onOpenWaveTimesModal={() => setShowWaveTimesModal(true)}
-            />
-          )}
 
           {/* Tab Navigation */}
-          <div className="flex gap-1 mb-4 border-b-2 border-gray-200">
+          <div className="bg-moss flex px-2 sm:px-4">
             <button
               onClick={() => setActiveTab("registration")}
-              className={`flex-1 py-3 font-bold rounded-t-lg transition ${
+              className={`px-3 sm:px-5 py-2.5 text-sm sm:text-base font-semibold border-b-[3px] transition ${
                 activeTab === "registration"
-                  ? "bg-purple-600 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  ? "text-chalk border-clay"
+                  : "text-chalk/60 border-transparent hover:text-chalk/90"
               }`}
             >
-              👥 Registration
+              Registration
             </button>
             <button
               onClick={() => setActiveTab("timing")}
-              className={`flex-1 py-3 font-bold rounded-t-lg transition ${
+              className={`px-3 sm:px-5 py-2.5 text-sm sm:text-base font-semibold border-b-[3px] transition ${
                 activeTab === "timing"
-                  ? "bg-purple-600 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  ? "text-chalk border-clay"
+                  : "text-chalk/60 border-transparent hover:text-chalk/90"
               }`}
             >
-              🏁 Timing
+              Timing
             </button>
             <button
               onClick={() => setActiveTab("results")}
-              className={`flex-1 py-3 font-bold rounded-t-lg transition ${
+              className={`px-3 sm:px-5 py-2.5 text-sm sm:text-base font-semibold border-b-[3px] transition ${
                 activeTab === "results"
-                  ? "bg-purple-600 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  ? "text-chalk border-clay"
+                  : "text-chalk/60 border-transparent hover:text-chalk/90"
               }`}
             >
-              📊 Results
+              Results
             </button>
           </div>
 
-          {/* Tab Content */}
-          <div className="min-h-[500px]">
+          <div className="bg-chalk p-4 sm:p-6">
+            {/* Status Bar */}
+            <div className="flex gap-3 mb-4 text-sm flex-wrap">
+              <div className="bg-sand border border-ink/10 px-3 py-1 rounded-full">
+                <span className="font-semibold">{registrants.size}</span>{" "}
+                registrants
+              </div>
+              <div className="bg-success-soft px-3 py-1 rounded-full">
+                <span className="font-semibold">{entries.length}</span>{" "}
+                finishers
+              </div>
+            </div>
+
             {activeTab === "registration" && (
+              <SetupChecklist
+                registrantCount={registrants.size}
+                clockCheck={clockCheck}
+                clockCheckedAt={clockCheckedAt}
+                checkingClock={checkingClock}
+                onCheckClock={handleClockCheck}
+                waveStartTimes={waveStartTimes}
+                waveTimesConfirmed={waveTimesConfirmed}
+                onOpenWaveTimesModal={() => setShowWaveTimesModal(true)}
+              />
+            )}
+
+            {/* Tab Content */}
+            <div className="min-h-[500px]">
+              {activeTab === "registration" && (
               <RegistrationTab
                 registrants={registrants}
                 onUpdateRegistrants={handleUpdateRegistrants}
@@ -870,34 +875,34 @@ export default function OperatorPage() {
             {activeTab === "results" && (
               <div className="space-y-4">
                 {/* Sub-tabs for Results views */}
-                <div className="flex gap-2 border-b-2 border-gray-200">
+                <div className="flex gap-2 border-b-2 border-ink/10">
                   <button
                     onClick={() => setResultsView("overall")}
                     className={`px-6 py-2 font-semibold rounded-t-lg transition ${
                       resultsView === "overall"
-                        ? "bg-purple-600 text-white"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        ? "bg-moss text-chalk"
+                        : "bg-sand text-ink-soft hover:bg-ink/5"
                     }`}
                   >
-                    📋 Overall Results
+                    Overall Results
                   </button>
                   <button
                     onClick={() => setResultsView("categories")}
                     className={`px-6 py-2 font-semibold rounded-t-lg transition ${
                       resultsView === "categories"
-                        ? "bg-purple-600 text-white"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        ? "bg-moss text-chalk"
+                        : "bg-sand text-ink-soft hover:bg-ink/5"
                     }`}
                   >
-                    🏆 Category Leaderboards
+                    Category Leaderboards
                   </button>
                 </div>
 
                 {/* Content based on selected view */}
                 {resultsView === "overall" ? (
                   <>
-                    <h2 className="text-2xl font-bold">
-                      Complete Results - {entries.length} Finishers
+                    <h2 className="font-display uppercase tracking-tight text-xl text-moss-dark">
+                      Complete results — {entries.length} finishers
                     </h2>
                     <ResultsTable
                       entries={entries}
@@ -916,13 +921,14 @@ export default function OperatorPage() {
                 <div className="flex gap-2">
                   <button
                     onClick={handleExportCSV}
-                    className="flex-1 py-3 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700"
+                    className="flex-1 py-3 bg-success text-chalk rounded-lg font-bold hover:opacity-90 transition"
                   >
-                    📊 Export Results CSV
+                    Export results CSV
                   </button>
                 </div>
               </div>
             )}
+            </div>
           </div>
 
           {/* Modals */}

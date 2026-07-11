@@ -1,38 +1,112 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* Trailhead — a warm, working palette pulled from the race itself (dry
+   clay, trail moss, dust) instead of default Tailwind purple/gray. This is
+   a deliberate single committed look (a branded tool, not a system UI), so
+   there is no prefers-color-scheme dark variant. */
+@theme {
+  --color-clay: #be5a2e;
+  --color-clay-dark: #8f3f1e;
+  --color-moss: #33402e;
+  --color-moss-dark: #212a1c;
+  --color-sand: #f0e9da;
+  --color-chalk: #faf6ee;
+  --color-ink: #221d16;
+  --color-ink-soft: #5c5748;
+  --color-flag: #e8b33d;
+  --color-success: #4b7a3f;
+  --color-success-soft: #e7efe3;
+  --color-warning: #c98a2c;
+  --color-warning-soft: #faf0dc;
+  --color-danger: #a63b2e;
+  --color-danger-soft: #f8e6e2;
+
+  /* Podium colors for rank badges (#1/#2/#3) only — gold/silver/bronze are
+     a deliberate exception to the palette above, not tokens to reuse
+     elsewhere. --color-flag doubles as gold. */
+  --color-silver: #c7cbc6;
+  --color-bronze: #a86a3d;
 }
 
+/* Fonts are set at runtime by next/font (see app/layout.tsx) — "inline"
+   keeps these as live var() references instead of baking in a build-time
+   value. */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: var(--font-plex-sans);
+  --font-display: var(--font-bebas-neue);
+  --font-mono: var(--font-plex-mono);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-sand);
+  color: var(--color-ink);
 }
 
 /* Reserve the vertical scrollbar's width at all times, whether or not the
    page currently needs to scroll. Without this, crossing the "tall enough
    to scroll" threshold shrinks the viewport width by the scrollbar's width,
-   which makes any position:fixed / background-attachment:fixed element
-   using background-size:cover visibly resize (PageBackground included) —
-   this is what fixes it, not the fixed-vs-attachment choice itself. */
+   which visibly nudges any full-width background-size:cover element (see
+   TrailHero) as the page grows past that threshold. */
 html {
   scrollbar-gutter: stable;
+}
+
+/* Signature elements: every bib number gets the same stamped-plate
+   treatment; every elapsed/finish time gets the same dark photo-finish-
+   clock chip. Repeated everywhere a bib or a time appears so they become
+   the thing this app is recognizable by (see docs/race-readiness-design.md
+   companion mockup — "Trailhead" direction). */
+.bib-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15em;
+  position: relative;
+  background: var(--color-chalk);
+  border: 2px solid var(--color-ink);
+  border-radius: 7px;
+  padding: 0.05em 0.5em 0.1em;
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+  box-shadow: 2px 2px 0 var(--color-ink);
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.bib-chip::before,
+.bib-chip::after {
+  content: "";
+  position: absolute;
+  top: -3px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--color-ink);
+  opacity: 0.5;
+}
+
+.bib-chip::before {
+  left: 4px;
+}
+
+.bib-chip::after {
+  right: 4px;
+}
+
+.bib-chip .bib-chip-hash {
+  font-size: 0.7em;
+  opacity: 0.6;
+}
+
+.time-chip {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  background: var(--color-ink);
+  color: var(--color-chalk);
+  border-radius: 6px;
+  padding: 0.2em 0.5em;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 
 /* "Copied!" feedback (CopyLinkButton) — fully visible for the first ~60% of

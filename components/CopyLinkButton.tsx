@@ -2,6 +2,15 @@
 
 import { useState } from "react";
 
+function CopyIcon({ className = "w-3.5 h-3.5" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" className={className} aria-hidden="true">
+      <rect x="7" y="7" width="9" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M13 7V5.5A1.5 1.5 0 0 0 11.5 4h-6A1.5 1.5 0 0 0 4 5.5v8A1.5 1.5 0 0 0 5.5 15H7" stroke="currentColor" strokeWidth="1.4" />
+    </svg>
+  );
+}
+
 interface CopyLinkButtonProps {
   path: string; // e.g. "/ebdc-7-9" — resolved to an absolute URL at click time
 }
@@ -30,15 +39,15 @@ export default function CopyLinkButton({ path }: CopyLinkButtonProps) {
     <span className="inline-flex items-center gap-1 ml-1">
       <button
         onClick={handleClick}
-        className="hover:text-purple-600"
+        className="hover:text-flag inline-flex align-middle"
         title="Copy leaderboard link"
       >
-        📋
+        <CopyIcon />
       </button>
       {copiedAt !== null && (
         <span
           key={copiedAt}
-          className="text-green-600 animate-[fadeOut_3s_ease-out_forwards]"
+          className="text-success animate-[fadeOut_3s_ease-out_forwards]"
           onAnimationEnd={() => setCopiedAt(null)}
         >
           Copied!

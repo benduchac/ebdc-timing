@@ -5,6 +5,9 @@ import type { Registrant, Entry } from "@/lib/types";
 import { formatElapsedTime, normalizeBib } from "@/lib/utils";
 import WaveStatusBoxes from "./WaveStatusBoxes";
 import TopTenLeaderboard from "./TopTenLeaderboard";
+import BibChip from "./BibChip";
+import TimeChip from "./TimeChip";
+import { EditIcon, TrashIcon, WarningIcon } from "./icons";
 
 interface TimingTabProps {
   waveStartTimes: { A: Date; B: Date; C: Date };
@@ -63,7 +66,7 @@ export default function TimingTab({
           existingEntry.finishTimeMs
         ).toLocaleTimeString("en-US", { hour12: true });
         setErrorMessage(
-          `⚠️ DUPLICATE! Bib #${normalizedBib} already finished at ${existingTime}. Press Enter to record again, or fix bib number.`
+          `DUPLICATE! Bib #${normalizedBib} already finished at ${existingTime}. Press Enter to record again, or fix bib number.`
         );
       } else {
         setErrorMessage("");
@@ -75,11 +78,11 @@ export default function TimingTab({
           existingEntry.finishTimeMs
         ).toLocaleTimeString("en-US", { hour12: true });
         setErrorMessage(
-          `⚠️ DUPLICATE! Bib #${normalizedBib} already finished at ${existingTime}. Press Enter to record again, or fix bib number.`
+          `DUPLICATE! Bib #${normalizedBib} already finished at ${existingTime}. Press Enter to record again, or fix bib number.`
         );
       } else {
         setErrorMessage(
-          `⚠️ Bib #${normalizedBib} not found in registration. Entry will still be recorded.`
+          `Bib #${normalizedBib} not found in registration. Entry will still be recorded.`
         );
       }
     }
@@ -179,12 +182,14 @@ export default function TimingTab({
       />
 
       {/* Two-column layout: Main timing on left, Top Ten on right */}
-      <div className="flex gap-4 mb-4">
+      <div className="flex flex-col lg:flex-row gap-4 mb-4">
         {/* Left column - Main timing interface */}
-        <div className="flex-1 space-y-4">
+        <div className="flex-1 space-y-4 min-w-0">
           {/* Input Section */}
-          <div className="bg-gray-100 rounded-lg p-4">
-            <label className="block mb-2 font-bold text-sm">Bib Number</label>
+          <div className="bg-sand border border-ink/10 rounded-lg p-4">
+            <label className="block mb-2 font-semibold text-sm text-ink-soft">
+              Bib number
+            </label>
             <input
               ref={bibInputRef}
               type="text"
@@ -193,17 +198,17 @@ export default function TimingTab({
               onChange={(e) => setBibNumber(e.target.value)}
               onKeyDown={handleKeyPress}
               placeholder="Enter bib number"
-              className="w-full p-3 text-lg border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+              className="w-full p-3 text-lg font-mono border-2 border-ink rounded-lg bg-chalk focus:border-clay focus:outline-none"
             />
 
             {/* Rider Info */}
             {riderInfo && (
-              <div className="mt-3 bg-blue-100 border-2 border-blue-400 rounded-lg p-3">
-                <div className="text-xl font-bold text-blue-800">
+              <div className="mt-3 bg-success-soft border-2 border-success rounded-lg p-3">
+                <div className="text-xl font-bold text-moss-dark">
                   {riderInfo.firstName} {riderInfo.lastName}
                 </div>
-                <div className="text-gray-700">
-                  Wave {riderInfo.wave} • Bib #{riderInfo.bib}
+                <div className="text-ink-soft">
+                  Wave {riderInfo.wave} · Bib #{riderInfo.bib}
                 </div>
               </div>
             )}
@@ -211,59 +216,63 @@ export default function TimingTab({
             {/* Error/Warning Message */}
             {errorMessage && (
               <div
-                className={`mt-3 border-2 rounded-lg p-3 font-bold text-sm ${
+                className={`mt-3 border-2 rounded-lg p-3 font-semibold text-sm flex items-start gap-2 ${
                   errorMessage.includes("DUPLICATE")
-                    ? "bg-orange-100 border-orange-500 text-orange-900"
-                    : "bg-yellow-100 border-yellow-400 text-yellow-800"
+                    ? "bg-warning-soft border-warning text-clay-dark"
+                    : "bg-warning-soft border-warning/60 text-ink-soft"
                 }`}
               >
-                {errorMessage}
+                <WarningIcon className="w-4 h-4 mt-0.5 shrink-0 text-warning" />
+                <span>{errorMessage}</span>
               </div>
             )}
 
             {/* Record Button */}
             <button
               onClick={handleRecordFinish}
-              className="w-full mt-3 py-4 text-xl font-bold bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+              className="w-full mt-3 py-4 text-xl font-bold bg-success text-chalk rounded-lg hover:opacity-90 transition"
             >
-              ✅ RECORD FINISH TIME (Enter)
+              Record finish (Enter)
             </button>
 
             {/* Unknown Button */}
             <button
               onClick={handleUnknownFinisher}
-              className="w-full mt-2 py-3 text-lg font-bold bg-yellow-500 text-gray-900 rounded-lg hover:bg-yellow-600 transition"
+              className="w-full mt-2 py-3 text-base font-semibold border-2 border-warning text-clay-dark rounded-lg hover:bg-warning-soft transition"
             >
-              ❓ UNKNOWN FINISHER (U)
+              Unknown finisher (U)
             </button>
           </div>
 
           {/* Recent Finishers */}
           <div>
             <div className="flex justify-between items-center mb-2">
-              <h3 className="text-lg font-bold">Recent Finishers (Last 10)</h3>
+              <h3 className="font-display uppercase tracking-tight text-lg text-moss-dark">
+                Recent finishers
+              </h3>
               <button
                 onClick={onExportCSV}
-                className="px-3 py-1 bg-green-600 text-white rounded font-semibold text-sm hover:bg-green-700"
+                className="px-3 py-1 bg-success text-chalk rounded font-semibold text-sm hover:opacity-90 transition"
               >
-                📊 Export CSV
+                Export CSV
               </button>
             </div>
-            <div className="bg-white rounded-lg shadow overflow-hidden">
+            <div className="bg-chalk border border-ink/10 rounded-lg overflow-hidden">
+              <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-purple-600 text-white">
+                <thead className="bg-moss text-chalk">
                   <tr>
-                    <th className="p-2 text-left">Bib</th>
-                    <th className="p-2 text-left">Name</th>
-                    <th className="p-2 text-left">Wave</th>
-                    <th className="p-2 text-left">Time</th>
-                    <th className="p-2 text-left">Actions</th>
+                    <th className="p-2 text-left font-semibold">Bib</th>
+                    <th className="p-2 text-left font-semibold">Name</th>
+                    <th className="p-2 text-left font-semibold">Wave</th>
+                    <th className="p-2 text-left font-semibold">Time</th>
+                    <th className="p-2 text-left font-semibold">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {recentEntries.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="p-4 text-center text-gray-500">
+                      <td colSpan={5} className="p-4 text-center text-ink-soft">
                         No finishers yet. Record your first finish!
                       </td>
                     </tr>
@@ -274,17 +283,19 @@ export default function TimingTab({
                       return (
                         <tr
                           key={entry.id}
-                          className={`border-b border-gray-200 hover:bg-gray-50 ${
+                          className={`border-b border-ink/10 hover:bg-sand/60 ${
                             isDuplicate
-                              ? "bg-orange-50 border-l-4 border-l-orange-500"
+                              ? "bg-warning-soft border-l-4 border-l-warning"
                               : ""
                           }`}
                         >
-                          <td className="p-2 font-bold">
-                            {isDuplicate && (
-                              <span className="text-orange-600 mr-1">⚠️</span>
-                            )}
-                            {entry.bib}
+                          <td className="p-2">
+                            <span className="inline-flex items-center gap-1">
+                              {isDuplicate && (
+                                <WarningIcon className="w-3.5 h-3.5 text-warning" />
+                              )}
+                              <BibChip bib={entry.bib} className="text-xs" />
+                            </span>
                           </td>
                           <td className="p-2">
                             {entry.firstName} {entry.lastName}
@@ -293,26 +304,30 @@ export default function TimingTab({
                             {entry.wave ? (
                               `Wave ${entry.wave}`
                             ) : (
-                              <span className="text-yellow-600 font-bold">
+                              <span className="text-clay-dark font-semibold">
                                 Unknown
                               </span>
                             )}
                           </td>
-                          <td className="p-2">{entry.finishTime}</td>
+                          <td className="p-2">
+                            <TimeChip className="text-xs">
+                              {entry.finishTime}
+                            </TimeChip>
+                          </td>
                           <td className="p-2">
                             <button
                               onClick={() => onEditEntry(entry.id)}
-                              className="text-purple-600 hover:text-purple-800 mr-2"
+                              className="text-moss hover:text-moss-dark mr-2 inline-block align-middle"
                               title="Edit"
                             >
-                              ✏️
+                              <EditIcon />
                             </button>
                             <button
                               onClick={() => onDeleteEntry(entry.id)}
-                              className="text-red-600 hover:text-red-800"
+                              className="text-danger hover:opacity-70 inline-block align-middle"
                               title="Delete"
                             >
-                              🗑️
+                              <TrashIcon />
                             </button>
                           </td>
                         </tr>
@@ -321,21 +336,23 @@ export default function TimingTab({
                   )}
                 </tbody>
               </table>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Right column - Top Ten Leaderboard */}
-        <div className="w-80">
+        <div className="lg:w-80 shrink-0">
           <TopTenLeaderboard entries={entries} />
         </div>
       </div>
 
       {/* Registrant count reminder */}
       {registrants.size === 0 && (
-        <div className="bg-yellow-100 border-2 border-yellow-400 rounded-lg p-3 text-center text-yellow-800 font-semibold">
-          ⚠️ No registrants loaded. Go to Registration tab to upload CSV or add
-          riders.
+        <div className="bg-warning-soft border-2 border-warning rounded-lg p-3 text-center text-clay-dark font-semibold flex items-center justify-center gap-2">
+          <WarningIcon className="w-4 h-4 shrink-0" />
+          No registrants loaded. Go to the Registration tab to upload a CSV
+          or add riders.
         </div>
       )}
     </div>
