@@ -142,6 +142,10 @@ ranking_rules:
   *names* are fixed (section 8).
 - [x] **Rigid + steel double winner** — allowed. The two are independent
   filters; a rider on a rigid steel bike can win both.
+- [x] **A registered row missing a required field** — imports, flagged, and is
+  fixed in the app; it is not dropped and never gets a substituted value. Only
+  a row with no bib is refused, because nothing can be attached to it. See
+  section 6a.
 - [x] **Bib assignment** — handled by the registration-side script the week
   before the ride, after registration closes. That run assigns each rider a
   number and prints their release form, and is also the source of the timing
@@ -175,7 +179,18 @@ question in item 4.
    field-splitter keeps only the last word of an unquoted multi-word name
    (`Mary Jo Van Der Berg` imports as `Jo Berg`) and collapses empty fields,
    shifting every later column — which the optional award questions would
-   make routine.
+   make routine. Reject a file whose header doesn't carry the expected column
+   names, by name — the likeliest race-morning mistake is uploading last
+   year's export, and that should fail loudly rather than import nothing.
+
+   **Import says what it did — see section 6a.** The parsing fix alone still
+   leaves the operator holding "117 riders" from a 120-row file with no
+   explanation. Both halves ship together or item 1 isn't done.
+
+   Test files are in `fixtures/`, with a table in `fixtures/README.md` saying
+   what each row proves — the good file, one-problem-per-row, shuffled column
+   order, CRLF + BOM, and the 2024 files as a wrong-file negative test. Today's
+   importer keeps 0 of 19 rows from the good file.
 
 2. **Widen `Registrant`** — `lib/db.ts`. Gender union becomes
    `male | female | nonbinary | undisclosed`; add the four optional award
@@ -234,6 +249,77 @@ question in item 4.
   server-side, ship `Entry[]`.
 - **Ranking is by elapsed time, always.** With staggered wave starts, order of
   finish and order of elapsed time are different orderings.
+
+---
+
+## 6a. Import Reporting
+
+Nothing about an import is silent. Three parts, all of item 1.
+
+### Take every row that has a bib
+
+A row is refused only when it has no bib. There is nothing to attach a
+correction to, and no rider will appear at the start line under a number that
+doesn't exist. Everything else imports and carries its problem with it: a
+missing wave or birthday is a rider to chase down before the gun, not a rider
+to delete. This reverses today's behavior, which drops a row for a blank name
+or an unrecognized wave and says nothing — the rider then reappears at the
+finish line three hours later as "Unknown Rider".
+
+`status: spare` rows are expected to be blank. Blank fields on a spare are
+never a problem; blank fields on a `registered` row always are.
+
+| Problem on a registered row | Tier | Effect if left unfixed |
+| --- | --- | --- |
+| No bib | refused | Not imported. Fix in the source file and re-upload. |
+| Bib already used by an earlier row | blocks scoring | Today the later row silently overwrites the earlier one and a rider vanishes. |
+| Wave missing or not A/B/C | blocks scoring | No elapsed time. The rider finishes unranked. |
+| Name missing | blocks results | Nothing to put on the results sheet or the podium. |
+| `dob` missing or unparseable | blocks awards | Absent from Masters and junior boards. Never substitute a placeholder date — a plausible-looking fake passes validation and files the rider into the wrong age category. |
+| `gender` missing or not one of the four tokens | blocks awards | Absent from gendered podiums. |
+| Award answer not one of its allowed tokens | blocks awards | Treated as blank, i.e. not eligible for that board. |
+
+### Summarize the upload
+
+Plain counts, named. After a 120-row file:
+
+```
+118 of 120 riders imported.
+  1 rider with an invalid wave — can't be scored until fixed
+  3 birthdays missing — no age categories for them
+  2 rows couldn't be imported (rows 44, 91 — no bib)
+```
+
+A panel on the Registration tab, not an `alert()`. The operator works through
+this list; a dialog they dismiss once is gone. Collapsible, so a roster they
+have decided is good enough stops nagging.
+
+The refused rows are the one part that can't be recovered after the fact —
+they aren't in the roster to be looked up — so name their row numbers here.
+
+### Flag them on the roster
+
+Every problem above except "no bib" belongs to a rider who is in the table, so
+mark the row and say which field. That's where it gets fixed: the same
+add/edit modal item 6 extends.
+
+**Derive the flags, don't store them.** Every one of these is visible in the
+record itself — a missing birthday is an empty `dob`, an invalid wave is a
+null `wave`. One function over a `Registrant` returns its problems; the roster
+marks rows with it and the summary counts the same function's output across
+the roster, so the two can't disagree. No new persisted field, no snapshot
+growth, no migration, and the flag clears itself the moment the field is
+fixed. A stored flag goes stale on the first edit.
+
+### Checklist interaction
+
+`SetupChecklist`'s "Load Registrants" panel currently ticks on
+`registrantCount > 0`. It must not tick while any rider carries a
+**blocks scoring** problem — that's the one tier that makes the race
+unscoreable, and the checklist is the last thing between it and the start.
+Blocks-results and blocks-awards problems show on the roster but don't hold
+the tick: the awards are opt-in by design and a missing birthday is not worth
+blocking a race over.
 
 ---
 

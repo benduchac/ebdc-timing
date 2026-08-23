@@ -208,6 +208,20 @@ below).
   `https://time.now` on the site footer, README, or an About screen. Keep
   the README "Credits" section (or equivalent) if you touch `/api/time` or
   the README's structure — don't drop it silently.
+- **Don't let the service worker cache `/api/`.** `app/sw.ts` puts a
+  NetworkOnly rule for `/api/` ahead of Serwist's `defaultCache`, which
+  otherwise routes every same-origin `/api/` GET through NetworkFirst with a
+  24-hour cache. That cache hands back stale answers exactly when the hotspot
+  is slow, and two of them are load-bearing: `/api/time` (a cached time reads
+  as huge clock drift on a correct clock, and the UI then tells the operator
+  to change the laptop clock mid-race) and `GET /api/backup?id=` (a cached
+  snapshot restores an older race, which then syncs back up as the latest).
+  Nothing under `/api/` is useful offline.
+- **Capture the finish timestamp before anything that can block.**
+  `TimingTab.handleRecordFinish` stamps `new Date()` on its first line,
+  ahead of the empty-bib alert and the duplicate-bib `confirm()`. Those
+  dialogs hold the thread for as long as the operator takes to react, and
+  that pause lands on the rider's time.
 - **Always normalize bibs with `normalizeBib`** (strips leading zeros) at
   every point one is stored, looked up, or compared — CSV upload, manual
   add/edit, timing lookup, duplicate detection, entry editing, delete
@@ -232,6 +246,28 @@ below).
   production build. Don't confuse it with "Switch to a Different Race"
   (the real, production, non-destructive escape hatch) when reading
   `SettingsModal`'s Danger Zone.
+
+## Open defects & follow-ups
+
+**`docs/known-issues.md`** tracks every known defect and gap: what the
+22 August 2026 safety pass fixed, what to fold into the 2026 build (with the
+implementation item each belongs to), what's deferred, and the race-day
+workarounds for what's still open. Add to it rather than letting a finding
+live only in a conversation.
+
+## In-progress: the 2026 fun awards
+
+Two approved specs, both landed 22 August 2026:
+**`docs/wordpress-registration-form.md`** (the registration form and, in
+section 4, the CSV contract that is this app's only input) and
+**`docs/fun-awards-timing.md`** (award boards, and the implementation plan
+this repo works from). The CSV contract lives in the form doc — don't restate
+it; if the format has to change, change it there.
+
+Note the importer this app ships today drops **every** row of that CSV without
+saying so — the new `status` column shifts positions past what the current
+positional parser expects. Implementation item 1 (header-driven, RFC-4180) is
+the fix.
 
 ## In-progress: race-readiness work
 

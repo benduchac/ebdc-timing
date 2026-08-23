@@ -1,0 +1,20 @@
+﻿bib,status,first_name,last_name,wave,dob,gender,first_gravel_race,is_parent,rigid_bike,steel_bike
+1,registered,Sarah,Johnson,A,1992-03-15,female,no,yes,no,yes
+2,registered,Michael,Chen,A,1988-07-22,male,yes,no,yes,yes
+3,registered,"Mary Jo","Van Der Berg",B,1980-01-02,female,,,unsure,no
+4,registered,Alex,Rivera,C,2009-06-30,nonbinary,yes,no,no,no
+5,registered,Dana,Okonkwo,B,1974-11-30,undisclosed,no,yes,no,no
+6,registered,Priya,Raman,A,1996-02-29,female,no,no,yes,no
+7,registered,Tom,"Smith, Jr.",C,1969-05-04,male,no,yes,no,yes
+8,registered,Siobhan,"O""Brien",B,1991-08-19,female,yes,yes,unsure,unsure
+007,registered,Leading,Zero,C,1985-12-01,male,no,no,no,no
+10,registered,Marcus,Webb,A,2007-10-10,male,no,no,no,no
+11,registered,Nia,Fletcher,B,2007-10-11,female,yes,no,no,no
+12,registered,Robert,Ellery,C,1976-10-10,male,no,yes,yes,yes
+13,registered,Helen,Marsh,B,1976-10-11,female,no,yes,no,no
+14,registered,Jae,Park,A,2001-04-12,nonbinary,no,no,yes,no
+15,registered,Chris,Delacroix-Mbeki,C,1958-09-23,male,no,yes,no,yes
+16,registered,Ana,Sousa,B,1999-01-17,female,yes,no,no,no
+150,spare,,,,,,,,,
+151,spare,,,,,,,,,
+152,spare,,,,,,,,,

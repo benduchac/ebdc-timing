@@ -1,0 +1,11 @@
+bib,status,first_name,last_name,wave,dob,gender,first_gravel_race,is_parent,rigid_bike,steel_bike
+20,registered,Rowan,Adeyemi,A,,male,no,no,no,no
+21,registered,Kim,Lindqvist,B,1990-06-06,,no,no,no,no
+22,registered,Vic,Harlow,D,1987-02-11,male,no,no,no,no
+23,registered,,Nakamura,C,1993-10-05,female,no,no,no,no
+24,registered,Dale,Okafor,A,1984-04-04,male,maybe,no,no,no
+25,registered,Ines,Barros,B,1979-03-21,Female,no,no,no,no
+26,registered,Otto,Lindgren,C,03/15/1992,male,no,no,no,no
+26,registered,Pat,Sundqvist,A,1994-07-07,female,no,no,no,no
+,registered,Nameless,Number,B,1990-01-01,male,no,no,no,no
+28,registered,Quinn,Ashworth,A,1990-01-01,undisclosed,yes,yes,yes,yes

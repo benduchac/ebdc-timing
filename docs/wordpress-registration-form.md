@@ -64,7 +64,10 @@ Authoritative field list, order, types, and options.
 
 `id` is the field name. Where a field has an `export_map`, the CSV must carry
 the **mapped value**, not the display label — the timing app validates against
-those exact tokens and silently drops rows it can't match.
+those exact tokens. A value it can't match doesn't lose the rider: the row
+imports and the operator gets a named problem to fix by hand
+(`fun-awards-timing.md` section 6a). That's a repair job at the finish line,
+so export the mapped tokens.
 
 Fields marked `note: "Registration only"` are collected for your purposes but
 are **excluded from the timing CSV** — see section 4.
@@ -142,8 +145,9 @@ form_fields:
           "B – 2hr to 2hr 25": B
           "C – over 2hr 25": C
         note: >
-          Export the bare letter only. The timing app validates against
-          exactly A/B/C and silently drops any row it cannot match.
+          Export the bare letter only. Anything else imports as a rider with
+          no wave, flagged on the roster — they can't be scored until an
+          operator sets it by hand.
         help_text: >
           Waves are seeded by pace, fastest riders first — this keeps faster
           riders from getting stuck passing slower traffic on course. It has
