@@ -46,9 +46,14 @@ body {
    page currently needs to scroll. Without this, crossing the "tall enough
    to scroll" threshold shrinks the viewport width by the scrollbar's width,
    which visibly nudges any full-width background-size:cover element (see
-   TrailHero) as the page grows past that threshold. */
+   TrailHero) as the page grows past that threshold. The reserved gutter
+   sits outside body's box (even a `fixed inset-0` element can't reach it),
+   so it paints the browser's default canvas color unless html has its own
+   background — set it to match body's so a non-scrolling full-bleed page
+   doesn't show a stray white sliver down the right edge. */
 html {
   scrollbar-gutter: stable;
+  background: var(--color-sand);
 }
 
 /* Signature elements: every bib number gets the same stamped-plate
