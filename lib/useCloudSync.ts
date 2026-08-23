@@ -34,6 +34,16 @@ export interface CloudSync {
 // docs/race-readiness-design.md "Backup sync behavior".
 const DEBOUNCE_MS = 600;
 
+// A failed sync used to wait for the next state change or the browser's
+// `online` event to try again. Neither is dependable at the finish line:
+// behind a hotspot navigator.onLine stays true when the upstream link drops,
+// so `online` never fires, and after the last finisher there are no more state
+// changes — leaving the final entries unsynced with nothing scheduled to fix
+// it. Retry on our own timer instead, backing off so a long outage doesn't
+// hammer a dying connection.
+const RETRY_BASE_MS = 15_000;
+const RETRY_MAX_MS = 120_000;
+
 export function useCloudSync(
   input: SyncInput,
   getPassphrase: () => string | null,
@@ -51,8 +61,34 @@ export function useCloudSync(
   // with a stale "synced".
   const generationRef = useRef(0);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const retryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const retryAttemptRef = useRef(0);
   const latestInputRef = useRef(input);
   latestInputRef.current = input;
+
+  const cancelRetry = useCallback(() => {
+    if (retryRef.current) {
+      clearTimeout(retryRef.current);
+      retryRef.current = null;
+    }
+  }, []);
+
+  // Declared before performSync so it can schedule itself again on failure;
+  // the ref indirection keeps that from being a circular initializer.
+  const performSyncRef = useRef<() => void>(() => {});
+
+  const scheduleRetry = useCallback(() => {
+    cancelRetry();
+    const delay = Math.min(
+      RETRY_BASE_MS * 2 ** retryAttemptRef.current,
+      RETRY_MAX_MS
+    );
+    retryAttemptRef.current += 1;
+    retryRef.current = setTimeout(() => {
+      retryRef.current = null;
+      performSyncRef.current();
+    }, delay);
+  }, [cancelRetry]);
 
   const performSync = useCallback(async () => {
     const {
@@ -71,6 +107,10 @@ export function useCloudSync(
       setError("Locked — unlock the operator app to resume syncing.");
       return;
     }
+
+    // A retry that fires while another attempt is already scheduled would
+    // stack; the newest attempt owns the schedule.
+    cancelRetry();
 
     const generation = ++generationRef.current;
     setStatus("syncing");
@@ -104,6 +144,7 @@ export function useCloudSync(
         const data = await res.json().catch(() => null);
         setStatus("error");
         setError(data?.error ?? `Sync failed (${res.status}).`);
+        scheduleRetry();
         return;
       }
 
@@ -112,15 +153,20 @@ export function useCloudSync(
       setLastSyncedAt(data.lastSaved);
       setSlug(data.slug ?? null);
       setError(null);
+      retryAttemptRef.current = 0;
     } catch {
       if (generation !== generationRef.current) return;
       setStatus("error");
-      setError("Offline or unreachable — will retry.");
+      setError("Offline or unreachable — retrying.");
+      scheduleRetry();
     }
-  }, [getPassphrase]);
+  }, [getPassphrase, cancelRetry, scheduleRetry]);
+
+  performSyncRef.current = performSync;
 
   const syncNow = useCallback(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
+    retryAttemptRef.current = 0;
     performSync();
   }, [performSync]);
 
@@ -131,6 +177,7 @@ export function useCloudSync(
     if (!input.race) return;
     setStatus((s) => (s === "syncing" ? s : "dirty"));
     if (debounceRef.current) clearTimeout(debounceRef.current);
+    retryAttemptRef.current = 0;
     debounceRef.current = setTimeout(performSync, DEBOUNCE_MS);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -151,6 +198,9 @@ export function useCloudSync(
     window.addEventListener("online", syncNow);
     return () => window.removeEventListener("online", syncNow);
   }, [syncNow]);
+
+  // Drop any pending retry when the hook goes away (race switched, tab closed).
+  useEffect(() => cancelRetry, [cancelRetry]);
 
   return { status, lastSyncedAt, error, slug, syncNow };
 }

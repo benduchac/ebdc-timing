@@ -89,6 +89,11 @@ export default function TimingTab({
   }, [bibNumber, registrants, entries]);
 
   const handleRecordFinish = () => {
+    // Stamp the finish before anything that can block. The duplicate-bib
+    // confirm() below holds the thread for as long as the operator takes to
+    // read it, and that pause used to be added to the rider's finish time.
+    const now = new Date();
+
     if (!bibNumber.trim()) {
       alert("Please enter a bib number!");
       bibInputRef.current?.focus();
@@ -112,7 +117,6 @@ export default function TimingTab({
       }
     }
 
-    const now = new Date();
     const rider = registrants.get(normalizedBib);
 
     const wave = rider ? rider.wave : null;
@@ -162,7 +166,10 @@ export default function TimingTab({
     if (e.key === "Enter") {
       handleRecordFinish();
     } else if (e.key === "u" || e.key === "U") {
+      // Swallow the keystroke, or it also lands in the input: the next bib
+      // typed becomes "u57" and records as an unregistered rider.
       if (bibNumber === "") {
+        e.preventDefault();
         handleUnknownFinisher();
       }
     }

@@ -20,14 +20,18 @@ export default function EditModal({
   onClose,
 }: EditModalProps) {
   const [editBib, setEditBib] = useState("");
-  const [editWave, setEditWave] = useState<"A" | "B" | "C">("A");
+  // null = unresolved, the state an unmatched bib is recorded in. Editing such
+  // an entry must not quietly invent a wave for it: that would compute an
+  // elapsed time against a start the rider never used and file them into the
+  // rankings as if they were resolved.
+  const [editWave, setEditWave] = useState<"A" | "B" | "C" | null>(null);
   const [editFinishTime, setEditFinishTime] = useState("");
   const [lookedUpRider, setLookedUpRider] = useState<Registrant | null>(null);
 
   useEffect(() => {
     if (entry) {
       setEditBib(entry.bib);
-      setEditWave(entry.wave || "A");
+      setEditWave(entry.wave);
 
       // Convert finish time to HH:MM:SS format
       const finishDate = new Date(entry.finishTimeMs);
@@ -73,6 +77,18 @@ export default function EditModal({
     // Build new datetime with same date, new time
     const newFinishDate = new Date(`${year}-${month}-${day}T${editFinishTime}`);
 
+    // A blank or unparseable time field used to sail through and write NaN
+    // into finishTimeMs and elapsedMs, which renders as "NaN:NaN:NaN" and
+    // sorts unpredictably in the results and the exported CSV.
+    if (!editFinishTime || Number.isNaN(newFinishDate.getTime())) {
+      alert("Enter a finish time (HH:MM:SS) before saving.");
+      return;
+    }
+
+    const elapsedMs = editWave
+      ? newFinishDate.getTime() - waveStartTimes[editWave].getTime()
+      : null;
+
     const updatedEntry: Entry = {
       ...entry,
       bib: normalizedBib,
@@ -81,10 +97,8 @@ export default function EditModal({
       lastName: rider ? rider.lastName : "Rider",
       finishTimeMs: newFinishDate.getTime(),
       finishTime: newFinishDate.toLocaleTimeString("en-US", { hour12: true }),
-      elapsedMs: newFinishDate.getTime() - waveStartTimes[editWave].getTime(),
-      elapsedTime: formatElapsedTime(
-        newFinishDate.getTime() - waveStartTimes[editWave].getTime()
-      ),
+      elapsedMs,
+      elapsedTime: elapsedMs === null ? "N/A" : formatElapsedTime(elapsedMs),
     };
 
     onSave(updatedEntry);
@@ -174,9 +188,21 @@ export default function EditModal({
                   {wave}
                 </button>
               ))}
+              <button
+                onClick={() => setEditWave(null)}
+                className={`flex-[2] py-2 rounded-lg font-bold transition ${
+                  editWave === null
+                    ? "bg-clay text-chalk"
+                    : "bg-sand text-ink-soft hover:bg-ink/10"
+                }`}
+              >
+                Unresolved
+              </button>
             </div>
             <p className="text-xs text-ink-soft mt-1 italic">
-              Changing wave recalculates elapsed time
+              {editWave
+                ? "Changing wave recalculates elapsed time"
+                : "No wave — this finisher stays out of the rankings until one is set"}
             </p>
           </div>
 

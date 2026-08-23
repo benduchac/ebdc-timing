@@ -5,8 +5,12 @@ import { assignSlug } from "@/lib/slug";
 import type { RaceIndexEntry, RaceSnapshot } from "@/lib/types";
 
 // Capped rolling history so a corrupt or accidental overwrite can be rolled
-// back — see docs/race-readiness-design.md "Storage".
-const MAX_HISTORY = 20;
+// back — see docs/race-readiness-design.md "Storage". A snapshot is pushed on
+// every change, so during scoring the cap is measured in finishers, not hours:
+// at 20 it covered about 20 riders, a few minutes, which is shorter than it
+// takes to notice a bad overwrite. 200 covers a whole race at roughly 35KB a
+// snapshot.
+const MAX_HISTORY = 200;
 
 // What the client actually sends — slug and lastSaved are always
 // server-assigned, never trusted from the client (see lib/slug.ts).

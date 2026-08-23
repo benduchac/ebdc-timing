@@ -57,6 +57,10 @@ export default function OperatorPage() {
   // show RaceSetupScreen (avoids flashing it before we know if a race
   // already exists locally).
   const [loaded, setLoaded] = useState(false);
+  // Set when a local save or load fails. Everything about recovery assumes
+  // IndexedDB holds; a failure there used to reach the console and nowhere
+  // else, so the operator kept scoring into memory alone.
+  const [storageError, setStorageError] = useState<string | null>(null);
 
   // System clock check — lifted out of SettingsModal so SetupChecklist can
   // also see it. Auto-runs whenever a race becomes active (see effect below).
@@ -162,12 +166,23 @@ export default function OperatorPage() {
         }
       } catch (error) {
         console.error("Error loading persisted state:", error);
+        setStorageError(
+          "Couldn't read local race data. Recover this race from the cloud " +
+            "before scoring."
+        );
       } finally {
         setLoaded(true);
       }
     };
 
     loadPersistedState();
+  }, []);
+
+  // Ask the browser to keep this origin's storage rather than treating it as
+  // evictable cache. Best-effort: unsupported or denied is not an error, and
+  // an already-persisted origin returns true without prompting.
+  useEffect(() => {
+    navigator.storage?.persist?.().catch(() => {});
   }, []);
 
   // Save state to IndexedDB after changes
@@ -199,8 +214,13 @@ export default function OperatorPage() {
               lastSaved: new Date().toISOString(),
             });
           });
+          setStorageError(null);
         } catch (error) {
           console.error("Error saving state:", error);
+          setStorageError(
+            "Local save failed — this device is no longer keeping a copy. " +
+              "Check the backup badge and export a backup JSON."
+          );
         }
       }
     };
@@ -774,6 +794,14 @@ export default function OperatorPage() {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              {storageError && (
+                <div
+                  className="bg-danger text-chalk px-3 py-1 rounded-full text-sm font-semibold"
+                  title={storageError}
+                >
+                  Local save failed
+                </div>
+              )}
               <SyncBadge
                 status={syncStatus}
                 lastSyncedAt={cloudLastSyncedAt}
