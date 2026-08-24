@@ -65,12 +65,22 @@ function sortByElapsed(entries: Entry[]): Entry[] {
 export interface CategoryBoard {
   id: string;
   name: string;
+  // "category" is an age/gender division, ranked in full. "award" is a fun
+  // award (fastest parent, top rigid bike, ...) — a single-winner spotlight,
+  // not a ranked list. See CategoryLeaderboardGrid.tsx.
+  kind: "category" | "award";
+  // How many places a category board shows before "Show all" — a smaller
+  // field (Masters, Junior) doesn't need as many rows as Overall to feel
+  // complete. Unused for "award" boards.
+  displayLimit?: number;
   entries: Entry[];
 }
 
 interface BoardDefinition {
   id: string;
   name: string;
+  kind: "category" | "award";
+  displayLimit?: number;
   eligible: (rider: Registrant, asOf: string) => boolean;
 }
 
@@ -79,52 +89,68 @@ const isMasters = (rider: Registrant, asOf: string) =>
 const isJunior = (rider: Registrant, asOf: string) =>
   !!rider.dob && getAgeCategory(rider.dob, asOf) === "junior";
 
-// Ordered per docs/fun-awards-timing.md section 4. Masters keeps its
-// existing combined (all-genders) board — nonbinary/undisclosed riders have
-// ranked there since before this build — and gains two new gendered ones
-// alongside it; that's the "change" the spec calls out, not a replacement.
+// Ordered per docs/fun-awards-timing.md section 4. Masters is one combined
+// (all-genders) board only — a gendered split shipped once and was dropped
+// as one board too many; nonbinary/undisclosed riders have ranked on the
+// combined board since before this build.
 const BOARDS: BoardDefinition[] = [
-  { id: "overallMale", name: "Overall male", eligible: (r) => r.gender === "male" },
-  { id: "overallFemale", name: "Overall female", eligible: (r) => r.gender === "female" },
+  {
+    id: "overallMale",
+    name: "Overall male",
+    kind: "category",
+    displayLimit: 20,
+    eligible: (r) => r.gender === "male",
+  },
+  {
+    id: "overallFemale",
+    name: "Overall female",
+    kind: "category",
+    displayLimit: 20,
+    eligible: (r) => r.gender === "female",
+  },
   {
     id: "juniorMale",
     name: "Junior male (18U)",
+    kind: "category",
+    displayLimit: 5,
     eligible: (r, asOf) => r.gender === "male" && isJunior(r, asOf),
   },
   {
     id: "juniorFemale",
     name: "Junior female (18U)",
+    kind: "category",
+    displayLimit: 5,
     eligible: (r, asOf) => r.gender === "female" && isJunior(r, asOf),
   },
-  { id: "masters", name: "Masters (50+)", eligible: isMasters },
   {
-    id: "mastersMale",
-    name: "Masters male (50+)",
-    eligible: (r, asOf) => r.gender === "male" && isMasters(r, asOf),
-  },
-  {
-    id: "mastersFemale",
-    name: "Masters female (50+)",
-    eligible: (r, asOf) => r.gender === "female" && isMasters(r, asOf),
+    id: "masters",
+    name: "Masters (50+)",
+    kind: "category",
+    displayLimit: 3,
+    eligible: isMasters,
   },
   {
     id: "fastestParent",
     name: "Fastest parent",
+    kind: "award",
     eligible: (r) => r.isParent === "yes",
   },
   {
     id: "fastestFirstTimer",
     name: "Fastest first-timer",
+    kind: "award",
     eligible: (r) => r.firstGravelRace === "yes",
   },
   {
     id: "topRigidBike",
     name: "Top rigid bike",
+    kind: "award",
     eligible: (r) => r.rigidBike === "yes",
   },
   {
     id: "topSteelBike",
     name: "Top steel bike",
+    kind: "award",
     eligible: (r) => r.steelBike === "yes",
   },
 ];
@@ -153,6 +179,8 @@ export function computeCategoryBuckets(
   return BOARDS.map((board) => ({
     id: board.id,
     name: board.name,
+    kind: board.kind,
+    displayLimit: board.displayLimit,
     entries: sortByElapsed(
       finished.filter((e) => {
         const rider = registrants.get(e.bib);

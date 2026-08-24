@@ -77,10 +77,11 @@ award_categories:
   - name: "Masters 50+"
     eligibility: "masters_50_flag == true"
     sort_by: "elapsed_time asc"
-    split_by_gender: true
+    split_by_gender: false
     note: >
-      CHANGE TO EXISTING BEHAVIOR — Masters is currently a single combined
-      board in the timing app. Splitting it is a change, not new work.
+      A gendered split (Masters male/female) shipped once and was reverted —
+      too many near-identical boards for a field this size. One combined
+      board.
 
   - name: "Fastest Parent"
     eligibility: "is_parent == 'yes'"
@@ -118,6 +119,19 @@ ranking_rules:
     and 'undisclosed' riders are still ranked in every non-gendered board
     (Masters combined view, all fun awards, overall results).
 ```
+
+### 4a. Board display
+
+A UI decision, not a data one — `CategoryLeaderboardGrid.tsx`.
+
+- **Fun awards are a single-winner spotlight, not a ranked list.** Each award
+  card shows only the fastest eligible rider (more than one name only on a
+  genuine tie), not a top-10. Nine near-identical ranked cards read as
+  clutter; a fun award has one point — who won it.
+- **Category boards cap their default display per board, not one shared
+  number.** A small field doesn't need as many rows shown as a large one to
+  feel complete: Masters top 3, Junior (each gender) top 5, Overall (each
+  gender) top 20. "Show all" still expands to the full field on any board.
 
 ---
 

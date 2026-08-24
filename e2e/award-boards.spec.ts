@@ -36,7 +36,7 @@ function board(page: Page, name: string) {
   return page.getByRole("heading", { name, exact: true }).locator("..");
 }
 
-test("award boards only show eligible riders, ranked by elapsed time", async ({
+test("award boards spotlight only the single fastest eligible rider", async ({
   page,
 }) => {
   // Bib 4 (Alex Rivera): nonbinary, first_gravel_race yes, rigid+steel no.
@@ -51,17 +51,34 @@ test("award boards only show eligible riders, ranked by elapsed time", async ({
 
   await page.getByRole("button", { name: "Category Leaderboards" }).click();
 
+  // Both are first-timer eligible, but Alex's elapsed (30min) beats
+  // Michael's (90min) — a fun award spotlights the winner only.
   const firstTimerBoard = board(page, "Fastest first-timer");
   await expect(firstTimerBoard.getByText("Alex Rivera")).toBeVisible();
-  await expect(firstTimerBoard.getByText("Michael Chen")).toBeVisible();
-  // Alex's elapsed (30min) beats Michael's (90min).
-  const entries = firstTimerBoard.locator(".space-y-2 > div");
-  await expect(entries.first()).toContainText("Alex Rivera");
+  await expect(firstTimerBoard.getByText("Michael Chen")).toHaveCount(0);
 
   const rigidBoard = board(page, "Top rigid bike");
   await expect(rigidBoard.getByText("Michael Chen")).toBeVisible();
   // Alex isn't rigid_bike-eligible — must not appear on this board at all.
   await expect(rigidBoard.getByText("Alex Rivera")).toHaveCount(0);
+});
+
+test("a tied award spotlights every winner", async ({ page }) => {
+  // Bib 1 (Sarah Johnson) and bib 2 (Michael Chen): both wave A, both
+  // steel_bike eligible.
+  await recordFinish(page, "1");
+  await recordFinish(page, "2");
+
+  await page.getByRole("button", { name: "Results" }).click();
+  await page.getByRole("button", { name: "Overall Results" }).click();
+  await setFinishTime(page, "Sarah Johnson", "10:00:00");
+  await setFinishTime(page, "Michael Chen", "10:00:00");
+
+  await page.getByRole("button", { name: "Category Leaderboards" }).click();
+
+  const steelBoard = board(page, "Top steel bike");
+  await expect(steelBoard.getByText("Sarah Johnson")).toBeVisible();
+  await expect(steelBoard.getByText("Michael Chen")).toBeVisible();
 });
 
 test("tied finish times share a place number; the next rider skips ahead", async ({
