@@ -18,9 +18,8 @@ interface LeaderboardCardProps {
   displayLimit: number;
 }
 
-// One ranked row — bib, name, wave, elapsed — shared by the category ranked
-// list and an award card's expanded full-results view, so the two don't
-// drift into slightly different row markup.
+// One ranked row — bib, name, wave, elapsed on one line — used by the
+// category boards, which are wide enough (2-up) for it.
 function RankedRow({ entry, place }: { entry: Entry; place: number }) {
   return (
     <div className="flex items-center gap-2 text-sm border-b border-ink/10 pb-2">
@@ -35,6 +34,30 @@ function RankedRow({ entry, place }: { entry: Entry; place: number }) {
       <TimeChip className="text-xs">
         {entry.elapsedMs !== null ? formatElapsedHuman(entry.elapsedMs) : "N/A"}
       </TimeChip>
+    </div>
+  );
+}
+
+// Same data as RankedRow, stacked onto three lines (name, time, wave)
+// instead of one. An award card's expanded view lives in a 4-up grid — a
+// single crowded line there truncates names; stacking trades row height
+// for room to show the full name.
+function AwardResultRow({ entry, place }: { entry: Entry; place: number }) {
+  return (
+    <div className="flex items-start gap-2 text-sm border-b border-ink/10 pb-2">
+      <RankBadge place={place} className="w-6 h-6 shrink-0 text-xs mt-0.5" />
+      <BibChip bib={entry.bib} className="text-xs shrink-0 mt-0.5" />
+      <div className="flex-1 min-w-0">
+        <div className="font-semibold">
+          {entry.firstName} {entry.lastName}
+        </div>
+        <div className="mt-1">
+          <TimeChip className="text-xs">
+            {entry.elapsedMs !== null ? formatElapsedHuman(entry.elapsedMs) : "N/A"}
+          </TimeChip>
+        </div>
+        <div className="text-xs text-ink-soft mt-1">Wave {entry.wave}</div>
+      </div>
     </div>
   );
 }
@@ -135,7 +158,7 @@ function AwardCard({ title, entries }: AwardCardProps) {
         </h3>
         <div className="space-y-2">
           {entries.map((entry, index) => (
-            <RankedRow key={entry.id} entry={entry} place={ranks[index]} />
+            <AwardResultRow key={entry.id} entry={entry} place={ranks[index]} />
           ))}
         </div>
         <button
