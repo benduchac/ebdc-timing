@@ -7,32 +7,50 @@ with a bad row is `docs/fun-awards-timing.md` section 6a.
 Race day is **2026-10-10**. Several dates below sit on a category boundary
 relative to that date, on purpose.
 
-Today's importer keeps **0 of 16** rows from `registrants-2026.csv` and says
+Today's importer keeps **0 of 100** rows from `registrants-2026.csv` and says
 nothing. That's the bug these exist to close, so a rewrite that can't load
 these isn't done.
 
 ## Files
 
 ### `registrants-2026.csv` — the good file
-16 rows, all valid, covering every shape that breaks a naive parser:
+100 rows, all valid, bibs numbered sequentially `001`-`100` the way the
+registration-side script actually assigns them — not the old file's
+arbitrary/gapped numbers. Large enough to exercise real leaderboard behavior
+(per-board display caps, "Show all", every gender/award board actually
+populated) instead of just parsing edge cases. Bibs 001-013 and 017 are
+pinned to specific people and values for the parsing/boundary proofs below;
+every other bib is procedurally generated (fixed seed, so re-running the
+generator reproduces the same file) to fill out a realistic field. See
+`docs/wordpress-registration-form.md` section 4 for the format the generator
+follows.
 
-| Row | What it proves |
-| --- | --- |
-| Mary Jo Van Der Berg | Multi-word first *and* last name. The current regex keeps only the last word of each. |
-| Smith, Jr. | A comma inside a quoted field. |
-| O"Brien | An embedded double quote, RFC-4180 escaped as `""`. |
-| bib `007` | `normalizeBib` still applies — this rider is bib 7. |
-| Mary Jo's blank answers | Two skipped optional questions that still hold their position. Collapsing them shifts every later column. |
-| Marcus Webb, `2007-10-10` | Turns 19 **on** race day → age 19, not a junior. |
-| Nia Fletcher, `2007-10-11` | Turns 19 the **day after** → age 18, junior. |
-| Robert Ellery, `1976-10-10` | Turns 50 **on** race day → masters. |
-| Helen Marsh, `1976-10-11` | Turns 50 the **day after** → age 49, not masters. |
-| Priya Raman, `1996-02-29` | Leap-year birthday. |
-| all four gender tokens | `male`, `female`, `nonbinary`, `undisclosed`. |
+| Bib | Row | What it proves |
+| --- | --- | --- |
+| 003 | Mary Jo Van Der Berg | Multi-word first *and* last name, redundantly quoted even though RFC-4180 doesn't require it for a bare space. The current regex keeps only the last word of each. |
+| 017 | Smith, Jr. | A comma inside a quoted field. |
+| 008 | O"Brien | An embedded double quote, RFC-4180 escaped as `""`. |
+| 007 | Leading Zero | `normalizeBib` still applies — this rider is bib 7. |
+| 003 | Mary Jo's blank answers | Two skipped optional questions that still hold their position. Collapsing them shifts every later column. |
+| 010 | Marcus Webb, `2007-10-10` | Turns 19 **on** race day → age 19, not a junior. |
+| 011 | Nia Fletcher, `2007-10-11` | Turns 19 the **day after** → age 18, junior. |
+| 012 | Robert Ellery, `1976-10-10` | Turns 50 **on** race day → masters. |
+| 013 | Helen Marsh, `1976-10-11` | Turns 50 the **day after** → age 49, not masters. |
+| 006 | Priya Raman, `1996-02-29` | Leap-year birthday. |
+| 001 | Sarah Johnson | male/female/nonbinary/undisclosed all appear elsewhere in the generated rows too — `female`. |
+| 002 | Michael Chen | `male`, first-timer + rigid + steel eligible — a fun-award winner candidate. |
+| 004 | Alex Rivera | `nonbinary`, junior, first-timer eligible. |
 
-The four dated rows are also the age-anchor test: `calculateAge` parses
-`YYYY-MM-DD` as UTC and compares against local dates, which in Pacific time
-flips exactly these four.
+The four dated boundary rows are also the age-anchor test: `calculateAge`
+parses `YYYY-MM-DD` as UTC and compares against local dates, which in
+Pacific time flips exactly these four.
+
+At race-day anchoring, the generated field comfortably clears every
+category board's display cap (Masters 3, Junior 5 per gender, Overall 20 per
+gender) with real, non-boundary riders — Junior Male/Female, Masters, and
+both Overall boards all have more finishers than their cap once everyone in
+the file finishes, so "Show all" is reachable without hand-crafting a
+scenario.
 
 ### `registrants-2026-problems.csv` — one problem per row
 The fixture the import report is built against. Expected outcome: **9 of 10

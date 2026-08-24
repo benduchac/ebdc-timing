@@ -5,7 +5,7 @@ test.beforeEach(async ({ page }) => {
   await unlockOperator(page);
   await startNewRace(page);
   await uploadCsv(page, FIXTURES.good);
-  await expect(page.getByText("16 of 16 riders imported.")).toBeVisible();
+  await expect(page.getByText("100 of 100 riders imported.")).toBeVisible();
   await page.getByRole("button", { name: "Set wave times" }).click();
   await page.getByRole("button", { name: "Save wave times" }).click();
 

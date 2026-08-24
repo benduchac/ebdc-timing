@@ -5,7 +5,7 @@ test.beforeEach(async ({ page }) => {
   await unlockOperator(page);
   await startNewRace(page);
   await uploadCsv(page, FIXTURES.good);
-  await expect(page.getByText("16 of 16 riders imported.")).toBeVisible();
+  await expect(page.getByText("100 of 100 riders imported.")).toBeVisible();
 });
 
 test("a walk-up is added through the ordinary Add registrant form, using the bib off their packet", async ({
@@ -30,7 +30,7 @@ test("a walk-up is added through the ordinary Add registrant form, using the bib
   await page.getByRole("button", { name: "Add registrant", exact: true }).click();
 
   await expect(
-    page.getByRole("heading", { name: "Registration (17 riders)" })
+    page.getByRole("heading", { name: "Registration (101 riders)" })
   ).toBeVisible();
   await expect(page.getByRole("cell", { name: "Walkup Rider" })).toBeVisible();
 });
