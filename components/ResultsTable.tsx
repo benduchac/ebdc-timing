@@ -51,9 +51,9 @@ export default function ResultsTable({
 
   return (
     <div className="bg-chalk border border-ink/10 rounded-lg overflow-hidden">
-      <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+      <div className="overflow-x-auto">
         <table className="w-full text-xs sm:text-sm">
-          <thead className="bg-moss text-chalk sticky top-0 z-10">
+          <thead className="bg-moss text-chalk">
             <tr>
               <th className="p-2 text-left font-semibold">Overall</th>
               <th className="p-2 text-left font-semibold">Bib</th>
