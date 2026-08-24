@@ -7,14 +7,14 @@ with a bad row is `docs/fun-awards-timing.md` section 6a.
 Race day is **2026-10-10**. Several dates below sit on a category boundary
 relative to that date, on purpose.
 
-Today's importer keeps **0 of 19** rows from `registrants-2026.csv` and says
+Today's importer keeps **0 of 16** rows from `registrants-2026.csv` and says
 nothing. That's the bug these exist to close, so a rewrite that can't load
 these isn't done.
 
 ## Files
 
 ### `registrants-2026.csv` — the good file
-19 rows, all valid, covering every shape that breaks a naive parser:
+16 rows, all valid, covering every shape that breaks a naive parser:
 
 | Row | What it proves |
 | --- | --- |
@@ -29,7 +29,6 @@ these isn't done.
 | Helen Marsh, `1976-10-11` | Turns 50 the **day after** → age 49, not masters. |
 | Priya Raman, `1996-02-29` | Leap-year birthday. |
 | all four gender tokens | `male`, `female`, `nonbinary`, `undisclosed`. |
-| bibs 150–152 | `status: spare` — a bib and nothing else. Blank fields on a spare are expected, not problems. |
 
 The four dated rows are also the age-anchor test: `calculateAge` parses
 `YYYY-MM-DD` as UTC and compares against local dates, which in Pacific time

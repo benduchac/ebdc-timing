@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import type { Entry, Registrant } from "@/lib/types";
 import { formatElapsedTime, normalizeBib } from "@/lib/utils";
-import { lookupRider } from "@/lib/categories";
 
 interface EditModalProps {
   entry: Entry | null;
@@ -51,7 +50,7 @@ export default function EditModal({
   // Lookup rider as bib changes
   useEffect(() => {
     if (editBib) {
-      const rider = lookupRider(registrants, normalizeBib(editBib));
+      const rider = registrants.get(normalizeBib(editBib));
       setLookedUpRider(rider || null);
 
       // ✅ Auto-update wave to match the looked-up rider
@@ -67,7 +66,7 @@ export default function EditModal({
 
   const handleSave = () => {
     const normalizedBib = normalizeBib(editBib);
-    const rider = lookupRider(registrants, normalizedBib);
+    const rider = registrants.get(normalizedBib);
 
     // Use the ORIGINAL date from the entry, not today's date
     const originalDate = new Date(entry.finishTimeMs);

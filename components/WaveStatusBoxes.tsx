@@ -28,8 +28,8 @@ export default function WaveStatusBoxes({
     return () => clearInterval(interval);
   }, []);
 
-  // Count total registered riders per wave — a spare (or any rider with no
-  // wave assigned yet) has nothing to count here.
+  // Count total registered riders per wave — a rider with no wave assigned
+  // (a badly imported row) has nothing to count here.
   const totalByWave = { A: 0, B: 0, C: 0 };
   registrants.forEach((rider) => {
     if (rider.wave) totalByWave[rider.wave]++;

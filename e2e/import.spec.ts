@@ -8,16 +8,13 @@ test.describe("CSV import", () => {
     await startNewRace(page);
   });
 
-  test("the good file imports all 19 rows, 16 registered + 3 reserved", async ({
-    page,
-  }) => {
+  test("the good file imports all 16 rows", async ({ page }) => {
     await uploadCsv(page, FIXTURES.good);
 
-    await expect(page.getByText("19 of 19 riders imported.")).toBeVisible();
+    await expect(page.getByText("16 of 16 riders imported.")).toBeVisible();
     await expect(
       page.getByRole("heading", { name: "Registration (16 riders)" })
     ).toBeVisible();
-    await expect(page.getByText("Reserved bibs (3 unclaimed)")).toBeVisible();
 
     // normalizeBib strips the leading zero on "007" and doesn't collide —
     // the fixture's Tom Smith (bib 17) and Leading Zero (007 -> 7) both land.
@@ -31,13 +28,13 @@ test.describe("CSV import", () => {
     page,
   }) => {
     await uploadCsv(page, FIXTURES.shuffled);
-    await expect(page.getByText("19 of 19 riders imported.")).toBeVisible();
+    await expect(page.getByText("16 of 16 riders imported.")).toBeVisible();
     await expect(
       page.getByRole("heading", { name: "Registration (16 riders)" })
     ).toBeVisible();
 
     await uploadCsv(page, FIXTURES.crlfBom);
-    await expect(page.getByText("19 of 19 riders imported.")).toBeVisible();
+    await expect(page.getByText("16 of 16 riders imported.")).toBeVisible();
     await expect(
       page.getByRole("heading", { name: "Registration (16 riders)" })
     ).toBeVisible();

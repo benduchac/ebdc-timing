@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from "react";
 import type { Registrant, Entry } from "@/lib/types";
 import { formatElapsedTime, normalizeBib } from "@/lib/utils";
-import { lookupRider } from "@/lib/categories";
 import WaveStatusBoxes from "./WaveStatusBoxes";
 import TopTenLeaderboard from "./TopTenLeaderboard";
 import BibChip from "./BibChip";
@@ -55,7 +54,7 @@ export default function TimingTab({
     }
 
     const normalizedBib = normalizeBib(bibNumber);
-    const rider = lookupRider(registrants, normalizedBib);
+    const rider = registrants.get(normalizedBib);
 
     // Check for duplicate
     const existingEntry = entries.find((e) => e.bib === normalizedBib);
@@ -118,7 +117,7 @@ export default function TimingTab({
       }
     }
 
-    const rider = lookupRider(registrants, normalizedBib);
+    const rider = registrants.get(normalizedBib);
 
     const wave = rider ? rider.wave : null;
     const firstName = rider ? rider.firstName : "Unknown";

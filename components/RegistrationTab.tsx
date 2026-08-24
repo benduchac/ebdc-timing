@@ -27,7 +27,6 @@ const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 interface EditingRegistrant {
   bib: string;
-  status?: "registered" | "spare";
   firstName: string;
   lastName: string;
   wave: "A" | "B" | "C" | null;
@@ -58,12 +57,8 @@ export default function RegistrationTab({
   const asOf = raceDate ?? toDateString(new Date());
 
   const registrantArray = Array.from(registrants.values());
-  // Reserved-but-unclaimed spares are numbers, not riders — they get their
-  // own list below instead of sitting in the main roster with blank cells.
-  const claimedRegistrants = registrantArray.filter((r) => r.status !== "spare");
-  const spareRegistrants = registrantArray.filter((r) => r.status === "spare");
 
-  const filteredRegistrants = claimedRegistrants
+  const filteredRegistrants = registrantArray
     .filter((r) => {
       if (!searchQuery) return true;
       const query = searchQuery.toLowerCase();
@@ -96,10 +91,10 @@ export default function RegistrationTab({
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (claimedRegistrants.length > 0) {
+    if (registrantArray.length > 0) {
       const message = hasTimingData
-        ? `WARNING: You have active timing data!\n\nUploading a new CSV will REPLACE all ${claimedRegistrants.length} registrants.\n\nExisting timing entries will keep their bib numbers but may no longer match names.\n\nContinue?`
-        : `You currently have ${claimedRegistrants.length} registrants loaded.\n\nUploading a new CSV will REPLACE all current registrants.\n\nContinue?`;
+        ? `WARNING: You have active timing data!\n\nUploading a new CSV will REPLACE all ${registrantArray.length} registrants.\n\nExisting timing entries will keep their bib numbers but may no longer match names.\n\nContinue?`
+        : `You currently have ${registrantArray.length} registrants loaded.\n\nUploading a new CSV will REPLACE all current registrants.\n\nContinue?`;
 
       if (!confirm(message)) {
         event.target.value = "";
@@ -124,8 +119,7 @@ export default function RegistrationTab({
   };
 
   const handleAddNew = () => {
-    // Find next available bib number — spares are reserved too, so they
-    // count toward "already taken" even though they're not in the main list.
+    // Find next available bib number.
     const existingBibs = Array.from(registrants.keys())
       .map((b) => parseInt(b))
       .filter((n) => !isNaN(n));
@@ -177,17 +171,12 @@ export default function RegistrationTab({
 
     const bib = normalizeBib(rawBib);
 
-    // A reserved-but-unclaimed spare at this bib isn't a conflict — typing a
-    // spare's number is how it gets claimed. Only a bib already attached to
-    // an actual rider blocks the save.
-    const holder = registrants.get(bib);
-    const bibTaken = !!holder && holder.status !== "spare";
-
-    if (isNew && bibTaken) {
+    // Check for duplicate bib (but allow same bib if editing existing)
+    if (isNew && registrants.has(bib)) {
       alert(`Bib #${bib} already exists!`);
       return;
     }
-    if (!isNew && originalBib !== bib && bibTaken) {
+    if (!isNew && originalBib !== bib && registrants.has(bib)) {
       alert(`Bib #${bib} already exists!`);
       return;
     }
@@ -199,8 +188,6 @@ export default function RegistrationTab({
       newRegistrants.delete(originalBib);
     }
 
-    // This form only ever produces a filled-in rider — claiming a spare or
-    // adding new both result in "registered", never "spare".
     newRegistrants.set(bib, {
       bib,
       firstName,
@@ -238,9 +225,9 @@ export default function RegistrationTab({
 
   // Wave summary counts
   const waveCounts = {
-    A: claimedRegistrants.filter((r) => r.wave === "A").length,
-    B: claimedRegistrants.filter((r) => r.wave === "B").length,
-    C: claimedRegistrants.filter((r) => r.wave === "C").length,
+    A: registrantArray.filter((r) => r.wave === "A").length,
+    B: registrantArray.filter((r) => r.wave === "B").length,
+    C: registrantArray.filter((r) => r.wave === "C").length,
   };
 
   const ageDisplay = (r: Registrant): string =>
@@ -251,7 +238,7 @@ export default function RegistrationTab({
       {/* Header with Add button */}
       <div className="flex justify-between items-center">
         <h2 className="font-display uppercase tracking-tight text-2xl text-moss-dark">
-          Registration ({claimedRegistrants.length} riders)
+          Registration ({registrantArray.length} riders)
         </h2>
         <button
           onClick={handleAddNew}
@@ -290,7 +277,7 @@ export default function RegistrationTab({
       )}
 
       {/* Wave Summary */}
-      {claimedRegistrants.length > 0 && (
+      {registrantArray.length > 0 && (
         <div className="grid grid-cols-3 gap-3">
           <div className="bg-chalk border border-ink/10 rounded-lg p-3 text-center">
             <div className="text-2xl font-bold text-moss-dark">
@@ -313,26 +300,8 @@ export default function RegistrationTab({
         </div>
       )}
 
-      {/* Reserved bibs — informational only. To sign up a walkup, use
-          + Add registrant and type the bib off their packet; if it matches
-          one of these, it's claimed automatically. */}
-      {spareRegistrants.length > 0 && (
-        <div className="bg-sand border border-ink/10 rounded-lg p-3">
-          <h3 className="font-display uppercase tracking-tight text-sm text-moss-dark mb-2">
-            Reserved bibs ({spareRegistrants.length} unclaimed)
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {spareRegistrants
-              .sort((a, b) => parseInt(a.bib) - parseInt(b.bib))
-              .map((spare) => (
-                <BibChip key={spare.bib} bib={spare.bib} className="text-xs" />
-              ))}
-          </div>
-        </div>
-      )}
-
       {/* Search and Sort */}
-      {claimedRegistrants.length > 0 && (
+      {registrantArray.length > 0 && (
         <div className="flex gap-3">
           <input
             type="text"
@@ -356,7 +325,7 @@ export default function RegistrationTab({
       )}
 
       {/* Registrant Table */}
-      {claimedRegistrants.length > 0 ? (
+      {registrantArray.length > 0 ? (
         <div className="bg-chalk border border-ink/10 rounded-lg overflow-hidden">
           <div className="max-h-[500px] overflow-auto">
             <table className="w-full text-sm">
@@ -472,12 +441,6 @@ export default function RegistrationTab({
                   }
                   className="w-full p-2 border-2 border-ink/15 bg-sand rounded-lg focus:border-clay focus:outline-none"
                 />
-                {editingRegistrant.isNew && spareRegistrants.length > 0 && (
-                  <p className="mt-1 text-xs text-ink-soft">
-                    Type the bib off their packet — a reserved number is
-                    claimed automatically.
-                  </p>
-                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -668,15 +631,10 @@ export default function RegistrationTab({
               <p className="text-ink">
                 Are you sure you want to delete{" "}
                 <strong>
-                  {registrants.get(deleteConfirmBib)?.status === "spare"
-                    ? `reserved bib #${deleteConfirmBib}`
-                    : `${registrants.get(deleteConfirmBib)?.firstName} ${
-                        registrants.get(deleteConfirmBib)?.lastName
-                      }`}
-                </strong>
-                {registrants.get(deleteConfirmBib)?.status !== "spare" &&
-                  ` (Bib #${deleteConfirmBib})`}
-                ?
+                  {registrants.get(deleteConfirmBib)?.firstName}{" "}
+                  {registrants.get(deleteConfirmBib)?.lastName}
+                </strong>{" "}
+                (Bib #{deleteConfirmBib})?
               </p>
               {hasTimingData && (
                 <p className="text-danger text-sm mt-2">

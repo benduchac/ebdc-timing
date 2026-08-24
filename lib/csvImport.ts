@@ -108,10 +108,6 @@ export function getRegistrantIssues(r: Registrant): Issue[] {
     return [{ field: "bib", tier: "refused", message: "No bib." }];
   }
 
-  // A spare is expected to be blank everywhere except bib and status —
-  // blank fields there aren't a problem to flag.
-  if (r.status === "spare") return [];
-
   const issues: Issue[] = [];
   if (!r.wave || !WAVES.has(r.wave)) {
     issues.push({
@@ -233,7 +229,6 @@ export function importRegistrants(csvText: string): ImportResult {
   const at = (name: string) => header.indexOf(name);
   const idx = {
     bib: at("bib"),
-    status: at("status"),
     firstName: at("first_name"),
     lastName: at("last_name"),
     wave: at("wave"),
@@ -263,25 +258,22 @@ export function importRegistrants(csvText: string): ImportResult {
       continue;
     }
 
-    const isSpare = cell(row, idx.status) === "spare";
-    const registrant: Registrant = isSpare
-      ? { bib, status: "spare", firstName: "", lastName: "", wave: null, dob: "", gender: "" }
-      : {
-          bib,
-          firstName: cell(row, idx.firstName),
-          lastName: cell(row, idx.lastName),
-          wave: asWave(cell(row, idx.wave)),
-          dob: cell(row, idx.dob),
-          // Gender is never case-normalized — accepting "Female" silently
-          // is how a real Non-Binary or Prefer-Not-To-Say answer ends up
-          // mapped to something nobody chose. See fun-awards-timing.md
-          // section 5's note on row 25 of this exact fixture.
-          gender: cell(row, idx.gender),
-          firstGravelRace: cell(row, idx.firstGravelRace) || undefined,
-          isParent: cell(row, idx.isParent) || undefined,
-          rigidBike: cell(row, idx.rigidBike) || undefined,
-          steelBike: cell(row, idx.steelBike) || undefined,
-        };
+    const registrant: Registrant = {
+      bib,
+      firstName: cell(row, idx.firstName),
+      lastName: cell(row, idx.lastName),
+      wave: asWave(cell(row, idx.wave)),
+      dob: cell(row, idx.dob),
+      // Gender is never case-normalized — accepting "Female" silently
+      // is how a real Non-Binary or Prefer-Not-To-Say answer ends up
+      // mapped to something nobody chose. See fun-awards-timing.md
+      // section 5's note on row 25 of this exact fixture.
+      gender: cell(row, idx.gender),
+      firstGravelRace: cell(row, idx.firstGravelRace) || undefined,
+      isParent: cell(row, idx.isParent) || undefined,
+      rigidBike: cell(row, idx.rigidBike) || undefined,
+      steelBike: cell(row, idx.steelBike) || undefined,
+    };
 
     const issues = getRegistrantIssues(registrant);
     if (seenBibs.has(bib)) {

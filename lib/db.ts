@@ -8,13 +8,10 @@ export type YesNoUnsure = "yes" | "no" | "unsure";
 
 export interface Registrant {
   bib: string;
-  // Absent (or "registered") is a real rider; "spare" is a reserved bib with
-  // no rider attached yet — see docs/fun-awards-timing.md item 6. A spare has
-  // no name/wave/dob/gender; those fill in when it's claimed.
-  status?: "registered" | "spare";
   firstName: string;
   lastName: string;
-  // Nullable because a spare bib has no wave until claimed.
+  // Nullable: a badly imported row (missing/invalid wave column) still
+  // imports rather than being dropped — see docs/fun-awards-timing.md 6a.
   wave: "A" | "B" | "C" | null;
   dob: string; // Format: YYYY-MM-DD
   // Free text, not a union: the importer must be able to carry an invalid

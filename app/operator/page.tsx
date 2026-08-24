@@ -803,12 +803,6 @@ export default function OperatorPage() {
     );
   }
 
-  // Reserved-but-unclaimed spare bibs are numbers, not people — don't count
-  // toward the rider count shown to the operator anywhere (header, setup
-  // checklist, wave summary).
-  const claimedCount = Array.from(registrants.values()).filter(
-    (r) => r.status !== "spare"
-  ).length;
   // The checklist's "Load Registrants" step can't tick while any rider is
   // unscoreable — a missing name/birthday/gender is fine to fix later, but
   // no wave means the race can't be scored at all.
@@ -915,7 +909,7 @@ export default function OperatorPage() {
             {/* Status Bar */}
             <div className="flex gap-3 mb-4 text-sm flex-wrap">
               <div className="bg-sand border border-ink/10 px-3 py-1 rounded-full">
-                <span className="font-semibold">{claimedCount}</span>{" "}
+                <span className="font-semibold">{registrants.size}</span>{" "}
                 registrants
               </div>
               <div className="bg-success-soft px-3 py-1 rounded-full">
@@ -926,7 +920,7 @@ export default function OperatorPage() {
 
             {activeTab === "registration" && (
               <SetupChecklist
-                registrantCount={claimedCount}
+                registrantCount={registrants.size}
                 hasBlockingScoringIssue={hasBlockingScoringIssue}
                 clockCheck={clockCheck}
                 clockCheckedAt={clockCheckedAt}
@@ -1069,7 +1063,7 @@ export default function OperatorPage() {
             onSwitchRace={handleSwitchRace}
             onLock={handleLock}
             entryCount={entries.length}
-            registrantCount={claimedCount}
+            registrantCount={registrants.size}
             raceLabel={activeRace.label}
             clockCheck={clockCheck}
             checkingClock={checkingClock}

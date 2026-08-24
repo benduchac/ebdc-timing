@@ -15,7 +15,7 @@ test("age lands on the right side of the boundary on race day", async ({
   await unlockOperator(page);
   await startNewRace(page);
   await uploadCsv(page, FIXTURES.good);
-  await expect(page.getByText("19 of 19 riders imported.")).toBeVisible();
+  await expect(page.getByText("16 of 16 riders imported.")).toBeVisible();
 
   // Confirms wave times for "today" (the pinned clock's race day), which is
   // what sets RaceState.raceDate and anchors the age column to it.

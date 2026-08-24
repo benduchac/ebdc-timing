@@ -233,13 +233,9 @@ registration data, not the full export.
 embedded quotes doubled). Column order is free — the importer keys off
 header names — but the names below are exact and case-sensitive.
 
-"Required" below applies to `status: registered` rows. Spare rows carry a
-`bib` and nothing else — see "Bib assignment and spare bibs".
-
 | Column | Values | Required | Notes |
 | --- | --- | --- | --- |
 | `bib` | integer | yes | Assigned after registration closes. Leading zeros are stripped on import. |
-| `status` | `registered` | `spare` | no | Marks reserved day-of bibs. Absent column or blank value is treated as `registered`. |
 | `first_name` | text | yes | Never a combined name. |
 | `last_name` | text | yes | |
 | `wave` | `A` \| `B` \| `C` | yes | Bare letter, not the display label. |
@@ -253,37 +249,29 @@ header names — but the names below are exact and case-sensitive.
 ### Example
 
 ```csv
-bib,status,first_name,last_name,wave,dob,gender,first_gravel_race,is_parent,rigid_bike,steel_bike
-1,registered,Sarah,Johnson,A,1992-03-15,female,no,yes,no,yes
-2,registered,Michael,Chen,A,1988-07-22,male,yes,no,yes,yes
-3,registered,"Mary Jo","Van Der Berg",B,1980-01-02,female,,,unsure,no
-4,registered,Alex,Rivera,C,2009-06-30,nonbinary,yes,no,no,no
-151,spare,,,,,,,,,
+bib,first_name,last_name,wave,dob,gender,first_gravel_race,is_parent,rigid_bike,steel_bike
+1,Sarah,Johnson,A,1992-03-15,female,no,yes,no,yes
+2,Michael,Chen,A,1988-07-22,male,yes,no,yes,yes
+3,"Mary Jo","Van Der Berg",B,1980-01-02,female,,,unsure,no
+4,Alex,Rivera,C,2009-06-30,nonbinary,yes,no,no,no
 ```
 
 Row 3 is the one to look at: a multi-word first *and* last name, both quoted,
 plus two skipped optional answers as empty fields that still hold their
-position. Row 151 is a reserved spare — bib and status only.
+position.
 
-### Bib assignment and spare bibs
+### Bib assignment
 
 Bibs are assigned by the registration-side script the week before the ride,
 after registration closes — the same run that prints each rider's release
-form with their number and contact info. That script produces this CSV.
+form with their number and contact info. That script produces this CSV, and
+it carries only riders who registered online; there's no reserved-bib row for
+day-of walk-ups.
 
-The CSV carries **both** assigned and spare bibs:
-
-- **Assigned bibs** — one row per registered rider, `status` = `registered`,
-  all columns populated as described above.
-- **Spare bibs** — the numbers held back for day-of walk-ups. One row each,
-  `status` = `spare`, `bib` populated, **every other column left blank**.
-  Don't invent placeholder names or dates; blank is the signal.
-
-A walk-up rider is handed a spare bib at the line, and the operator fills in
-their details in the app against that already-reserved number. The rider is
-then eligible for every board on the same terms as someone who registered
-online — the app's add-registrant form collects the same fields as the web
-form, including date of birth and the fun-award questions. Nothing further is
+Walk-up numbers are physical, not data — a stack of bib packets held back
+from printing, with the number already on each one. A walk-up rider is
+handed one at the line, and the operator adds them in the app like any other
+registrant, typing the bib that's already on their packet. Nothing further is
 needed from the registration side.
 
 ### Deliberately excluded

@@ -85,18 +85,17 @@ derived from the record, not stored, so they clear when the field is fixed.
   URL. `export const revalidate = 10` on `app/[slug]/page.tsx` makes all
   viewers share one render; also split the two failure cases apart.
 
-### With item 6 (spare bibs)
+### With item 6 (originally: spare bibs)
 
-A wave-less registrant is new, and code across the app assumes three letters:
+Item 6 shipped without a spare-bib concept — walk-up bibs are physical, not
+data; see `fun-awards-timing.md` item 6. The two bullets below stay relevant
+regardless, since a badly imported row (not just a spare) can still produce
+a null wave:
 
-- `Entry.wave` guards are written `wave !== null`, which an `undefined` wave
-  passes — a spare match would look resolved. Use `null`, or `== null`.
 - `WaveStatusBoxes.tsx` does `totalByWave[rider.wave]++`; a blank wave writes
   an undefined key and the box reads NaN.
 - `RegistrationTab.tsx` sorts with `a.wave.localeCompare(b.wave)`, which
   throws on a null wave and blanks the tab.
-- Spares must come out of `registrants.size` — it drives the setup
-  checklist's "Load Registrants" tick, the header count, and the wave summary.
 - The `n/a` → `undisclosed` normalizing read has three entry points, not one:
   the IndexedDB load, `handleOpenRace`, and the backup JSON import.
 
@@ -108,11 +107,10 @@ Real, but not worth the churn before race day.
 
 - **The results CSV drops unresolved finishers.** `handleExportCSV` filters to
   entries with a wave and the confirmation counts only those, so the file that
-  becomes the official record omits the riders still needing a decision. Worth
-  revisiting after item 6 — spares make unresolved entries routine.
+  becomes the official record omits the riders still needing a decision.
 - **Unknown-rider numbers get reused.** The next `UNK-n` is numbered from the
   count of existing ones, so deleting UNK-1 makes the next unknown UNK-2 as
-  well. Less pressing once walk-ups claim a real reserved bib.
+  well.
 - **Offline has a 24-hour shelf life.** Serwist precaches the JS, CSS and
   fonts but not the page itself; the operator page's HTML sits in a
   NetworkFirst cache that expires after 24 hours. Handled operationally for

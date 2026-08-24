@@ -51,24 +51,6 @@ export function getGenderLabel(gender: string): string {
   }
 }
 
-/**
- * A bib the operator typed that resolves to a reserved-but-unclaimed spare
- * must be treated as a miss, exactly like a bib nobody registered — never as
- * a silent match. An unclaimed spare has no name to attach a finish to and
- * no wave to compute an elapsed time against; the risk is the entry looking
- * resolved when it isn't. Use this instead of a raw `registrants.get(...)`
- * anywhere a lookup decides "is this a known rider" (recording a finish,
- * editing an entry's bib). Code that needs to see spares directly to manage
- * them (the roster, the claim flow, delete confirmation) keeps the raw get.
- */
-export function lookupRider(
-  registrants: Map<string, Registrant>,
-  bib: string
-): Registrant | undefined {
-  const rider = registrants.get(bib);
-  return rider?.status === "spare" ? undefined : rider;
-}
-
 function sortByElapsed(entries: Entry[]): Entry[] {
   return [...entries].sort((a, b) => {
     if (a.elapsedMs === null || b.elapsedMs === null) return 0;

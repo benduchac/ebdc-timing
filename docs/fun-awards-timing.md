@@ -25,7 +25,6 @@ A CSV matching `docs/wordpress-registration-form.md` section 4. Summarized:
 | Column | Values |
 | --- | --- |
 | `bib` | integer |
-| `status` | `registered` | `spare` (absent = `registered`) |
 | `first_name`, `last_name` | text |
 | `wave` | `A` \| `B` \| `C` |
 | `dob` | `YYYY-MM-DD` |
@@ -37,9 +36,11 @@ A CSV matching `docs/wordpress-registration-form.md` section 4. Summarized:
 
 Header-driven parsing — column order is free, column names are fixed.
 
-The file carries spare bibs as well as registered riders: a `status: spare`
-row has a `bib` and every other column blank. These are reserved numbers for
-day-of walk-ups, not people — see implementation item 6.
+The file carries only riders who registered online — there's no row for a
+day-of walk-up. Walk-up bibs are physical: a stack of packets held back from
+printing, with the number already on each one. The operator adds a walk-up
+in the app when they show up, typing the bib off their packet — see
+implementation item 6.
 
 Contact and fundraising fields are deliberately excluded from this CSV.
 Everything imported here lands in the `raceState` snapshot, which syncs to
@@ -156,13 +157,6 @@ ranking_rules:
 - [ ] **Minimum entrants per award** — a board with one eligible rider is
   arguably worse than no board. Decide a floor, or accept single-entrant
   awards.
-- [ ] **Walk-up capture workflow** — deferred, not designed. Reserved bibs
-  arriving in the CSV (item 6) are enough to unblock the build, but the
-  at-the-line experience hasn't been worked through: how much the operator
-  realistically types while riders are queueing, whether the four award
-  questions belong on the claim form or only in a later edit, and whether
-  claiming happens in the Registration tab or inline from Timing. Worth a
-  pass before race day, but it does not block items 1-5.
 
 Form-side open questions (wave cutoffs, `first_gravel_race` wording) live in
 `docs/wordpress-registration-form.md` section 5 — neither has code impact.
@@ -213,40 +207,26 @@ question in item 4.
 5. **Award eligibility + tiebreak** — the bucket predicates themselves. Small
    once item 4 is settled.
 
-6. **Reserved bibs + walk-up capture** — `components/RegistrationTab.tsx`.
-   Spare bibs arrive as `status: spare` rows, so the operator no longer picks
-   a number; they claim one that already exists. Three parts:
+6. **Walk-up registration** — `components/RegistrationTab.tsx`. No reserved-
+   bib concept: the CSV carries only riders who registered online, and a
+   walk-up is added the same way as any late manual entry, through the
+   ordinary Add registrant form, typing the bib that's already printed on
+   their packet. The app never tracks which physical bibs exist or which are
+   still unhanded-out — that's the responsibility of whoever's holding the
+   stack of packets, not this app. Add the four award questions to the
+   shared add/edit modal, and stop pre-seeding `dob: "1990-01-01"` /
+   `gender: "n/a"` — a plausible-looking fake birthdate that passes
+   validation is worse than an empty required field, since it silently files
+   a rider into the wrong age category.
 
-   - **Import** — spare rows become registrants with a bib and nothing else.
-     The importer must accept them despite blank names (today it requires
-     first and last name and would drop them).
-   - **Claim flow** — no dedicated claim UI. The walk-up's packet already has
-     a bib on it, so the operator uses the ordinary Add registrant form and
-     types that number in. If it matches a reserved spare, saving overwrites
-     that spare row with the filled-in rider (a claim); any other number just
-     adds a new registrant, same as it always has. A first version added a
-     separate "Claim bib #N" button/modal per spare — dropped as unneeded
-     once it was clear the form already handles both cases through one bib
-     field. Add the four award questions to the shared add/edit modal, and
-     stop pre-seeding `dob: "1990-01-01"` / `gender: "n/a"` — a plausible-
-     looking fake birthdate that passes validation is worse than an empty
-     required field, since it silently files a rider into the wrong age
-     category.
-   - **Unclaimed guard** — see below. This is the part that matters most.
+   An earlier version of this item modeled reserved bibs as `status: spare`
+   registrants: the CSV pre-declared day-of numbers, the app tracked which
+   were unclaimed, and a lookup guard kept an unclaimed one from silently
+   matching a mistyped bib at record time. Dropped — there's no threat that
+   guard was protecting against once the bib itself is just a physical
+   object handed to a rider, and the concept added a second bib-shaped thing
+   for the app to keep straight for no benefit.
 
-   **An unclaimed spare must behave exactly like an unknown bib.** Today, a
-   bib the operator types that isn't in `registrants` produces an entry with
-   `wave: null` / `elapsedMs: null`, flagged for post-race resolution. Once
-   spare rows exist, a mistyped bib can instead *match* a reserved-but-
-   unclaimed registrant — and quietly attach a finish to a nameless rider
-   rather than raising the flag. The lookup at record time must treat an
-   unclaimed spare as a miss, not a hit. A spare row has no wave, so elapsed
-   time can't be computed either way; the risk is the entry looking resolved
-   when it isn't.
-
-   Unclaimed spares must also be excluded from every leaderboard, the results
-   table, and the registrant count shown in the setup checklist — they're
-   reserved numbers, not people.
 ### Constraints that carry over
 
 - **DOB never reaches the client.** `computeCategoryBuckets` returns plain
@@ -272,10 +252,7 @@ to delete. This reverses today's behavior, which drops a row for a blank name
 or an unrecognized wave and says nothing — the rider then reappears at the
 finish line three hours later as "Unknown Rider".
 
-`status: spare` rows are expected to be blank. Blank fields on a spare are
-never a problem; blank fields on a `registered` row always are.
-
-| Problem on a registered row | Tier | Effect if left unfixed |
+| Problem | Tier | Effect if left unfixed |
 | --- | --- | --- |
 | No bib | refused | Not imported. Fix in the source file and re-upload. |
 | Bib already used by an earlier row | blocks scoring | Today the later row silently overwrites the earlier one and a rider vanishes. |
