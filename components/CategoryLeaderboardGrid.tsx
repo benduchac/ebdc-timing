@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import type { Entry } from "@/lib/types";
-import type { CategoryBuckets } from "@/lib/categories";
-import { formatElapsedTime } from "@/lib/utils";
+import type { CategoryBoard } from "@/lib/categories";
+import { formatElapsedTime, computeStandardRanks } from "@/lib/utils";
 import BibChip from "@/components/BibChip";
 import TimeChip from "@/components/TimeChip";
 import RankBadge from "@/components/RankBadge";
 
 interface CategoryLeaderboardGridProps {
-  buckets: CategoryBuckets;
+  buckets: CategoryBoard[];
 }
 
 interface LeaderboardCardProps {
@@ -40,6 +40,9 @@ function LeaderboardCard({ title, entries }: LeaderboardCardProps) {
     );
   }
 
+  // Ranks computed over the full list before truncating to the top 10, so
+  // showing fewer rows never shifts a tie group's numbers.
+  const ranks = computeStandardRanks(entries);
   const displayedEntries = showAll ? entries : entries.slice(0, 10);
   const hasMore = entries.length > 10;
 
@@ -50,7 +53,7 @@ function LeaderboardCard({ title, entries }: LeaderboardCardProps) {
       </h3>
       <div className="space-y-2">
         {displayedEntries.map((entry, index) => {
-          const place = index + 1;
+          const place = ranks[index];
 
           return (
             <div
@@ -102,26 +105,13 @@ export default function CategoryLeaderboardGrid({
       </h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <LeaderboardCard title="Overall male" entries={buckets.overallMale} />
-        <LeaderboardCard
-          title="Overall female"
-          entries={buckets.overallFemale}
-        />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <LeaderboardCard
-          title="Junior male (18U)"
-          entries={buckets.juniorMale}
-        />
-        <LeaderboardCard
-          title="Junior female (18U)"
-          entries={buckets.juniorFemale}
-        />
-      </div>
-
-      <div className="grid grid-cols-1 gap-4">
-        <LeaderboardCard title="Masters (50+)" entries={buckets.masters} />
+        {buckets.map((board) => (
+          <LeaderboardCard
+            key={board.id}
+            title={board.name}
+            entries={board.entries}
+          />
+        ))}
       </div>
     </div>
   );

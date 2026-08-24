@@ -11,6 +11,10 @@ import { CheckIcon, WarningIcon } from "@/components/icons";
 
 interface SetupChecklistProps {
   registrantCount: number;
+  // True when at least one loaded registrant can't be scored (missing/
+  // invalid wave) — the checklist can't tick "Load Registrants" while that's
+  // true, even if the count is otherwise healthy.
+  hasBlockingScoringIssue: boolean;
   clockCheck: ClockCheckResult | null;
   clockCheckedAt: number | null;
   checkingClock: boolean;
@@ -41,6 +45,7 @@ const ACTION_BUTTON =
 // unlabeled, right next to the real one. See docs/race-readiness-design.md.
 export default function SetupChecklist({
   registrantCount,
+  hasBlockingScoringIssue,
   clockCheck,
   clockCheckedAt,
   checkingClock,
@@ -49,7 +54,7 @@ export default function SetupChecklist({
   waveTimesConfirmed,
   onOpenWaveTimesModal,
 }: SetupChecklistProps) {
-  const registrantsLoaded = registrantCount > 0;
+  const registrantsLoaded = registrantCount > 0 && !hasBlockingScoringIssue;
   const clockSeverity = getClockSeverity(clockCheck);
   const clockFine = clockSeverity === "fine";
   const clockProblem =
@@ -130,12 +135,16 @@ export default function SetupChecklist({
         className={`rounded-lg border-2 p-3 ${
           registrantsLoaded
             ? "bg-success-soft border-success/40"
+            : registrantCount > 0
+            ? "bg-danger-soft border-danger/40"
             : "bg-sand border-ink/10"
         }`}
       >
         <div className="font-bold text-sm mb-1 flex items-center gap-1.5">
           {registrantsLoaded ? (
             <CheckIcon className="w-3.5 h-3.5 text-success shrink-0" />
+          ) : registrantCount > 0 ? (
+            <WarningIcon className="w-3.5 h-3.5 text-danger shrink-0" />
           ) : (
             <span className="text-ink-soft">○</span>
           )}
@@ -144,6 +153,8 @@ export default function SetupChecklist({
         <div className="text-xs text-ink-soft mb-2 min-h-[2.5em]">
           {registrantsLoaded
             ? `${registrantCount} loaded`
+            : registrantCount > 0
+            ? "Some riders can't be scored — fix flagged rows below"
             : "Upload a CSV to get started"}
         </div>
         <button

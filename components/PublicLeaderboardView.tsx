@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Entry } from "@/lib/types";
-import type { CategoryBuckets } from "@/lib/categories";
+import type { CategoryBoard } from "@/lib/categories";
 import ResultsTable from "./ResultsTable";
 import CategoryLeaderboardGrid from "./CategoryLeaderboardGrid";
 import TrailHero from "./TrailHero";
@@ -12,7 +12,7 @@ interface PublicLeaderboardViewProps {
   raceLabel: string;
   lastSaved: string;
   entries: Entry[]; // already filtered to resolved (wave !== null) finishers
-  buckets: CategoryBuckets;
+  buckets: CategoryBoard[];
 }
 
 const REFRESH_INTERVAL_MS = 20_000;

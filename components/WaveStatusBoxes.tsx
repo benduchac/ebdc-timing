@@ -8,8 +8,8 @@ import { EditIcon } from "@/components/icons";
 interface WaveStatusBoxesProps {
   waveStartTimes: { A: Date; B: Date; C: Date };
   entries: Entry[];
-  registrants: Map<string, { wave: "A" | "B" | "C" }>;
-  onEditWaveTime: (wave: "A" | "B" | "C") => void; // ← ADD THIS LINE
+  registrants: Map<string, { wave: "A" | "B" | "C" | null }>;
+  onEditWaveTime: (wave: "A" | "B" | "C") => void;
 }
 
 export default function WaveStatusBoxes({
@@ -28,10 +28,11 @@ export default function WaveStatusBoxes({
     return () => clearInterval(interval);
   }, []);
 
-  // Count total registered riders per wave
+  // Count total registered riders per wave — a spare (or any rider with no
+  // wave assigned yet) has nothing to count here.
   const totalByWave = { A: 0, B: 0, C: 0 };
   registrants.forEach((rider) => {
-    totalByWave[rider.wave]++;
+    if (rider.wave) totalByWave[rider.wave]++;
   });
 
   // Count finished riders per wave

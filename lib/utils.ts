@@ -70,6 +70,53 @@ export const formatDurationHMS = (totalSeconds: number): string => {
   return `${hours}h ${minutes}m ${seconds}s`;
 };
 
+/**
+ * A Date as YYYY-MM-DD in local time. Used for RaceState.raceDate and
+ * anywhere a wave-start time needs rebasing onto a specific day rather than
+ * carrying whatever date it happens to be stored with.
+ */
+export const toDateString = (d: Date): string => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+/**
+ * Takes the hours/minutes/seconds off `isoTime` and rebuilds it on
+ * `dateStr` (YYYY-MM-DD). Restoring a wave start time verbatim from storage
+ * carries whatever date it was saved on — set the evening before, and it
+ * restores next morning still on yesterday's date, making every elapsed
+ * time 24 hours long. Rebasing onto the race's actual date fixes that.
+ */
+export const rebaseTimeOnDate = (isoTime: string, dateStr: string): Date => {
+  const t = new Date(isoTime);
+  const hh = String(t.getHours()).padStart(2, "0");
+  const mm = String(t.getMinutes()).padStart(2, "0");
+  const ss = String(t.getSeconds()).padStart(2, "0");
+  return new Date(`${dateStr}T${hh}:${mm}:${ss}`);
+};
+
+/**
+ * Standard competition ranking for a list already sorted ascending by
+ * elapsedMs: riders tied on elapsed time share the same place, and the next
+ * distinct time skips ahead by the tie's size (1, 2, 3, 4, 4, 6 — not
+ * 1, 2, 3, 4, 4, 5). Returns one place number per entry, same order as input.
+ */
+export const computeStandardRanks = (
+  entries: { elapsedMs: number | null }[]
+): number[] => {
+  const ranks: number[] = [];
+  for (let i = 0; i < entries.length; i++) {
+    if (i > 0 && entries[i].elapsedMs === entries[i - 1].elapsedMs) {
+      ranks.push(ranks[i - 1]);
+    } else {
+      ranks.push(i + 1);
+    }
+  }
+  return ranks;
+};
+
 export const getDateString = (): string => {
   const now = new Date();
   return `${now.getFullYear()}${String(now.getMonth() + 1).padStart(

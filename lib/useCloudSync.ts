@@ -15,6 +15,7 @@ interface SyncInput {
   race: Race | null;
   waveStartTimes: { A: Date; B: Date; C: Date };
   waveTimesConfirmed: boolean;
+  raceDate: string | null;
   registrants: Map<string, Registrant>;
   entries: Entry[];
   entryCounter: number;
@@ -95,6 +96,7 @@ export function useCloudSync(
       race,
       waveStartTimes,
       waveTimesConfirmed,
+      raceDate,
       registrants,
       entries,
       entryCounter,
@@ -132,6 +134,7 @@ export function useCloudSync(
             C: waveStartTimes.C.toISOString(),
           },
           waveTimesConfirmed,
+          raceDate: raceDate ?? undefined,
           registrants: Array.from(registrants.entries()),
           entries,
           entryCounter,
@@ -187,6 +190,7 @@ export function useCloudSync(
     input.race?.id,
     input.waveStartTimes,
     input.waveTimesConfirmed,
+    input.raceDate,
     input.registrants,
     input.entries,
     input.entryCounter,

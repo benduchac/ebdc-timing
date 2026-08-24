@@ -15,7 +15,11 @@ import {
   formatElapsedTime,
   csvField,
   verifySystemClock,
+  toDateString,
+  rebaseTimeOnDate,
+  computeStandardRanks,
 } from "@/lib/utils";
+import { getRegistrantIssues } from "@/lib/csvImport";
 import { useCloudSync } from "@/lib/useCloudSync";
 import RegistrationTab from "@/components/RegistrationTab";
 import TimingTab from "@/components/TimingTab";
@@ -37,6 +41,20 @@ import OperatorGate, {
 } from "@/components/OperatorGate";
 
 type TabType = "registration" | "timing" | "results";
+
+// Pre-2026 records used "n/a" for an undisclosed gender; the 2026 CSV
+// contract uses "undisclosed" instead. This carries the old value forward
+// to its new name rather than leaving it stuck on a retired token — applied
+// at every point a registrants map loads from storage (IndexedDB, cloud
+// recovery, backup-file import).
+function normalizeGenders(
+  registrants: [string, Registrant][]
+): [string, Registrant][] {
+  return registrants.map(([bib, r]) => [
+    bib,
+    r.gender === "n/a" ? { ...r, gender: "undisclosed" } : r,
+  ]);
+}
 
 export default function OperatorPage() {
   // Core state
@@ -89,6 +107,10 @@ export default function OperatorPage() {
   // looked at." See lib/db.ts's RaceState.waveTimesConfirmed comment.
   const [waveTimesConfirmed, setWaveTimesConfirmed] = useState(false);
   const [showWaveTimesModal, setShowWaveTimesModal] = useState(false);
+  // YYYY-MM-DD, set whenever wave times are confirmed (that's the date the
+  // wave-time inputs are applied to). Anchors age-on-race-day and restoring
+  // wave start times onto the right date — see lib/db.ts's RaceState.raceDate.
+  const [raceDate, setRaceDate] = useState<string | null>(null);
 
   // Modal state
   const [editingEntry, setEditingEntry] = useState<Entry | null>(null);
@@ -109,13 +131,19 @@ export default function OperatorPage() {
         const savedState = await db.raceState.toArray();
         if (savedState.length > 0) {
           const state = savedState[0];
+          // Rebase the stored time-of-day onto the race's actual date
+          // instead of whatever date it happens to carry — set the evening
+          // before, this used to restore next morning still on yesterday's
+          // date, making every elapsed time 24 hours long.
+          const restoreDate = state.raceDate ?? toDateString(new Date());
 
           setWaveStartTimes({
-            A: new Date(state.waveStartTimes.A),
-            B: new Date(state.waveStartTimes.B),
-            C: new Date(state.waveStartTimes.C),
+            A: rebaseTimeOnDate(state.waveStartTimes.A, restoreDate),
+            B: rebaseTimeOnDate(state.waveStartTimes.B, restoreDate),
+            C: rebaseTimeOnDate(state.waveStartTimes.C, restoreDate),
           });
-          setRegistrants(new Map(state.registrants));
+          setRaceDate(state.raceDate ?? null);
+          setRegistrants(new Map(normalizeGenders(state.registrants)));
           setEntries(state.entries);
           setEntryCounter(state.entryCounter);
           setCloudLastSyncedAt(state.cloudLastSyncedAt ?? null);
@@ -203,6 +231,7 @@ export default function OperatorPage() {
               raceSlug: activeRace?.slug,
               cloudLastSyncedAt: cloudLastSyncedAt ?? undefined,
               waveTimesConfirmed,
+              raceDate: raceDate ?? undefined,
               waveStartTimes: {
                 A: waveStartTimes.A.toISOString(),
                 B: waveStartTimes.B.toISOString(),
@@ -234,6 +263,7 @@ export default function OperatorPage() {
     activeRace,
     cloudLastSyncedAt,
     waveTimesConfirmed,
+    raceDate,
   ]);
 
   // Save wave times to setup config
@@ -303,6 +333,7 @@ export default function OperatorPage() {
       race: activeRace,
       waveStartTimes,
       waveTimesConfirmed,
+      raceDate,
       registrants,
       entries,
       entryCounter,
@@ -353,13 +384,15 @@ export default function OperatorPage() {
   };
 
   const handleOpenRace = (race: Race, snapshot: RaceSnapshot) => {
+    const restoreDate = snapshot.raceDate ?? toDateString(new Date());
     setActiveRace(race);
     setWaveStartTimes({
-      A: new Date(snapshot.waveStartTimes.A),
-      B: new Date(snapshot.waveStartTimes.B),
-      C: new Date(snapshot.waveStartTimes.C),
+      A: rebaseTimeOnDate(snapshot.waveStartTimes.A, restoreDate),
+      B: rebaseTimeOnDate(snapshot.waveStartTimes.B, restoreDate),
+      C: rebaseTimeOnDate(snapshot.waveStartTimes.C, restoreDate),
     });
-    setRegistrants(new Map(snapshot.registrants));
+    setRaceDate(snapshot.raceDate ?? null);
+    setRegistrants(new Map(normalizeGenders(snapshot.registrants)));
     setEntries(snapshot.entries);
     setEntryCounter(snapshot.entryCounter);
     setCloudLastSyncedAt(snapshot.lastSaved);
@@ -418,11 +451,8 @@ export default function OperatorPage() {
   };
 
   const handleSaveWaveTime = (wave: "A" | "B" | "C", newTimeStr: string) => {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, "0");
-    const day = String(today.getDate()).padStart(2, "0");
-    const newDateTime = new Date(`${year}-${month}-${day}T${newTimeStr}`);
+    const today = toDateString(new Date());
+    const newDateTime = new Date(`${today}T${newTimeStr}`);
 
     // Update wave start times
     const updatedWaveStartTimes = {
@@ -431,6 +461,7 @@ export default function OperatorPage() {
     };
     setWaveStartTimes(updatedWaveStartTimes);
     setWaveTimesConfirmed(true);
+    setRaceDate(today);
 
     // Recalculate all entries for this wave
     const updatedEntries = entries.map((entry) => {
@@ -467,18 +498,16 @@ export default function OperatorPage() {
     B: string;
     C: string;
   }) => {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, "0");
-    const day = String(today.getDate()).padStart(2, "0");
+    const today = toDateString(new Date());
     const newWaveStartTimes = {
-      A: new Date(`${year}-${month}-${day}T${times.A}`),
-      B: new Date(`${year}-${month}-${day}T${times.B}`),
-      C: new Date(`${year}-${month}-${day}T${times.C}`),
+      A: new Date(`${today}T${times.A}`),
+      B: new Date(`${today}T${times.B}`),
+      C: new Date(`${today}T${times.C}`),
     };
 
     setWaveStartTimes(newWaveStartTimes);
     setWaveTimesConfirmed(true);
+    setRaceDate(today);
 
     setEntries((prev) =>
       prev.map((entry) => {
@@ -522,12 +551,25 @@ export default function OperatorPage() {
       });
     });
 
+    // Same tied-place numbering as the on-screen tables (computeStandardRanks)
+    // — the exported file is the official record, so it shouldn't disagree
+    // with what the operator was looking at when they exported it.
+    const overallRanks = computeStandardRanks(sorted);
+    const waveRanks: Record<string, number[]> = Object.fromEntries(
+      Object.entries(wavePlacements).map(([wave, list]) => [
+        wave,
+        computeStandardRanks(list),
+      ])
+    );
+
     let csv =
       "Overall Place,Wave Place,Bib Number,First Name,Last Name,Wave,Finish Time,Elapsed Time,Full Timestamp\n";
     sorted.forEach((entry, index) => {
-      const overallPlace = index + 1;
+      const overallPlace = overallRanks[index];
       const wavePlace = entry.wave
-        ? wavePlacements[entry.wave].findIndex((e) => e.id === entry.id) + 1
+        ? waveRanks[entry.wave][
+            wavePlacements[entry.wave].findIndex((e) => e.id === entry.id)
+          ]
         : "";
       csv +=
         [
@@ -557,6 +599,7 @@ export default function OperatorPage() {
       raceLabel: activeRace?.label,
       raceCreatedAt: activeRace?.createdAt,
       raceSlug: activeRace?.slug,
+      raceDate: raceDate ?? undefined,
       waveStartTimes: {
         A: waveStartTimes.A.toISOString(),
         B: waveStartTimes.B.toISOString(),
@@ -597,15 +640,17 @@ export default function OperatorPage() {
         }
 
         if (backup.waveStartTimes) {
+          const restoreDate = backup.raceDate ?? toDateString(new Date());
           setWaveStartTimes({
-            A: new Date(backup.waveStartTimes.A),
-            B: new Date(backup.waveStartTimes.B),
-            C: new Date(backup.waveStartTimes.C),
+            A: rebaseTimeOnDate(backup.waveStartTimes.A, restoreDate),
+            B: rebaseTimeOnDate(backup.waveStartTimes.B, restoreDate),
+            C: rebaseTimeOnDate(backup.waveStartTimes.C, restoreDate),
           });
           setWaveTimesConfirmed(!!backup.waveTimesConfirmed);
+          setRaceDate(backup.raceDate ?? null);
         }
         if (backup.registrants) {
-          setRegistrants(new Map(backup.registrants));
+          setRegistrants(new Map(normalizeGenders(backup.registrants)));
         }
         if (backup.entries) {
           setEntries(backup.entries);
@@ -671,6 +716,7 @@ export default function OperatorPage() {
     setActiveRace(null);
     setCloudLastSyncedAt(null);
     setWaveTimesConfirmed(false);
+    setRaceDate(null);
 
     const today = new Date();
     const year = today.getFullYear();
@@ -726,6 +772,7 @@ export default function OperatorPage() {
     setClockCheck(null);
     setClockCheckedAt(null);
     setWaveTimesConfirmed(false);
+    setRaceDate(null);
     setActiveTab("registration");
 
     const today = new Date();
@@ -755,6 +802,19 @@ export default function OperatorPage() {
       </OperatorGate>
     );
   }
+
+  // Reserved-but-unclaimed spare bibs are numbers, not people — don't count
+  // toward the rider count shown to the operator anywhere (header, setup
+  // checklist, wave summary).
+  const claimedCount = Array.from(registrants.values()).filter(
+    (r) => r.status !== "spare"
+  ).length;
+  // The checklist's "Load Registrants" step can't tick while any rider is
+  // unscoreable — a missing name/birthday/gender is fine to fix later, but
+  // no wave means the race can't be scored at all.
+  const hasBlockingScoringIssue = Array.from(registrants.values()).some((r) =>
+    getRegistrantIssues(r).some((issue) => issue.tier === "blocks-scoring")
+  );
 
   return (
     <OperatorGate>
@@ -855,7 +915,7 @@ export default function OperatorPage() {
             {/* Status Bar */}
             <div className="flex gap-3 mb-4 text-sm flex-wrap">
               <div className="bg-sand border border-ink/10 px-3 py-1 rounded-full">
-                <span className="font-semibold">{registrants.size}</span>{" "}
+                <span className="font-semibold">{claimedCount}</span>{" "}
                 registrants
               </div>
               <div className="bg-success-soft px-3 py-1 rounded-full">
@@ -866,7 +926,8 @@ export default function OperatorPage() {
 
             {activeTab === "registration" && (
               <SetupChecklist
-                registrantCount={registrants.size}
+                registrantCount={claimedCount}
+                hasBlockingScoringIssue={hasBlockingScoringIssue}
                 clockCheck={clockCheck}
                 clockCheckedAt={clockCheckedAt}
                 checkingClock={checkingClock}
@@ -884,6 +945,7 @@ export default function OperatorPage() {
                 registrants={registrants}
                 onUpdateRegistrants={handleUpdateRegistrants}
                 hasTimingData={entries.length > 0}
+                raceDate={raceDate ?? undefined}
               />
             )}
 
@@ -942,6 +1004,7 @@ export default function OperatorPage() {
                   <CategoryLeaderboards
                     entries={entries}
                     registrants={registrants}
+                    raceDate={raceDate ?? undefined}
                   />
                 )}
 
@@ -1006,7 +1069,7 @@ export default function OperatorPage() {
             onSwitchRace={handleSwitchRace}
             onLock={handleLock}
             entryCount={entries.length}
-            registrantCount={registrants.size}
+            registrantCount={claimedCount}
             raceLabel={activeRace.label}
             clockCheck={clockCheck}
             checkingClock={checkingClock}

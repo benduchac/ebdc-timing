@@ -1,7 +1,7 @@
 "use client";
 
 import type { Entry } from "@/lib/types";
-import { formatElapsedTime } from "@/lib/utils";
+import { formatElapsedTime, computeStandardRanks } from "@/lib/utils";
 import BibChip from "@/components/BibChip";
 import TimeChip from "@/components/TimeChip";
 import RankBadge from "@/components/RankBadge";
@@ -32,6 +32,7 @@ export default function ResultsTable({
     if (a.elapsedMs === null || b.elapsedMs === null) return 0;
     return a.elapsedMs - b.elapsedMs;
   });
+  const overallRanks = computeStandardRanks(sortedValid);
 
   // Helper to check if a bib is duplicated
   const isDuplicateBib = (bib: string, allEntries: Entry[]): boolean => {
@@ -65,7 +66,7 @@ export default function ResultsTable({
           </thead>
           <tbody>
             {sortedValid.map((entry, index) => {
-              const overallPlace = index + 1;
+              const overallPlace = overallRanks[index];
               const isDuplicate = isDuplicateBib(entry.bib, entries);
 
               return (

@@ -1,41 +1,30 @@
 import type { Entry, Registrant } from "./db";
 
 export type AgeCategory = "junior" | "adult" | "masters";
-export type Gender = "male" | "female" | "n/a";
 
 /**
- * Calculate age from date of birth
+ * Age on `asOf` (both YYYY-MM-DD), computed as plain integer date math — no
+ * `Date` object, no timezone, on either side. `new Date(dob)` parses as UTC
+ * midnight while the rest of the app runs in local time, which flips the
+ * answer by a day right at a Pacific-time boundary; comparing y/m/d integers
+ * directly removes the timezone question rather than working around it.
  */
-export function calculateAge(dob: string): number {
-  const birthDate = new Date(dob);
-  const today = new Date();
-  let age = today.getFullYear() - birthDate.getFullYear();
-  const monthDiff = today.getMonth() - birthDate.getMonth();
+export function calculateAge(dob: string, asOf: string): number {
+  const [dy, dm, dd] = dob.split("-").map(Number);
+  const [ay, am, ad] = asOf.split("-").map(Number);
 
-  if (
-    monthDiff < 0 ||
-    (monthDiff === 0 && today.getDate() < birthDate.getDate())
-  ) {
-    age--;
-  }
-
+  let age = ay - dy;
+  if (am < dm || (am === dm && ad < dd)) age--;
   return age;
 }
 
-/**
- * Determine age category based on date of birth
- */
-export function getAgeCategory(dob: string): AgeCategory {
-  const age = calculateAge(dob);
-
+export function getAgeCategory(dob: string, asOf: string): AgeCategory {
+  const age = calculateAge(dob, asOf);
   if (age <= 18) return "junior";
   if (age >= 50) return "masters";
   return "adult";
 }
 
-/**
- * Get category label for display
- */
 export function getCategoryLabel(category: AgeCategory): string {
   switch (category) {
     case "junior":
@@ -47,102 +36,146 @@ export function getCategoryLabel(category: AgeCategory): string {
   }
 }
 
-/**
- * Get gender label for display
- */
-export function getGenderLabel(gender: "male" | "female" | "n/a"): string {
+export function getGenderLabel(gender: string): string {
   switch (gender) {
     case "male":
       return "Male";
     case "female":
       return "Female";
-    case "n/a":
-      return "N/A";
+    case "nonbinary":
+      return "Nonbinary";
+    case "undisclosed":
+      return "Undisclosed";
+    default:
+      return gender || "—";
   }
 }
 
 /**
- * Filter entries by gender and age category
+ * A bib the operator typed that resolves to a reserved-but-unclaimed spare
+ * must be treated as a miss, exactly like a bib nobody registered — never as
+ * a silent match. An unclaimed spare has no name to attach a finish to and
+ * no wave to compute an elapsed time against; the risk is the entry looking
+ * resolved when it isn't. Use this instead of a raw `registrants.get(...)`
+ * anywhere a lookup decides "is this a known rider" (recording a finish,
+ * editing an entry's bib). Code that needs to see spares directly to manage
+ * them (the roster, the claim flow, delete confirmation) keeps the raw get.
  */
-export function filterByCategory(
-  entries: Entry[],
+export function lookupRider(
   registrants: Map<string, Registrant>,
-  gender?: Gender,
-  ageCategory?: AgeCategory
-): Entry[] {
-  return entries.filter((entry) => {
-    const rider = registrants.get(entry.bib);
-    if (!rider) return false;
-
-    // Filter by gender if specified
-    if (gender && rider.gender !== gender) return false;
-
-    // Filter by age category if specified
-    if (ageCategory) {
-      const category = getAgeCategory(rider.dob);
-      if (category !== ageCategory) return false;
-    }
-
-    return true;
-  });
-}
-
-/**
- * Get top N entries from a filtered list
- */
-export function getTopEntries(entries: Entry[], count: number = 10): Entry[] {
-  return entries
-    .filter((e) => e.wave !== null && e.elapsedMs !== null)
-    .sort((a, b) => {
-      if (a.elapsedMs === null || b.elapsedMs === null) return 0;
-      return a.elapsedMs - b.elapsedMs;
-    })
-    .slice(0, count);
-}
-
-export interface CategoryBuckets {
-  overallMale: Entry[];
-  overallFemale: Entry[];
-  juniorMale: Entry[];
-  juniorFemale: Entry[];
-  masters: Entry[];
+  bib: string
+): Registrant | undefined {
+  const rider = registrants.get(bib);
+  return rider?.status === "spare" ? undefined : rider;
 }
 
 function sortByElapsed(entries: Entry[]): Entry[] {
   return [...entries].sort((a, b) => {
     if (a.elapsedMs === null || b.elapsedMs === null) return 0;
-    return a.elapsedMs - b.elapsedMs;
+    if (a.elapsedMs !== b.elapsedMs) return a.elapsedMs - b.elapsedMs;
+    // Stable tie order across renders — doesn't affect the displayed place
+    // number (see computeStandardRanks in lib/utils.ts), just which of two
+    // equal times lists first.
+    return a.bib.localeCompare(b.bib, undefined, { numeric: true });
   });
 }
 
+export interface CategoryBoard {
+  id: string;
+  name: string;
+  entries: Entry[];
+}
+
+interface BoardDefinition {
+  id: string;
+  name: string;
+  eligible: (rider: Registrant, asOf: string) => boolean;
+}
+
+const isMasters = (rider: Registrant, asOf: string) =>
+  !!rider.dob && getAgeCategory(rider.dob, asOf) === "masters";
+const isJunior = (rider: Registrant, asOf: string) =>
+  !!rider.dob && getAgeCategory(rider.dob, asOf) === "junior";
+
+// Ordered per docs/fun-awards-timing.md section 4. Masters keeps its
+// existing combined (all-genders) board — nonbinary/undisclosed riders have
+// ranked there since before this build — and gains two new gendered ones
+// alongside it; that's the "change" the spec calls out, not a replacement.
+const BOARDS: BoardDefinition[] = [
+  { id: "overallMale", name: "Overall male", eligible: (r) => r.gender === "male" },
+  { id: "overallFemale", name: "Overall female", eligible: (r) => r.gender === "female" },
+  {
+    id: "juniorMale",
+    name: "Junior male (18U)",
+    eligible: (r, asOf) => r.gender === "male" && isJunior(r, asOf),
+  },
+  {
+    id: "juniorFemale",
+    name: "Junior female (18U)",
+    eligible: (r, asOf) => r.gender === "female" && isJunior(r, asOf),
+  },
+  { id: "masters", name: "Masters (50+)", eligible: isMasters },
+  {
+    id: "mastersMale",
+    name: "Masters male (50+)",
+    eligible: (r, asOf) => r.gender === "male" && isMasters(r, asOf),
+  },
+  {
+    id: "mastersFemale",
+    name: "Masters female (50+)",
+    eligible: (r, asOf) => r.gender === "female" && isMasters(r, asOf),
+  },
+  {
+    id: "fastestParent",
+    name: "Fastest parent",
+    eligible: (r) => r.isParent === "yes",
+  },
+  {
+    id: "fastestFirstTimer",
+    name: "Fastest first-timer",
+    eligible: (r) => r.firstGravelRace === "yes",
+  },
+  {
+    id: "topRigidBike",
+    name: "Top rigid bike",
+    eligible: (r) => r.rigidBike === "yes",
+  },
+  {
+    id: "topSteelBike",
+    name: "Top steel bike",
+    eligible: (r) => r.steelBike === "yes",
+  },
+];
+
 /**
- * Buckets finishers into the standard category groups. Deliberately returns
- * plain Entry[] arrays, not registrant/DOB data — Entry already carries
- * everything a leaderboard needs to render (name, bib, wave, times), so the
- * caller can hand these buckets to a public/client-facing component without
- * ever exposing birthdate. Bucketing itself still needs real DOB/gender
- * (via filterByCategory), so this must only be called somewhere with access
- * to the real `registrants` map — a server-side context for the public
- * leaderboard, not passed as a client component prop.
+ * Buckets finishers into every award/category board, keyed by rider data
+ * looked up from `registrants`. Deliberately returns plain Entry[] per
+ * board, not registrant/DOB data — Entry already carries everything a
+ * leaderboard needs to render (name, bib, wave, times) — so the caller can
+ * hand these to a public/client-facing component without birthdate ever
+ * reaching it. Bucketing itself still needs real DOB/gender, so this must
+ * only be called somewhere with access to the real `registrants` map — a
+ * server-side context for the public leaderboard, not passed as a client
+ * component prop. `asOf` anchors age (YYYY-MM-DD) — pass the race date, not
+ * "today", so republishing results later never reshuffles Masters/Junior.
  */
 export function computeCategoryBuckets(
   entries: Entry[],
-  registrants: Map<string, Registrant>
-): CategoryBuckets {
-  const finished = (list: Entry[]) =>
-    sortByElapsed(list.filter((e) => e.wave !== null && e.elapsedMs !== null));
+  registrants: Map<string, Registrant>,
+  asOf: string
+): CategoryBoard[] {
+  const finished = entries.filter(
+    (e) => e.wave !== null && e.elapsedMs !== null
+  );
 
-  return {
-    overallMale: finished(filterByCategory(entries, registrants, "male")),
-    overallFemale: finished(filterByCategory(entries, registrants, "female")),
-    juniorMale: finished(
-      filterByCategory(entries, registrants, "male", "junior")
+  return BOARDS.map((board) => ({
+    id: board.id,
+    name: board.name,
+    entries: sortByElapsed(
+      finished.filter((e) => {
+        const rider = registrants.get(e.bib);
+        return !!rider && board.eligible(rider, asOf);
+      })
     ),
-    juniorFemale: finished(
-      filterByCategory(entries, registrants, "female", "junior")
-    ),
-    masters: finished(
-      filterByCategory(entries, registrants, undefined, "masters")
-    ),
-  };
+  }));
 }

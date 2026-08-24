@@ -1,12 +1,38 @@
 import Dexie from "dexie";
 
+// Documentation of the valid tokens, not enforced on the field type — see
+// the Registrant.gender comment for why: an invalid raw answer (e.g.
+// "maybe") needs to be storable and flagged, not silently dropped.
+export type YesNo = "yes" | "no";
+export type YesNoUnsure = "yes" | "no" | "unsure";
+
 export interface Registrant {
   bib: string;
+  // Absent (or "registered") is a real rider; "spare" is a reserved bib with
+  // no rider attached yet — see docs/fun-awards-timing.md item 6. A spare has
+  // no name/wave/dob/gender; those fill in when it's claimed.
+  status?: "registered" | "spare";
   firstName: string;
   lastName: string;
-  wave: "A" | "B" | "C";
+  // Nullable because a spare bib has no wave until claimed.
+  wave: "A" | "B" | "C" | null;
   dob: string; // Format: YYYY-MM-DD
-  gender: "male" | "female" | "n/a";
+  // Free text, not a union: the importer must be able to carry an invalid
+  // token (e.g. "Female") through as a flagged, fixable value rather than
+  // silently coercing it to one of the four real tokens — see
+  // docs/fun-awards-timing.md section 6a ("never substitute a placeholder").
+  // The four real tokens are "male" | "female" | "nonbinary" | "undisclosed";
+  // anything else just doesn't match a gendered board's eligibility check.
+  gender: string;
+  // Optional fun-award questions, answered at registration. Blank/absent
+  // means "not eligible for that award," not "unknown." Free text like
+  // `gender` above — an invalid token still needs to display and flag, not
+  // vanish. Eligibility checks compare against the exact YesNo/YesNoUnsure
+  // tokens; anything else just isn't eligible.
+  firstGravelRace?: string;
+  isParent?: string;
+  rigidBike?: string;
+  steelBike?: string;
 }
 
 export interface Entry {
@@ -42,6 +68,11 @@ export interface RaceState {
   // value, reviewed or not). Synced to the cloud snapshot too so recovery on
   // a different machine doesn't force re-confirmation.
   waveTimesConfirmed?: boolean;
+  // YYYY-MM-DD, the day wave start times were confirmed for. Anchors both
+  // age-on-race-day (lib/categories.ts) and restoring wave start times onto
+  // the right date instead of whatever date they happen to carry in storage.
+  // Absent on pre-2026 races; restore/age logic falls back to today.
+  raceDate?: string;
   waveStartTimes: {
     A: string;
     B: string;

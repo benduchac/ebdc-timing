@@ -1,7 +1,7 @@
 "use client";
 
 import type { Entry } from "@/lib/types";
-import { formatElapsedTime } from "@/lib/utils";
+import { formatElapsedTime, computeStandardRanks } from "@/lib/utils";
 import BibChip from "@/components/BibChip";
 import TimeChip from "@/components/TimeChip";
 import RankBadge from "@/components/RankBadge";
@@ -20,6 +20,9 @@ export default function TopTenLeaderboard({ entries }: TopTenLeaderboardProps) {
     return a.elapsedMs - b.elapsedMs;
   });
 
+  // Ranked over the full sorted list before slicing, so a tie straddling the
+  // top-10 cutoff still shows the number it would have if expanded.
+  const ranks = computeStandardRanks(sortedEntries);
   const topTen = sortedEntries.slice(0, 10);
 
   if (topTen.length === 0) {
@@ -42,7 +45,7 @@ export default function TopTenLeaderboard({ entries }: TopTenLeaderboardProps) {
       </h3>
       <div className="space-y-2">
         {topTen.map((entry, index) => {
-          const place = index + 1;
+          const place = ranks[index];
 
           return (
             <div

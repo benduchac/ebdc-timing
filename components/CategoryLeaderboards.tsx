@@ -2,11 +2,13 @@
 
 import type { Entry, Registrant } from "@/lib/types";
 import { computeCategoryBuckets } from "@/lib/categories";
+import { toDateString } from "@/lib/utils";
 import CategoryLeaderboardGrid from "./CategoryLeaderboardGrid";
 
 interface CategoryLeaderboardsProps {
   entries: Entry[];
   registrants: Map<string, Registrant>;
+  raceDate?: string;
 }
 
 // Operator-facing wrapper: has the real registrants map locally (it came
@@ -17,7 +19,12 @@ interface CategoryLeaderboardsProps {
 export default function CategoryLeaderboards({
   entries,
   registrants,
+  raceDate,
 }: CategoryLeaderboardsProps) {
-  const buckets = computeCategoryBuckets(entries, registrants);
+  const buckets = computeCategoryBuckets(
+    entries,
+    registrants,
+    raceDate ?? toDateString(new Date())
+  );
   return <CategoryLeaderboardGrid buckets={buckets} />;
 }

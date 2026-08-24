@@ -27,6 +27,7 @@ export interface RaceSnapshot {
   slug: string; // always present once persisted — server assigns it, never the client
   waveStartTimes: { A: string; B: string; C: string };
   waveTimesConfirmed?: boolean;
+  raceDate?: string; // YYYY-MM-DD — see RaceState.raceDate in lib/db.ts
   registrants: [string, Registrant][];
   entries: Entry[];
   entryCounter: number;
