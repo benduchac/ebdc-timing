@@ -1,19 +1,35 @@
 import type { ClockCheckResult } from "./types";
 
-export const formatElapsedTime = (ms: number): string => {
-  // A negative elapsed time means a finish was recorded before its wave's
-  // start time (misconfigured/edited start). Surface it clearly with a leading
-  // "-" instead of rendering garbage like "-1:-1:-5".
+// A negative elapsed time means a finish was recorded before its wave's
+// start time (misconfigured/edited start) — both formatters below surface
+// it with a leading "-" instead of rendering garbage like "-1:-1:-5".
+const breakdownElapsed = (ms: number) => {
   const sign = ms < 0 ? "-" : "";
   const totalSeconds = Math.floor(Math.abs(ms) / 1000);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
+  return {
+    sign,
+    hours: Math.floor(totalSeconds / 3600),
+    minutes: Math.floor((totalSeconds % 3600) / 60),
+    seconds: totalSeconds % 60,
+  };
+};
 
+export const formatElapsedTime = (ms: number): string => {
+  const { sign, hours, minutes, seconds } = breakdownElapsed(ms);
   // Always show hours, even if 0
   return `${sign}${hours}:${String(minutes).padStart(2, "0")}:${String(
     seconds
   ).padStart(2, "0")}`;
+};
+
+/**
+ * Same value as formatElapsedTime, in plain language: "1h 24m 22s" instead
+ * of "1:24:22". Used where the reader is scanning race duration rather than
+ * reading a clock, e.g. the results table's Race Time column.
+ */
+export const formatElapsedHuman = (ms: number): string => {
+  const { sign, hours, minutes, seconds } = breakdownElapsed(ms);
+  return `${sign}${hours}h ${minutes}m ${seconds}s`;
 };
 
 /**

@@ -1,7 +1,7 @@
 "use client";
 
 import type { Entry } from "@/lib/types";
-import { formatElapsedTime, computeStandardRanks } from "@/lib/utils";
+import { formatElapsedHuman, computeStandardRanks } from "@/lib/utils";
 import BibChip from "@/components/BibChip";
 import TimeChip from "@/components/TimeChip";
 import RankBadge from "@/components/RankBadge";
@@ -59,8 +59,8 @@ export default function ResultsTable({
               <th className="p-2 text-left font-semibold">Bib</th>
               <th className="p-2 text-left font-semibold">Name</th>
               <th className="p-2 text-left font-semibold">Wave</th>
-              <th className="p-2 text-left font-semibold">Finish time</th>
-              <th className="p-2 text-left font-semibold">Elapsed</th>
+              <th className="p-2 text-left font-semibold">Finished at</th>
+              <th className="p-2 text-left font-semibold">Race Time</th>
               {editable && <th className="p-2 text-left font-semibold">Actions</th>}
             </tr>
           </thead>
@@ -94,19 +94,19 @@ export default function ResultsTable({
                   </td>
                   <td className="p-2">Wave {entry.wave}</td>
                   <td className="p-2">
-                    <TimeChip className="text-xs">
+                    <span className="font-mono tabular-nums text-ink-soft text-xs">
                       {new Date(entry.finishTimeMs).toLocaleTimeString("en-US", {
                         hour: "numeric",
                         minute: "2-digit",
                         second: "2-digit",
                         hour12: true,
                       })}
-                    </TimeChip>
+                    </span>
                   </td>
                   <td className="p-2">
                     <TimeChip className="text-xs">
                       {entry.elapsedMs !== null
-                        ? formatElapsedTime(entry.elapsedMs)
+                        ? formatElapsedHuman(entry.elapsedMs)
                         : "N/A"}
                     </TimeChip>
                   </td>
@@ -159,14 +159,14 @@ export default function ResultsTable({
                     </span>
                   </td>
                   <td className="p-2">
-                    <TimeChip className="text-xs">
+                    <span className="font-mono tabular-nums text-ink-soft text-xs">
                       {new Date(entry.finishTimeMs).toLocaleTimeString("en-US", {
                         hour: "numeric",
                         minute: "2-digit",
                         second: "2-digit",
                         hour12: true,
                       })}
-                    </TimeChip>
+                    </span>
                   </td>
                   <td className="p-2 text-ink-soft">-</td>
                   {editable && (
