@@ -46,7 +46,7 @@ parses `YYYY-MM-DD` as UTC and compares against local dates, which in
 Pacific time flips exactly these four.
 
 At race-day anchoring, the generated field comfortably clears every
-category board's display cap (Masters 3, Junior 5 per gender, Overall 20 per
+category board's display cap (Masters 3, Junior 3 per gender, Overall 10 per
 gender) with real, non-boundary riders — Junior Male/Female, Masters, and
 both Overall boards all have more finishers than their cap once everyone in
 the file finishes, so "Show all" is reachable without hand-crafting a

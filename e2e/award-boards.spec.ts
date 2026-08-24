@@ -81,6 +81,34 @@ test("a tied award spotlights every winner", async ({ page }) => {
   await expect(steelBoard.getByText("Michael Chen")).toBeVisible();
 });
 
+test("an award card expands to the full ranked field and back", async ({
+  page,
+}) => {
+  // Bib 1 (Sarah Johnson) and bib 12 (Robert Ellery): both steel_bike
+  // eligible. Sarah wins; Robert finishes, but well behind.
+  await recordFinish(page, "1");
+  await recordFinish(page, "12");
+
+  await page.getByRole("button", { name: "Results" }).click();
+  await page.getByRole("button", { name: "Overall Results" }).click();
+  await setFinishTime(page, "Sarah Johnson", "10:00:00");
+  await setFinishTime(page, "Robert Ellery", "13:00:00");
+
+  await page.getByRole("button", { name: "Category Leaderboards" }).click();
+
+  const steelBoard = board(page, "Top steel bike");
+  await expect(steelBoard.getByText("Sarah Johnson")).toBeVisible();
+  // Robert didn't win — not shown until expanded.
+  await expect(steelBoard.getByText("Robert Ellery")).toHaveCount(0);
+
+  await steelBoard.getByRole("button", { name: /Show full results/ }).click();
+  await expect(steelBoard.getByText("Sarah Johnson")).toBeVisible();
+  await expect(steelBoard.getByText("Robert Ellery")).toBeVisible();
+
+  await steelBoard.getByRole("button", { name: "Show winner only" }).click();
+  await expect(steelBoard.getByText("Robert Ellery")).toHaveCount(0);
+});
+
 test("tied finish times share a place number; the next rider skips ahead", async ({
   page,
 }) => {

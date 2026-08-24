@@ -124,14 +124,16 @@ ranking_rules:
 
 A UI decision, not a data one — `CategoryLeaderboardGrid.tsx`.
 
-- **Fun awards are a single-winner spotlight, not a ranked list.** Each award
-  card shows only the fastest eligible rider (more than one name only on a
-  genuine tie), not a top-10. Nine near-identical ranked cards read as
-  clutter; a fun award has one point — who won it.
+- **Fun awards are a single-winner spotlight by default, expandable to the
+  full field.** Each award card shows only the fastest eligible rider (more
+  than one name only on a genuine tie), not a top-10 — a fun award has one
+  point, who won it. "Show full results" on the card expands it into the
+  same ranked-row view a category board uses, so a rider who didn't win can
+  still find their own place; "Show winner only" collapses it back.
 - **Category boards cap their default display per board, not one shared
   number.** A small field doesn't need as many rows shown as a large one to
-  feel complete: Masters top 3, Junior (each gender) top 5, Overall (each
-  gender) top 20. "Show all" still expands to the full field on any board.
+  feel complete: Masters top 3, Junior (each gender) top 3, Overall (each
+  gender) top 10. "Show all" still expands to the full field on any board.
 
 ---
 

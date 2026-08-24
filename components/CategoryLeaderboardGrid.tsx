@@ -18,6 +18,27 @@ interface LeaderboardCardProps {
   displayLimit: number;
 }
 
+// One ranked row — bib, name, wave, elapsed — shared by the category ranked
+// list and an award card's expanded full-results view, so the two don't
+// drift into slightly different row markup.
+function RankedRow({ entry, place }: { entry: Entry; place: number }) {
+  return (
+    <div className="flex items-center gap-2 text-sm border-b border-ink/10 pb-2">
+      <RankBadge place={place} className="w-6 h-6 shrink-0 text-xs" />
+      <BibChip bib={entry.bib} className="text-xs" />
+      <div className="flex-1 truncate">
+        <div className="font-semibold">
+          {entry.firstName} {entry.lastName}
+        </div>
+        <div className="text-xs text-ink-soft">Wave {entry.wave}</div>
+      </div>
+      <TimeChip className="text-xs">
+        {entry.elapsedMs !== null ? formatElapsedHuman(entry.elapsedMs) : "N/A"}
+      </TimeChip>
+    </div>
+  );
+}
+
 // Deliberately takes only Entry[] — no registrants, no DOB, nothing beyond
 // what's already on a finish record (name, bib, wave, times). This is what
 // makes it safe to reuse for the public leaderboard: the caller (a Server
@@ -53,30 +74,9 @@ function LeaderboardCard({ title, entries, displayLimit }: LeaderboardCardProps)
         {title}
       </h3>
       <div className="space-y-2">
-        {displayedEntries.map((entry, index) => {
-          const place = ranks[index];
-
-          return (
-            <div
-              key={entry.id}
-              className="flex items-center gap-2 text-sm border-b border-ink/10 pb-2"
-            >
-              <RankBadge place={place} className="w-6 h-6 shrink-0 text-xs" />
-              <BibChip bib={entry.bib} className="text-xs" />
-              <div className="flex-1 truncate">
-                <div className="font-semibold">
-                  {entry.firstName} {entry.lastName}
-                </div>
-                <div className="text-xs text-ink-soft">Wave {entry.wave}</div>
-              </div>
-              <TimeChip className="text-xs">
-                {entry.elapsedMs !== null
-                  ? formatElapsedHuman(entry.elapsedMs)
-                  : "N/A"}
-              </TimeChip>
-            </div>
-          );
-        })}
+        {displayedEntries.map((entry, index) => (
+          <RankedRow key={entry.id} entry={entry} place={ranks[index]} />
+        ))}
       </div>
 
       {hasMore && (
@@ -105,8 +105,13 @@ interface AwardCardProps {
 // a leaderboard. Entries are pre-sorted by elapsed time, so the winner(s)
 // are just the front of the list; more than one name shows only on a genuine
 // tie (same elapsedMs), matching the standard-ranking rule used everywhere
-// else in the app (tied riders share the place, here place 1).
+// else in the app (tied riders share the place, here place 1). "Show full
+// results" expands the same card into the full ranked field, so a rider who
+// didn't win can still see where they landed — collapses back to the
+// spotlight rather than living as a separate view.
 function AwardCard({ title, entries }: AwardCardProps) {
+  const [expanded, setExpanded] = useState(false);
+
   if (entries.length === 0) {
     return (
       <div className="bg-chalk border border-ink/10 rounded-lg p-4 text-center">
@@ -118,9 +123,30 @@ function AwardCard({ title, entries }: AwardCardProps) {
     );
   }
 
-  const winners = entries.filter(
-    (e) => e.elapsedMs === entries[0].elapsedMs
-  );
+  const winners = entries.filter((e) => e.elapsedMs === entries[0].elapsedMs);
+  const hasMore = entries.length > winners.length;
+
+  if (expanded) {
+    const ranks = computeStandardRanks(entries);
+    return (
+      <div className="bg-chalk border border-ink/10 rounded-lg p-4">
+        <h3 className="font-display uppercase tracking-tight text-sm mb-3 text-moss-dark text-center">
+          {title}
+        </h3>
+        <div className="space-y-2">
+          {entries.map((entry, index) => (
+            <RankedRow key={entry.id} entry={entry} place={ranks[index]} />
+          ))}
+        </div>
+        <button
+          onClick={() => setExpanded(false)}
+          className="w-full mt-3 py-2 bg-sand text-moss-dark rounded-lg font-semibold hover:bg-ink/10 transition text-sm"
+        >
+          Show winner only
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-chalk border border-ink/10 rounded-lg p-4 text-center">
@@ -142,6 +168,14 @@ function AwardCard({ title, entries }: AwardCardProps) {
             : "N/A"}
         </TimeChip>
       </div>
+      {hasMore && (
+        <button
+          onClick={() => setExpanded(true)}
+          className="w-full mt-3 py-1.5 text-xs text-moss-dark underline hover:no-underline"
+        >
+          Show full results ({entries.length})
+        </button>
+      )}
     </div>
   );
 }
