@@ -173,6 +173,14 @@ A UI decision, not a data one — `CategoryLeaderboardGrid.tsx`.
 - [ ] **Minimum entrants per award** — a board with one eligible rider is
   arguably worse than no board. Decide a floor, or accept single-entrant
   awards.
+- [ ] **Fun award cards read too much like the category boards.** Right now
+  the only difference from a category leaderboard is the single-winner
+  spotlight — same card chrome, same typography, same everything else. Ben
+  wants the section to feel more fun: distinct visual treatment for "Fastest
+  Parent" / "Fastest First-Timer" / "Top Rigid Bike" / "Top Steel Bike" as a
+  group (color, icon, tone — not yet decided), so they read as the fun
+  awards and not a fifth and sixth category board. Flagged 2026-08-23 for a
+  pass before race day; no code changed yet.
 
 Form-side open questions (wave cutoffs, `first_gravel_race` wording) live in
 `docs/wordpress-registration-form.md` section 5 — neither has code impact.
