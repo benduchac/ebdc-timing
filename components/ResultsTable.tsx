@@ -73,8 +73,8 @@ export default function ResultsTable({
                 <tr
                   key={entry.id}
                   className={`border-b border-ink/10 hover:bg-sand/60 ${
-                    isDuplicate
-                      ? "bg-warning-soft border-l-4 border-l-warning"
+                    editable && isDuplicate
+                      ? "bg-danger-soft border-l-4 border-l-danger"
                       : ""
                   }`}
                 >
@@ -83,8 +83,8 @@ export default function ResultsTable({
                   </td>
                   <td className="p-2">
                     <span className="inline-flex items-center gap-1">
-                      {isDuplicate && (
-                        <WarningIcon className="w-3.5 h-3.5 text-warning" />
+                      {editable && isDuplicate && (
+                        <WarningIcon className="w-3.5 h-3.5 text-danger" />
                       )}
                       <BibChip bib={entry.bib} className="text-xs" />
                     </span>
@@ -140,12 +140,17 @@ export default function ResultsTable({
               const isDuplicate = isDuplicateBib(entry.bib, entries);
 
               return (
-                <tr key={entry.id} className="border-b border-ink/10 bg-warning-soft">
+                <tr
+                  key={entry.id}
+                  className={`border-b border-ink/10 ${
+                    editable ? "bg-danger-soft" : ""
+                  }`}
+                >
                   <td className="p-2 text-ink-soft">-</td>
                   <td className="p-2">
                     <span className="inline-flex items-center gap-1">
-                      {isDuplicate && (
-                        <WarningIcon className="w-3.5 h-3.5 text-warning" />
+                      {editable && isDuplicate && (
+                        <WarningIcon className="w-3.5 h-3.5 text-danger" />
                       )}
                       <BibChip bib={entry.bib} className="text-xs" />
                     </span>

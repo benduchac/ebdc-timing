@@ -89,9 +89,7 @@ export default function TimingTab({
   }, [bibNumber, registrants, entries]);
 
   const handleRecordFinish = () => {
-    // Stamp the finish before anything that can block. The duplicate-bib
-    // confirm() below holds the thread for as long as the operator takes to
-    // read it, and that pause used to be added to the rider's finish time.
+    // Stamp the finish before anything that can block.
     const now = new Date();
 
     if (!bibNumber.trim()) {
@@ -102,21 +100,11 @@ export default function TimingTab({
 
     const normalizedBib = normalizeBib(bibNumber);
 
-    // Check for duplicate bib
-    const existingEntry = entries.find((e) => e.bib === normalizedBib);
-    if (existingEntry) {
-      const confirmed = confirm(
-        `Record duplicate bib #${normalizedBib} again?\n\n` +
-          `OK = Record duplicate\n` +
-          `Cancel = Fix bib number`
-      );
-
-      if (!confirmed) {
-        bibInputRef.current?.select();
-        return;
-      }
-    }
-
+    // A duplicate bib records without interrupting the operator — a
+    // blocking confirm() here used to force an OK/Cancel decision on every
+    // repeat, which is exactly the wrong moment to make someone stop and
+    // think while riders keep crossing the line. It still finishes and
+    // shows up flagged on the results table for cleanup afterward.
     const rider = registrants.get(normalizedBib);
 
     const wave = rider ? rider.wave : null;

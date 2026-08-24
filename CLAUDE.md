@@ -225,9 +225,11 @@ below).
   Nothing under `/api/` is useful offline.
 - **Capture the finish timestamp before anything that can block.**
   `TimingTab.handleRecordFinish` stamps `new Date()` on its first line,
-  ahead of the empty-bib alert and the duplicate-bib `confirm()`. Those
-  dialogs hold the thread for as long as the operator takes to react, and
-  that pause lands on the rider's time.
+  ahead of the empty-bib alert — that dialog holds the thread for as long as
+  the operator takes to react, and the pause would otherwise land on the
+  rider's time. (A duplicate-bib `confirm()` used to sit here too; it's gone
+  now — a repeat bib just records and shows up flagged red on the results
+  table, no dialog in the way at the finish line.)
 - **Always normalize bibs with `normalizeBib`** (strips leading zeros) at
   every point one is stored, looked up, or compared — CSV upload, manual
   add/edit, timing lookup, duplicate detection, entry editing, delete
