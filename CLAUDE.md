@@ -19,10 +19,11 @@ features.
 ## Commands
 
 ```bash
-npm run dev     # dev server (Turbopack) at http://localhost:3000
-npm run build   # production build — ALSO runs ESLint + type-check, and FAILS on errors
-npm run start   # serve the production build
-npm run lint    # ESLint only
+npm run dev      # dev server (Turbopack) at http://localhost:3000
+npm run build    # production build — ALSO runs ESLint + type-check, and FAILS on errors
+npm run start    # serve the production build
+npm run lint     # ESLint only
+npm run test:e2e # Playwright — starts its own dev server on :3100 with a test passphrase
 ```
 
 Run `npm run build` before committing non-trivial changes — it's the gate that
@@ -34,6 +35,11 @@ catches lint errors (which block the build) and type errors in one pass.
 - **Tailwind CSS v4** (via `@tailwindcss/postcss`).
 - **Dexie** (IndexedDB wrapper) for persistence.
 - **TypeScript**, strict.
+- **Playwright** for browser-level tests (`e2e/`) — one browser context per
+  test, so IndexedDB starts empty each time with no manual reset. Config
+  (`playwright.config.ts`) boots its own `next dev` on port 3100 with
+  `PUBLISH_SECRET` set to a fixed test value (`e2e/constants.ts`), so it
+  doesn't collide with or depend on a real `.env.local`.
 
 ## Architecture
 

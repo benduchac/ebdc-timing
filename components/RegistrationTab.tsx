@@ -461,10 +461,14 @@ export default function RegistrationTab({
 
             <div className="space-y-4">
               <div>
-                <label className="block mb-1 font-semibold text-sm text-ink-soft">
+                <label
+                  htmlFor="registrant-bib"
+                  className="block mb-1 font-semibold text-sm text-ink-soft"
+                >
                   Bib number
                 </label>
                 <input
+                  id="registrant-bib"
                   type="text"
                   inputMode="numeric"
                   value={editingRegistrant.bib}
@@ -480,10 +484,14 @@ export default function RegistrationTab({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block mb-1 font-semibold text-sm text-ink-soft">
+                  <label
+                    htmlFor="registrant-first-name"
+                    className="block mb-1 font-semibold text-sm text-ink-soft"
+                  >
                     First name
                   </label>
                   <input
+                    id="registrant-first-name"
                     type="text"
                     value={editingRegistrant.firstName}
                     onChange={(e) =>
@@ -496,10 +504,14 @@ export default function RegistrationTab({
                   />
                 </div>
                 <div>
-                  <label className="block mb-1 font-semibold text-sm text-ink-soft">
+                  <label
+                    htmlFor="registrant-last-name"
+                    className="block mb-1 font-semibold text-sm text-ink-soft"
+                  >
                     Last name
                   </label>
                   <input
+                    id="registrant-last-name"
                     type="text"
                     value={editingRegistrant.lastName}
                     onChange={(e) =>
@@ -538,10 +550,14 @@ export default function RegistrationTab({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block mb-1 font-semibold text-sm text-ink-soft">
+                  <label
+                    htmlFor="registrant-dob"
+                    className="block mb-1 font-semibold text-sm text-ink-soft"
+                  >
                     Date of birth
                   </label>
                   <input
+                    id="registrant-dob"
                     type="date"
                     value={editingRegistrant.dob}
                     onChange={(e) =>
@@ -554,10 +570,14 @@ export default function RegistrationTab({
                   />
                 </div>
                 <div>
-                  <label className="block mb-1 font-semibold text-sm text-ink-soft">
+                  <label
+                    htmlFor="registrant-gender"
+                    className="block mb-1 font-semibold text-sm text-ink-soft"
+                  >
                     Gender
                   </label>
                   <select
+                    id="registrant-gender"
                     value={editingRegistrant.gender}
                     onChange={(e) =>
                       setEditingRegistrant({
