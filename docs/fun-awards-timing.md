@@ -220,12 +220,18 @@ question in item 4.
    - **Import** — spare rows become registrants with a bib and nothing else.
      The importer must accept them despite blank names (today it requires
      first and last name and would drop them).
-   - **Claim flow** — the walk-up path finds the reserved bib and fills in the
-     rider, replacing `handleAddNew`'s `max(assigned) + 1` guess. Add the four
-     award questions to the shared add/edit modal, and stop pre-seeding
-     `dob: "1990-01-01"` / `gender: "n/a"` — a plausible-looking fake
-     birthdate that passes validation is worse than an empty required field,
-     since it silently files a rider into the wrong age category.
+   - **Claim flow** — no dedicated claim UI. The walk-up's packet already has
+     a bib on it, so the operator uses the ordinary Add registrant form and
+     types that number in. If it matches a reserved spare, saving overwrites
+     that spare row with the filled-in rider (a claim); any other number just
+     adds a new registrant, same as it always has. A first version added a
+     separate "Claim bib #N" button/modal per spare — dropped as unneeded
+     once it was clear the form already handles both cases through one bib
+     field. Add the four award questions to the shared add/edit modal, and
+     stop pre-seeding `dob: "1990-01-01"` / `gender: "n/a"` — a plausible-
+     looking fake birthdate that passes validation is worse than an empty
+     required field, since it silently files a rider into the wrong age
+     category.
    - **Unclaimed guard** — see below. This is the part that matters most.
 
    **An unclaimed spare must behave exactly like an unknown bib.** Today, a

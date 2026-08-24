@@ -142,9 +142,6 @@ export default function RegistrationTab({
     });
   };
 
-  // Claiming a reserved bib is editing that spare's existing record — same
-  // form, same handler, it just starts from mostly-blank fields instead of
-  // a fresh guess.
   const handleEdit = (registrant: Registrant) => {
     setEditingRegistrant({
       ...registrant,
@@ -180,12 +177,17 @@ export default function RegistrationTab({
 
     const bib = normalizeBib(rawBib);
 
-    // Check for duplicate bib (but allow same bib if editing existing)
-    if (isNew && registrants.has(bib)) {
+    // A reserved-but-unclaimed spare at this bib isn't a conflict — typing a
+    // spare's number is how it gets claimed. Only a bib already attached to
+    // an actual rider blocks the save.
+    const holder = registrants.get(bib);
+    const bibTaken = !!holder && holder.status !== "spare";
+
+    if (isNew && bibTaken) {
       alert(`Bib #${bib} already exists!`);
       return;
     }
-    if (!isNew && originalBib !== bib && registrants.has(bib)) {
+    if (!isNew && originalBib !== bib && bibTaken) {
       alert(`Bib #${bib} already exists!`);
       return;
     }
@@ -311,7 +313,9 @@ export default function RegistrationTab({
         </div>
       )}
 
-      {/* Reserved bibs */}
+      {/* Reserved bibs — informational only. To sign up a walkup, use
+          + Add registrant and type the bib off their packet; if it matches
+          one of these, it's claimed automatically. */}
       {spareRegistrants.length > 0 && (
         <div className="bg-sand border border-ink/10 rounded-lg p-3">
           <h3 className="font-display uppercase tracking-tight text-sm text-moss-dark mb-2">
@@ -321,15 +325,7 @@ export default function RegistrationTab({
             {spareRegistrants
               .sort((a, b) => parseInt(a.bib) - parseInt(b.bib))
               .map((spare) => (
-                <button
-                  key={spare.bib}
-                  onClick={() => handleEdit(spare)}
-                  className="flex items-center gap-1.5 pl-1 pr-3 py-1 bg-chalk border border-ink/15 rounded-full hover:border-clay hover:bg-clay/5 transition text-sm font-semibold"
-                  title={`Claim reserved bib #${spare.bib}`}
-                >
-                  <BibChip bib={spare.bib} className="text-xs" />
-                  Claim
-                </button>
+                <BibChip key={spare.bib} bib={spare.bib} className="text-xs" />
               ))}
           </div>
         </div>
@@ -452,11 +448,7 @@ export default function RegistrationTab({
         <div className="fixed inset-0 bg-ink/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
           <div className="bg-chalk rounded-lg shadow-xl max-w-md w-full p-6 my-8">
             <h2 className="font-display uppercase tracking-tight text-xl mb-4 text-moss-dark">
-              {editingRegistrant.status === "spare"
-                ? `Claim bib #${editingRegistrant.bib}`
-                : editingRegistrant.isNew
-                ? "Add registrant"
-                : "Edit registrant"}
+              {editingRegistrant.isNew ? "Add registrant" : "Edit registrant"}
             </h2>
 
             <div className="space-y-4">
@@ -480,6 +472,12 @@ export default function RegistrationTab({
                   }
                   className="w-full p-2 border-2 border-ink/15 bg-sand rounded-lg focus:border-clay focus:outline-none"
                 />
+                {editingRegistrant.isNew && spareRegistrants.length > 0 && (
+                  <p className="mt-1 text-xs text-ink-soft">
+                    Type the bib off their packet — a reserved number is
+                    claimed automatically.
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -645,9 +643,7 @@ export default function RegistrationTab({
                 onClick={handleSaveRegistrant}
                 className="flex-1 py-2 bg-clay text-chalk rounded-lg font-bold hover:bg-clay-dark"
               >
-                {editingRegistrant.isNew || editingRegistrant.status === "spare"
-                  ? "Add registrant"
-                  : "Save changes"}
+                {editingRegistrant.isNew ? "Add registrant" : "Save changes"}
               </button>
               <button
                 onClick={() => setEditingRegistrant(null)}
