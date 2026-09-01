@@ -3,7 +3,7 @@
 import { getClockSeverity } from "@/lib/utils";
 import type { ClockCheckResult } from "@/lib/types";
 import { CheckIcon, WarningIcon } from "@/components/icons";
-import CopyLinkButton from "@/components/CopyLinkButton";
+import LinkWithCopy from "@/components/LinkWithCopy";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -194,13 +194,10 @@ export default function SettingsModal({
                   Open this on the phone at the start line — one tap per
                   wave records its real start time here automatically.
                 </div>
-                <div className="flex items-center gap-2 bg-sand rounded-lg p-2 text-sm font-mono truncate">
-                  <span className="truncate">/start/{startToken}</span>
-                  <CopyLinkButton
-                    path={`/start/${startToken}`}
-                    title="Copy wave-start link"
-                  />
-                </div>
+                <LinkWithCopy
+                  path={`/start/${startToken}`}
+                  copyTitle="Copy wave-start link"
+                />
               </>
             ) : (
               <div className="text-sm text-ink-soft">

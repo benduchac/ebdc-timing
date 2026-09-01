@@ -1185,6 +1185,7 @@ export default function OperatorPage() {
           {showWaveTimesModal && (
             <WaveTimesSetupModal
               currentTimes={waveStartTimes}
+              startToken={activeRace.startToken}
               onSave={handleConfirmWaveTimes}
               onClose={() => setShowWaveTimesModal(false)}
             />

@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import LinkWithCopy from "@/components/LinkWithCopy";
 
 interface WaveTimesSetupModalProps {
   currentTimes: { A: Date; B: Date; C: Date };
+  startToken?: string;
   onSave: (times: { A: string; B: string; C: string }) => void;
   onClose: () => void;
 }
@@ -21,6 +23,7 @@ const toTimeString = (d: Date) =>
 // before any entries exist at all.
 export default function WaveTimesSetupModal({
   currentTimes,
+  startToken,
   onSave,
   onClose,
 }: WaveTimesSetupModalProps) {
@@ -81,6 +84,23 @@ export default function WaveTimesSetupModal({
           >
             Cancel
           </button>
+        </div>
+
+        <div className="mt-4 pt-4 border-t border-ink/10">
+          <div className="text-xs font-semibold text-ink-soft mb-1">
+            Wave start line
+          </div>
+          {startToken ? (
+            <LinkWithCopy
+              path={`/start/${startToken}`}
+              copyTitle="Copy wave-start link"
+            />
+          ) : (
+            <div className="text-xs text-ink-soft">
+              Link pending first sync — connect to the internet once to
+              generate it.
+            </div>
+          )}
         </div>
       </div>
     </div>
