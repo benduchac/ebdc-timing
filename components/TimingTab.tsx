@@ -108,14 +108,12 @@ export default function TimingTab({
     const rider = registrants.get(normalizedBib);
 
     const wave = rider ? rider.wave : null;
-    const firstName = rider ? rider.firstName : "Unknown";
-    const lastName = rider ? rider.lastName : "Rider";
+    const name = rider ? rider.name : "Unknown rider";
 
     const entry: Omit<Entry, "id"> = {
       bib: normalizedBib,
       wave,
-      firstName,
-      lastName,
+      name,
       finishTime: now.toLocaleTimeString("en-US", { hour12: true }),
       finishTimeMs: now.getTime(),
       elapsedTime: wave
@@ -138,8 +136,7 @@ export default function TimingTab({
     const entry: Omit<Entry, "id"> = {
       bib: `UNK-${unknownCount + 1}`,
       wave: null,
-      firstName: "Unknown",
-      lastName: "Rider",
+      name: "Unknown rider",
       finishTime: now.toLocaleTimeString("en-US", { hour12: true }),
       finishTimeMs: now.getTime(),
       elapsedTime: "N/A",
@@ -200,7 +197,7 @@ export default function TimingTab({
             {riderInfo && (
               <div className="mt-3 bg-success-soft border-2 border-success rounded-lg p-3">
                 <div className="text-xl font-bold text-moss-dark">
-                  {riderInfo.firstName} {riderInfo.lastName}
+                  {riderInfo.name}
                 </div>
                 <div className="text-ink-soft">
                   Wave {riderInfo.wave} · Bib #{riderInfo.bib}
@@ -292,9 +289,7 @@ export default function TimingTab({
                               <BibChip bib={entry.bib} className="text-xs" />
                             </span>
                           </td>
-                          <td className="p-2">
-                            {entry.firstName} {entry.lastName}
-                          </td>
+                          <td className="p-2">{entry.name}</td>
                           <td className="p-2">
                             {entry.wave ? (
                               `Wave ${entry.wave}`

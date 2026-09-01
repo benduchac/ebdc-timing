@@ -51,20 +51,20 @@ test.describe("CSV import", () => {
     ).toBeVisible();
   });
 
-  test("the problems file imports 9 of 10 rows and names every issue", async ({
+  test("the problems file imports 8 of 9 rows and names every issue", async ({
     page,
   }) => {
     await uploadCsv(page, FIXTURES.problems);
 
-    await expect(page.getByText("9 of 10 riders imported.")).toBeVisible();
+    await expect(page.getByText("8 of 9 riders imported.")).toBeVisible();
     await expect(
-      page.getByText("1 row couldn't be imported (row 10 — no bib)")
+      page.getByText("1 row couldn't be imported (row 9 — no bib)")
     ).toBeVisible();
     await expect(
       page.getByText(/rider.*with a missing or unrecognized gender/)
     ).toBeVisible();
     await expect(
-      page.getByText(/birthday.*missing or invalid/)
+      page.getByText(/age.*missing or invalid/)
     ).toBeVisible();
     await expect(
       page.getByText(/rider.*with an invalid wave/)

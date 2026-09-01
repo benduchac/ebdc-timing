@@ -97,7 +97,7 @@ context.
   own API), computes category buckets server-side via
   `computeCategoryBuckets`, and only passes the resulting PII-free `Entry[]`
   arrays to `components/PublicLeaderboardView.tsx` — real registrant data
-  (DOB) never reaches the client. Unresolved finishers (no wave assigned)
+  (age) never reaches the client. Unresolved finishers (no wave assigned)
   are excluded.
 - `lib/slug.ts` — `slugify`/`assignSlug`: turns a race label into its public
   URL slug (`"EBDC 7/9"` → `"ebdc-7-9"`), deduped on collision (`-2`, `-3`,
@@ -105,7 +105,7 @@ context.
   (`app/api/backup/route.ts`), never recomputed — reused from `races:index`
   on every later sync.
 - `components/CategoryLeaderboardGrid.tsx` — pure presentational category
-  grid; takes pre-bucketed `Entry[]` arrays only, no registrants/DOB. Shared
+  grid; takes pre-bucketed `Entry[]` arrays only, no registrants/age. Shared
   by both the operator's `CategoryLeaderboards.tsx` (thin wrapper that calls
   `computeCategoryBuckets` with the real local registrants) and the public
   page (buckets computed server-side instead).
@@ -131,11 +131,11 @@ context.
   escaping), `getDateString`, `downloadFile`, `verifySystemClock`,
   `TIME_SOURCE_LABEL`, `getClockSeverity` (fine/caution/alert/unknown from a
   `ClockCheckResult`).
-- `lib/categories.ts` — age/gender categorization (`calculateAge`,
-  `getAgeCategory`, `filterByCategory`, `getTopEntries`). `computeCategoryBuckets`
-  is the one place actual bucketing happens; only call it somewhere with real
-  `registrants` data (server-side, or the operator's own local state) — never
-  pass registrants into a client component for the public page.
+- `lib/categories.ts` — age/gender categorization (`parseAge`,
+  `getAgeCategory`). `computeCategoryBuckets` is the one place actual
+  bucketing happens; only call it somewhere with real `registrants` data
+  (server-side, or the operator's own local state) — never pass registrants
+  into a client component for the public page.
 
 ### Tabs (`components/`)
 - `RegistrationTab` — CSV upload + manual add/edit/delete of registrants.
@@ -257,25 +257,25 @@ below).
 
 ## Open defects & follow-ups
 
-**`docs/known-issues.md`** tracks every known defect and gap: what the
-22 August 2026 safety pass fixed, what to fold into the 2026 build (with the
-implementation item each belongs to), what's deferred, and the race-day
-workarounds for what's still open. Add to it rather than letting a finding
-live only in a conversation.
+**`docs/known-issues.md`** tracks every known defect and gap: what's been
+fixed, what's deferred, and the race-day workarounds for what's still open.
+Add to it rather than letting a finding live only in a conversation.
 
-## In-progress: the 2026 fun awards
+## The 2026 registration form and CSV contract
 
-Two approved specs, both landed 22 August 2026:
-**`docs/wordpress-registration-form.md`** (the registration form and, in
-section 4, the CSV contract that is this app's only input) and
-**`docs/fun-awards-timing.md`** (award boards, and the implementation plan
-this repo works from). The CSV contract lives in the form doc — don't restate
-it; if the format has to change, change it there.
+**`docs/wordpress-registration-form.md`** documents the live registration
+form (launched 26 August 2026) and, in section 4, the CSV contract that is
+this app's only input: `bib, name, wave, age, gender`. **`docs/registrant-
+import.md`** covers the timing-app side — CSV import/reporting and the
+age/gender category boards. The CSV contract lives in the form doc — don't
+restate it; if the format has to change, change it there.
 
-Note the importer this app ships today drops **every** row of that CSV without
-saying so — the new `status` column shifts positions past what the current
-positional parser expects. Implementation item 1 (header-driven, RFC-4180) is
-the fix.
+An earlier draft proposed a "fun awards" section (first-timer, parent, rigid
+bike, steel bike questions) with matching sub-leaderboards. Cut before the
+form launched — age/gender categories are the only leaderboards for 2026.
+Two fields changed from that earlier draft too: `name` is one combined field
+(the form never asked for first/last separately), and `age` is collected
+directly rather than derived from a date of birth.
 
 ## In-progress: race-readiness work
 

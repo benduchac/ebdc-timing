@@ -27,12 +27,10 @@ export interface ImportResult {
   headerError: string | null;
 }
 
-const REQUIRED_HEADERS = ["bib", "first_name", "last_name", "wave"];
+const REQUIRED_HEADERS = ["bib", "name", "wave"];
 const WAVES = new Set(["A", "B", "C"]);
 const GENDERS = new Set(["male", "female", "nonbinary", "undisclosed"]);
-const YES_NO = new Set(["yes", "no"]);
-const YES_NO_UNSURE = new Set(["yes", "no", "unsure"]);
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const AGE = /^\d+$/;
 
 /**
  * Hand-written RFC-4180 tokenizer: quoted fields, "" as an escaped quote
@@ -101,7 +99,7 @@ const asWave = (value: string): "A" | "B" | "C" | null => {
  * Every problem a single registrant carries, derived from the record itself
  * — not stored anywhere, so it can't go stale after an edit. Shared by the
  * import summary, the roster flags, and the setup-checklist tick, so all
- * three agree by construction. See docs/fun-awards-timing.md section 6a.
+ * three agree by construction. See docs/registrant-import.md section 6a.
  */
 export function getRegistrantIssues(r: Registrant): Issue[] {
   if (!r.bib) {
@@ -116,18 +114,18 @@ export function getRegistrantIssues(r: Registrant): Issue[] {
       message: "Wave missing or not A/B/C — this rider can't be scored.",
     });
   }
-  if (!r.firstName || !r.lastName) {
+  if (!r.name) {
     issues.push({
       field: "name",
       tier: "blocks-results",
-      message: "First or last name missing.",
+      message: "Name missing.",
     });
   }
-  if (!r.dob || !ISO_DATE.test(r.dob)) {
+  if (!r.age || !AGE.test(r.age)) {
     issues.push({
-      field: "dob",
+      field: "age",
       tier: "blocks-awards",
-      message: "Birthday missing or not YYYY-MM-DD.",
+      message: "Age missing or not a whole number.",
     });
   }
   if (!GENDERS.has(r.gender)) {
@@ -139,20 +137,6 @@ export function getRegistrantIssues(r: Registrant): Issue[] {
         : "Gender missing.",
     });
   }
-  for (const [field, value, allowed] of [
-    ["first_gravel_race", r.firstGravelRace, YES_NO],
-    ["is_parent", r.isParent, YES_NO],
-    ["rigid_bike", r.rigidBike, YES_NO_UNSURE],
-    ["steel_bike", r.steelBike, YES_NO_UNSURE],
-  ] as const) {
-    if (value !== undefined && value !== "" && !allowed.has(value)) {
-      issues.push({
-        field,
-        tier: "blocks-awards",
-        message: `"${value}" isn't a recognized answer — treated as not eligible.`,
-      });
-    }
-  }
   return issues;
 }
 
@@ -161,25 +145,17 @@ const FIELD_LABELS: Record<string, (n: number) => string> = {
     `${n} rider${n === 1 ? "" : "s"} with an invalid wave — can't be scored until fixed`,
   name: (n) =>
     `${n} rider${n === 1 ? "" : "s"} missing a name — can't appear on results`,
-  dob: (n) =>
-    `${n} birthday${n === 1 ? "" : "s"} missing or invalid — no age categories for them`,
+  age: (n) =>
+    `${n} age${n === 1 ? "" : "s"} missing or invalid — no age categories for them`,
   gender: (n) =>
     `${n} rider${n === 1 ? "" : "s"} with a missing or unrecognized gender — no gendered podium`,
   bib: (n) => `${n} duplicate bib${n === 1 ? "" : "s"} — an earlier row was overwritten`,
-  first_gravel_race: (n) =>
-    `${n} first-timer answer${n === 1 ? "" : "s"} not recognized — treated as not eligible`,
-  is_parent: (n) =>
-    `${n} parent answer${n === 1 ? "" : "s"} not recognized — treated as not eligible`,
-  rigid_bike: (n) =>
-    `${n} rigid-bike answer${n === 1 ? "" : "s"} not recognized — treated as not eligible`,
-  steel_bike: (n) =>
-    `${n} steel-bike answer${n === 1 ? "" : "s"} not recognized — treated as not eligible`,
 };
 
 /**
- * Named counts, one line per problem type — "3 birthdays missing", not a
+ * Named counts, one line per problem type — "3 ages missing", not a
  * per-row dump. Grouped by field, most common first. See
- * docs/fun-awards-timing.md section 6a's example summary.
+ * docs/registrant-import.md section 6a's example summary.
  */
 export function summarizeIssues(
   issuesByBib: Map<string, Issue[]>
@@ -229,15 +205,10 @@ export function importRegistrants(csvText: string): ImportResult {
   const at = (name: string) => header.indexOf(name);
   const idx = {
     bib: at("bib"),
-    firstName: at("first_name"),
-    lastName: at("last_name"),
+    name: at("name"),
     wave: at("wave"),
-    dob: at("dob"),
+    age: at("age"),
     gender: at("gender"),
-    firstGravelRace: at("first_gravel_race"),
-    isParent: at("is_parent"),
-    rigidBike: at("rigid_bike"),
-    steelBike: at("steel_bike"),
   };
   const cell = (row: string[], i: number): string =>
     i >= 0 ? (row[i] ?? "").trim() : "";
@@ -260,19 +231,14 @@ export function importRegistrants(csvText: string): ImportResult {
 
     const registrant: Registrant = {
       bib,
-      firstName: cell(row, idx.firstName),
-      lastName: cell(row, idx.lastName),
+      name: cell(row, idx.name),
       wave: asWave(cell(row, idx.wave)),
-      dob: cell(row, idx.dob),
+      age: cell(row, idx.age),
       // Gender is never case-normalized — accepting "Female" silently
       // is how a real Non-Binary or Prefer-Not-To-Say answer ends up
-      // mapped to something nobody chose. See fun-awards-timing.md
+      // mapped to something nobody chose. See registrant-import.md
       // section 5's note on row 25 of this exact fixture.
       gender: cell(row, idx.gender),
-      firstGravelRace: cell(row, idx.firstGravelRace) || undefined,
-      isParent: cell(row, idx.isParent) || undefined,
-      rigidBike: cell(row, idx.rigidBike) || undefined,
-      steelBike: cell(row, idx.steelBike) || undefined,
     };
 
     const issues = getRegistrantIssues(registrant);

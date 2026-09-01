@@ -93,8 +93,7 @@ export default function EditModal({
       ...entry,
       bib: normalizedBib,
       wave: editWave,
-      firstName: rider ? rider.firstName : "Unknown",
-      lastName: rider ? rider.lastName : "Rider",
+      name: rider ? rider.name : "Unknown rider",
       finishTimeMs: newFinishDate.getTime(),
       finishTime: newFinishDate.toLocaleTimeString("en-US", { hour12: true }),
       elapsedMs,
@@ -112,14 +111,12 @@ export default function EditModal({
         </h2>
 
         {/* Show current rider name if known */}
-        {entry.firstName !== "Unknown" && (
+        {entry.name !== "Unknown rider" && (
           <div className="mb-4 p-3 bg-sand border border-ink/10 rounded-lg">
             <div className="text-sm text-ink-soft font-semibold">
               Currently:
             </div>
-            <div className="text-lg font-bold text-ink">
-              {entry.firstName} {entry.lastName}
-            </div>
+            <div className="text-lg font-bold text-ink">{entry.name}</div>
             <div className="text-sm text-ink-soft">
               Bib #{entry.bib} · Wave {entry.wave || "Unknown"}
             </div>
@@ -146,7 +143,7 @@ export default function EditModal({
                 {lookedUpRider ? (
                   <div className="p-2 bg-success-soft border border-success/40 rounded">
                     <div className="text-sm font-medium text-moss-dark">
-                      {lookedUpRider.firstName} {lookedUpRider.lastName}
+                      {lookedUpRider.name}
                     </div>
                     <div className="text-xs text-ink-soft">
                       Wave {lookedUpRider.wave}

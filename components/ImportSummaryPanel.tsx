@@ -13,7 +13,7 @@ interface ImportSummaryPanelProps {
 // A dialog the operator dismisses once is gone the moment something needs
 // re-checking later; this stays on screen (collapsible, not modal) until
 // dismissed, and a roster the operator has decided is good enough can be
-// collapsed without losing the counts. See docs/fun-awards-timing.md
+// collapsed without losing the counts. See docs/registrant-import.md
 // section 6a.
 export default function ImportSummaryPanel({
   result,

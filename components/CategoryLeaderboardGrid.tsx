@@ -26,9 +26,7 @@ function RankedRow({ entry, place }: { entry: Entry; place: number }) {
       <RankBadge place={place} className="w-6 h-6 shrink-0 text-xs" />
       <BibChip bib={entry.bib} className="text-xs" />
       <div className="flex-1 truncate">
-        <div className="font-semibold">
-          {entry.firstName} {entry.lastName}
-        </div>
+        <div className="font-semibold">{entry.name}</div>
         <div className="text-xs text-ink-soft">Wave {entry.wave}</div>
       </div>
       <TimeChip className="text-xs">
@@ -38,31 +36,7 @@ function RankedRow({ entry, place }: { entry: Entry; place: number }) {
   );
 }
 
-// Same data as RankedRow, stacked onto three lines (name, time, wave)
-// instead of one. An award card's expanded view lives in a 4-up grid — a
-// single crowded line there truncates names; stacking trades row height
-// for room to show the full name.
-function AwardResultRow({ entry, place }: { entry: Entry; place: number }) {
-  return (
-    <div className="flex items-start gap-2 text-sm border-b border-ink/10 pb-2">
-      <RankBadge place={place} className="w-6 h-6 shrink-0 text-xs mt-0.5" />
-      <BibChip bib={entry.bib} className="text-xs shrink-0 mt-0.5" />
-      <div className="flex-1 min-w-0">
-        <div className="font-semibold">
-          {entry.firstName} {entry.lastName}
-        </div>
-        <div className="mt-1">
-          <TimeChip className="text-xs">
-            {entry.elapsedMs !== null ? formatElapsedHuman(entry.elapsedMs) : "N/A"}
-          </TimeChip>
-        </div>
-        <div className="text-xs text-ink-soft mt-1">Wave {entry.wave}</div>
-      </div>
-    </div>
-  );
-}
-
-// Deliberately takes only Entry[] — no registrants, no DOB, nothing beyond
+// Deliberately takes only Entry[] — no registrants, no age, nothing beyond
 // what's already on a finish record (name, bib, wave, times). This is what
 // makes it safe to reuse for the public leaderboard: the caller (a Server
 // Component with real registrant data) does the age/gender bucketing
@@ -119,123 +93,23 @@ function LeaderboardCard({ title, entries, displayLimit }: LeaderboardCardProps)
   );
 }
 
-interface AwardCardProps {
-  title: string;
-  entries: Entry[];
-}
-
-// A fun award has one winner, not a ranked field — this is a spotlight, not
-// a leaderboard. Entries are pre-sorted by elapsed time, so the winner(s)
-// are just the front of the list; more than one name shows only on a genuine
-// tie (same elapsedMs), matching the standard-ranking rule used everywhere
-// else in the app (tied riders share the place, here place 1). "Show full
-// results" expands the same card into the full ranked field, so a rider who
-// didn't win can still see where they landed — collapses back to the
-// spotlight rather than living as a separate view.
-function AwardCard({ title, entries }: AwardCardProps) {
-  const [expanded, setExpanded] = useState(false);
-
-  if (entries.length === 0) {
-    return (
-      <div className="bg-chalk border border-ink/10 rounded-lg p-4 text-center">
-        <h3 className="font-display uppercase tracking-tight text-sm mb-2 text-moss-dark">
-          {title}
-        </h3>
-        <div className="text-ink-soft text-sm py-4">No finishers yet</div>
-      </div>
-    );
-  }
-
-  const winners = entries.filter((e) => e.elapsedMs === entries[0].elapsedMs);
-  const hasMore = entries.length > winners.length;
-
-  if (expanded) {
-    const ranks = computeStandardRanks(entries);
-    return (
-      <div className="bg-chalk border border-ink/10 rounded-lg p-4">
-        <h3 className="font-display uppercase tracking-tight text-sm mb-3 text-moss-dark text-center">
-          {title}
-        </h3>
-        <div className="space-y-2">
-          {entries.map((entry, index) => (
-            <AwardResultRow key={entry.id} entry={entry} place={ranks[index]} />
-          ))}
-        </div>
-        <button
-          onClick={() => setExpanded(false)}
-          className="w-full mt-3 py-2 bg-sand text-moss-dark rounded-lg font-semibold hover:bg-ink/10 transition text-sm"
-        >
-          Show winner only
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="bg-chalk border border-ink/10 rounded-lg p-4 text-center">
-      <h3 className="font-display uppercase tracking-tight text-sm mb-3 text-moss-dark">
-        {title}
-      </h3>
-      <div className="flex justify-center mb-2">
-        <RankBadge place={1} className="w-8 h-8 text-sm" />
-      </div>
-      {winners.map((entry) => (
-        <div key={entry.id} className="font-display text-lg text-ink leading-tight">
-          {entry.firstName} {entry.lastName}
-        </div>
-      ))}
-      <div className="mt-2">
-        <TimeChip className="text-xs">
-          {winners[0].elapsedMs !== null
-            ? formatElapsedHuman(winners[0].elapsedMs)
-            : "N/A"}
-        </TimeChip>
-      </div>
-      {hasMore && (
-        <button
-          onClick={() => setExpanded(true)}
-          className="w-full mt-3 py-1.5 text-xs text-moss-dark underline hover:no-underline"
-        >
-          Show full results ({entries.length})
-        </button>
-      )}
-    </div>
-  );
-}
-
 export default function CategoryLeaderboardGrid({
   buckets,
 }: CategoryLeaderboardGridProps) {
-  const awardBoards = buckets.filter((b) => b.kind === "award");
-  const categoryBoards = buckets.filter((b) => b.kind === "category");
-
   return (
-    <div className="space-y-8">
-      <div className="space-y-4">
-        <h2 className="font-display uppercase tracking-tight text-xl text-center text-moss-dark">
-          Fun awards
-        </h2>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {awardBoards.map((board) => (
-            <AwardCard key={board.id} title={board.name} entries={board.entries} />
-          ))}
-        </div>
-      </div>
-
-      <div className="space-y-4">
-        <h2 className="font-display uppercase tracking-tight text-xl text-center text-moss-dark">
-          Category leaderboards
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {categoryBoards.map((board) => (
-            <LeaderboardCard
-              key={board.id}
-              title={board.name}
-              entries={board.entries}
-              displayLimit={board.displayLimit ?? 10}
-            />
-          ))}
-        </div>
+    <div className="space-y-4">
+      <h2 className="font-display uppercase tracking-tight text-xl text-center text-moss-dark">
+        Category leaderboards
+      </h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {buckets.map((board) => (
+          <LeaderboardCard
+            key={board.id}
+            title={board.name}
+            entries={board.entries}
+            displayLimit={board.displayLimit}
+          />
+        ))}
       </div>
     </div>
   );

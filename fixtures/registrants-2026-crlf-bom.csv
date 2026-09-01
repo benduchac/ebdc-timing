@@ -1,101 +1,101 @@
-﻿bib,first_name,last_name,wave,dob,gender,first_gravel_race,is_parent,rigid_bike,steel_bike
-001,Sarah,Johnson,A,1992-03-15,female,no,yes,no,yes
-002,Michael,Chen,A,1988-07-22,male,yes,no,yes,yes
-003,"Mary Jo","Van Der Berg",B,1980-01-02,female,,,unsure,no
-004,Alex,Rivera,C,2009-06-30,nonbinary,yes,no,no,no
-005,Isaac,Andersen,C,2009-04-20,male,no,,no,no
-006,Priya,Raman,A,1996-02-29,female,no,no,yes,no
-007,Leading,Zero,C,1985-12-01,male,no,no,no,no
-008,Siobhan,"O""Brien",B,1991-08-19,female,yes,yes,unsure,unsure
-009,Walter,Smith,A,1980-05-27,male,no,no,no,no
-010,Marcus,Webb,A,2007-10-10,male,no,no,no,no
-011,Nia,Fletcher,B,2007-10-11,female,yes,no,no,no
-012,Robert,Ellery,C,1976-10-10,male,no,yes,yes,yes
-013,Helen,Marsh,B,1976-10-11,female,no,yes,no,no
-014,Riley,Petrov,A,1979-12-11,undisclosed,no,no,no,
-015,Mateo,Smith,B,1989-10-18,male,no,no,no,no
-016,Riley,Mensah,A,2002-01-19,undisclosed,no,no,no,yes
-017,Tom,"Smith, Jr.",C,1969-05-04,male,no,yes,no,yes
-018,Ana,Petrov,B,1999-08-22,female,no,yes,no,no
-019,Carol,Dubois,B,1983-05-27,female,,no,no,no
-020,Donna,Osei,C,2015-07-18,female,no,,no,
-021,Cynthia,Harlow,C,1991-03-14,female,yes,no,,no
-022,James,Ferreira,A,1995-09-27,male,yes,yes,no,no
-023,Ava,Sinclair,A,2015-12-24,female,no,,no,no
-024,Marcus,Blackwood,C,2002-10-10,male,no,yes,,no
-025,Theo,Cassidy,B,2008-01-17,male,no,,yes,no
-026,Simon,Delacroix-Mbeki,B,1990-10-11,male,no,,unsure,yes
-027,Sandra,Vance,B,2001-11-07,female,no,no,no,unsure
-028,Mateo,Ibarra,B,1990-02-13,male,yes,no,no,no
-029,Angela,Blackwood,A,1985-02-28,female,no,no,no,no
-030,Jordan,Sundqvist,C,1994-11-19,male,no,no,no,no
-031,Ines,Dubois,A,2010-02-22,female,no,,no,no
-032,Elijah,Ellery,A,1985-05-03,male,no,no,,
-033,Roger,Castillo,B,2013-06-25,male,no,,no,unsure
-034,Jae,Hallgren,B,1988-09-22,undisclosed,no,no,yes,no
-035,Ana,Okafor,C,2001-07-11,female,no,no,yes,yes
-036,Gary,Andersen,C,2012-01-14,male,no,,no,no
-037,Frank,Cassidy,B,2016-11-18,male,no,,yes,no
-038,Bruce,Bianchi,A,1979-03-18,male,no,yes,no,no
-039,Kathleen,Okonkwo,A,2011-11-17,female,no,,no,unsure
-040,Andre,Ashworth,B,1988-08-21,male,no,no,no,no
-041,Angela,Whitfield,A,1990-01-21,female,,no,no,yes
-042,Isabella,Okafor,B,1969-01-13,female,no,no,yes,no
-043,Dennis,Bianchi,B,1998-04-06,male,no,no,no,no
-044,Wayne,Faulkner,C,2001-09-06,male,yes,yes,no,no
-045,Owen,Okafor,C,2011-09-05,male,yes,,no,no
-046,Valentina,Zero,A,1988-08-16,female,yes,no,no,
-047,Autumn,Okafor,A,1985-11-08,female,no,no,no,unsure
-048,Harold,Whitmore,C,1988-06-14,male,yes,no,no,no
-049,Tyler,Ibarra,B,1997-05-08,male,no,yes,no,
-050,Naomi,O'Brien,C,1998-08-22,female,no,yes,no,no
-051,Leila,Webb,C,2013-10-21,female,no,,no,yes
-052,Ravi,Barros,B,1951-04-26,male,no,no,no,unsure
-053,Quinn,Kowalczyk,B,1998-03-23,nonbinary,,no,yes,
-054,Adrian,Pemberton,C,1993-04-16,male,no,no,no,no
-055,Owen,Harlow,B,2015-04-12,male,no,,no,no
-056,Cynthia,Hallgren,C,1994-05-16,female,,no,no,unsure
-057,Sophia,Rourke,B,1985-09-17,female,no,yes,no,yes
-058,Autumn,Vance,C,1973-08-05,female,no,no,no,no
-059,Tyler,Webb,A,2002-11-19,male,no,yes,yes,no
-060,Harold,Okonkwo,B,2010-11-05,male,no,,yes,no
-061,Stella,Kowalski,C,1981-06-05,female,no,,no,no
-062,Isaac,Park,B,1953-07-22,male,no,no,no,no
-063,Alice,Ashby,C,1983-05-21,female,no,yes,no,yes
-064,Olivia,Zero,B,1982-04-21,female,no,yes,no,no
-065,James,Kim,B,1967-08-09,male,yes,no,no,no
-066,Jasmine,Rourke,B,1985-11-03,female,no,no,no,yes
-067,Sandra,Moreau,C,2009-07-26,female,no,,no,no
-068,Jordan,Ibarra,C,2012-01-02,male,no,,no,no
-069,Amara,Barros,B,2015-12-08,female,no,,yes,unsure
-070,Dominic,Bianchi,A,2014-08-17,male,yes,,no,no
-071,Wayne,Dubois,A,2004-12-19,male,no,no,no,no
-072,Ines,Fairweather,A,1990-07-01,female,no,no,yes,no
-073,Nora,Castillo,C,1954-08-18,female,,no,no,no
-074,Quinn,Andersen,B,1997-08-02,nonbinary,,yes,,yes
-075,Harold,Pemberton,C,1994-03-18,male,no,yes,no,unsure
-076,Carlos,Ferreira,A,2010-03-08,male,no,,no,unsure
-077,Dennis,Rourke,C,2010-10-28,male,no,,no,no
-078,James,Hollis,B,1989-02-23,male,no,no,,yes
-079,Diego,Rutherford,C,1960-10-22,male,no,no,no,no
-080,Dominic,Rourke,C,2007-03-20,male,no,,,yes
-081,Ronald,Lindqvist,C,2007-03-13,male,no,yes,no,no
-082,Miguel,Harlow,B,1991-12-20,male,no,yes,unsure,no
-083,Quinn,Vance,A,1999-11-11,undisclosed,yes,yes,unsure,no
-084,Sam,Sundqvist,A,2004-08-08,male,yes,yes,no,no
-085,Nia,Novak,C,1960-12-02,female,no,yes,no,no
-086,Aaliyah,Osei,B,1988-06-25,female,yes,no,no,unsure
-087,Dennis,Vance,A,2004-01-04,male,no,no,no,no
-088,Noah,Zero,C,1991-10-12,male,no,,no,
-089,Luna,Fletcher,A,1991-11-14,female,no,no,no,yes
-090,Kevin,Whitmore,A,1968-07-25,male,,no,no,
-091,Nia,Kowalski,A,1982-07-21,female,no,yes,yes,no
-092,Joan,Blackwood,B,1954-12-08,female,yes,yes,no,no
-093,Ronald,Mensah,B,1982-09-14,male,,no,no,unsure
-094,Sandra,Ellery,B,1988-09-10,female,no,no,no,no
-095,Carol,Andersen,C,1990-10-15,female,yes,no,no,no
-096,Diane,Kestrel,B,1962-05-26,female,,yes,,no
-097,Wayne,Lindgren,B,1990-05-13,male,no,yes,,yes
-098,Aaliyah,Ibarra,C,1965-02-22,female,no,,no,no
-099,William,Bianchi,B,2014-01-05,male,no,,,no
-100,Sandra,Park,B,2006-01-14,female,no,yes,yes,no
+﻿bib,name,wave,age,gender
+001,Sarah Johnson,A,34,female
+002,Michael Chen,A,38,male
+003,Mary Jo Van Der Berg,B,46,female
+004,Alex Rivera,C,17,nonbinary
+005,Isaac Andersen,C,17,male
+006,Priya Raman,A,30,female
+007,Leading Zero,C,40,male
+008,"Siobhan O""Brien",B,35,female
+009,Walter Smith,A,46,male
+010,Marcus Webb,A,19,male
+011,Nia Fletcher,B,18,female
+012,Robert Ellery,C,50,male
+013,Helen Marsh,B,49,female
+014,Riley Petrov,A,46,undisclosed
+015,Mateo Smith,B,36,male
+016,Riley Mensah,A,24,undisclosed
+017,"Tom Smith, Jr.",C,57,male
+018,Ana Petrov,B,27,female
+019,Carol Dubois,B,43,female
+020,Donna Osei,C,11,female
+021,Cynthia Harlow,C,35,female
+022,James Ferreira,A,31,male
+023,Ava Sinclair,A,10,female
+024,Marcus Blackwood,C,24,male
+025,Theo Cassidy,B,18,male
+026,Simon Delacroix-Mbeki,B,35,male
+027,Sandra Vance,B,24,female
+028,Mateo Ibarra,B,36,male
+029,Angela Blackwood,A,41,female
+030,Jordan Sundqvist,C,31,male
+031,Ines Dubois,A,16,female
+032,Elijah Ellery,A,41,male
+033,Roger Castillo,B,13,male
+034,Jae Hallgren,B,38,undisclosed
+035,Ana Okafor,C,25,female
+036,Gary Andersen,C,14,male
+037,Frank Cassidy,B,9,male
+038,Bruce Bianchi,A,47,male
+039,Kathleen Okonkwo,A,14,female
+040,Andre Ashworth,B,38,male
+041,Angela Whitfield,A,36,female
+042,Isabella Okafor,B,57,female
+043,Dennis Bianchi,B,28,male
+044,Wayne Faulkner,C,25,male
+045,Owen Okafor,C,15,male
+046,Valentina Zero,A,38,female
+047,Autumn Okafor,A,40,female
+048,Harold Whitmore,C,38,male
+049,Tyler Ibarra,B,29,male
+050,Naomi O'Brien,C,28,female
+051,Leila Webb,C,12,female
+052,Ravi Barros,B,75,male
+053,Quinn Kowalczyk,B,28,nonbinary
+054,Adrian Pemberton,C,33,male
+055,Owen Harlow,B,11,male
+056,Cynthia Hallgren,C,32,female
+057,Sophia Rourke,B,41,female
+058,Autumn Vance,C,53,female
+059,Tyler Webb,A,23,male
+060,Harold Okonkwo,B,15,male
+061,Stella Kowalski,C,45,female
+062,Isaac Park,B,73,male
+063,Alice Ashby,C,43,female
+064,Olivia Zero,B,44,female
+065,James Kim,B,59,male
+066,Jasmine Rourke,B,40,female
+067,Sandra Moreau,C,17,female
+068,Jordan Ibarra,C,14,male
+069,Amara Barros,B,10,female
+070,Dominic Bianchi,A,12,male
+071,Wayne Dubois,A,21,male
+072,Ines Fairweather,A,36,female
+073,Nora Castillo,C,72,female
+074,Quinn Andersen,B,29,nonbinary
+075,Harold Pemberton,C,32,male
+076,Carlos Ferreira,A,16,male
+077,Dennis Rourke,C,15,male
+078,James Hollis,B,37,male
+079,Diego Rutherford,C,65,male
+080,Dominic Rourke,C,19,male
+081,Ronald Lindqvist,C,19,male
+082,Miguel Harlow,B,34,male
+083,Quinn Vance,A,26,undisclosed
+084,Sam Sundqvist,A,22,male
+085,Nia Novak,C,65,female
+086,Aaliyah Osei,B,38,female
+087,Dennis Vance,A,22,male
+088,Noah Zero,C,34,male
+089,Luna Fletcher,A,34,female
+090,Kevin Whitmore,A,58,male
+091,Nia Kowalski,A,44,female
+092,Joan Blackwood,B,71,female
+093,Ronald Mensah,B,44,male
+094,Sandra Ellery,B,38,female
+095,Carol Andersen,C,35,female
+096,Diane Kestrel,B,64,female
+097,Wayne Lindgren,B,36,male
+098,Aaliyah Ibarra,C,61,female
+099,William Bianchi,B,12,male
+100,Sandra Park,B,20,female

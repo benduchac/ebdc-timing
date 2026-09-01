@@ -42,7 +42,7 @@ function offline; anything that claims data is safe must be provably true.
   Privacy: ages are never shown (removed entirely, not just for minors —
   simpler than a name-redaction rule); full names are shown because consent
   is handled by policy (the existing mandatory event waiver), not tracked in
-  the app. DOB never leaves the server — category bucketing
+  the app. Age never leaves the server — category bucketing
   (`computeCategoryBuckets` in `lib/categories.ts`) happens server-side in
   the `/[slug]` Server Component, and only the resulting PII-free `Entry[]`
   arrays are passed to the client-rendered leaderboard. Unresolved finishers
@@ -166,7 +166,7 @@ All secret-gated **except** the public leaderboard.
 The public leaderboard isn't a separate publish pipeline — no data is ever
 copied to a public-facing store. `/[slug]` is a Server Component that reads
 `race:{id}:latest` directly (same private Redis, same keys the operator
-syncs to) and does the PII filtering (DOB → category, never raw) at render
+syncs to) and does the PII filtering (age → category, never raw) at render
 time, server-side, before anything reaches the client. Simpler than the
 originally-sketched separate "publish read" endpoint, and avoids ever having
 two copies of the data to keep in sync.
@@ -285,7 +285,7 @@ the badge was already warning about.
 
 ## Privacy
 
-- **Public leaderboard = a projection**, not the raw data. No raw DOB, ever —
+- **Public leaderboard = a projection**, not the raw data. No raw age, ever —
   category bucketing happens server-side and only the resulting entries
   (name, bib, wave, time) are sent to the client. **Decided:** no ages shown
   publicly at all (not just for minors — simpler than a redaction rule, and
@@ -340,7 +340,7 @@ In the Vercel project:
    `/[slug]` per race. Spec resolved in conversation, not deferred anymore:
    no ages shown (uniformly, not just for minors), full names shown for
    everyone (consent handled by the event's existing waiver, not tracked in
-   the app), DOB never leaves the server.
+   the app), age never leaves the server.
 
 ---
 

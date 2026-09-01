@@ -5,8 +5,8 @@ Open defects and gaps in the timing app, from a full read of the codebase on
 here was reproduced against the code, not inferred.
 
 Two companion docs own their own open questions and don't repeat them here:
-`race-readiness-design.md` (backup/sync/recovery) and `fun-awards-timing.md`
-(the 2026 award boards, which own the CSV importer rewrite).
+`race-readiness-design.md` (backup/sync/recovery) and `registrant-import.md`
+(the CSV import contract and age/gender category boards).
 
 ---
 
@@ -41,63 +41,33 @@ overlap on the 2026 feature work.
 
 ---
 
-## Fold into the 2026 build
+## Fixed — CSV/registrant revision, 26 August 2026
 
-These overlap `fun-awards-timing.md`'s implementation plan. Doing them
-separately means doing them twice.
+Confirmed against the current code while stripping the fun-awards feature
+and moving the CSV to `bib,name,wave,age,gender` (see
+`registrant-import.md`). Listed so they don't get re-reported.
 
-### With item 1 (importer rewrite)
-
-The importer is a single regex that keeps only the last word of an unquoted
-multi-word name and collapses empty fields, shifting every later column.
-Against the 2026 CSV contract it is worse than that: the new `status` column
-shifts positions by one, so **every row is dropped and nothing is reported**
-— 0 of 19 rows from `fixtures/registrants-2026.csv`.
-
-The reporting half is now specified: `fun-awards-timing.md` section 6a. Every
-row with a bib imports and carries its problem; only a row with no bib is
-refused; the operator gets named counts and a flagged roster. Flags are
-derived from the record, not stored, so they clear when the field is fixed.
-`fixtures/` has the files to build it against.
-
-### With item 3 (race-date anchor)
-
-- **Wave start times keep the date they were entered on.** Set them the
-  evening before and the app restores them verbatim next morning, so every
-  elapsed time comes out 24 hours long. Both restore paths have it: local
-  resume (`app/operator/page.tsx`, the `raceState` branch) and cloud recovery
-  (`handleOpenRace`). The `setupConfig` fallback below the first one already
-  rebuilds onto today's date — that path only runs when there is no race
-  state. The race date item 3 adds to `RaceState` is the right anchor for
-  both: rebase restored wave times onto it, don't rebase onto "today".
-- **`calculateAge` parses `YYYY-MM-DD` as UTC** and compares against local
-  dates, so in Pacific time a birthday lands a day early. Fix it in the same
-  edit or it carries into the anchored version.
-
-### With item 4 (bucket restructure)
-
-- **The public leaderboard has no `revalidate`.** It renders per request and
-  reads the index plus the full snapshot from Redis every time, while every
-  open viewer tab refreshes on a 20s timer. Twenty viewers is roughly 120
-  Redis commands a minute. If that trips the Upstash quota, the operator's
-  backups fail at the same moment the public page starts reporting the race
-  doesn't exist — a storage error renders the same "not found" page as a bad
-  URL. `export const revalidate = 10` on `app/[slug]/page.tsx` makes all
-  viewers share one render; also split the two failure cases apart.
-
-### With item 6 (originally: spare bibs)
-
-Item 6 shipped without a spare-bib concept — walk-up bibs are physical, not
-data; see `fun-awards-timing.md` item 6. The two bullets below stay relevant
-regardless, since a badly imported row (not just a spare) can still produce
-a null wave:
-
-- `WaveStatusBoxes.tsx` does `totalByWave[rider.wave]++`; a blank wave writes
-  an undefined key and the box reads NaN.
-- `RegistrationTab.tsx` sorts with `a.wave.localeCompare(b.wave)`, which
-  throws on a null wave and blanks the tab.
-- The `n/a` → `undisclosed` normalizing read has three entry points, not one:
-  the IndexedDB load, `handleOpenRace`, and the backup JSON import.
+- **The importer used to be a single regex** that kept only the last word of
+  an unquoted multi-word name and collapsed empty fields, shifting every
+  later column. It's now header-driven RFC-4180 parsing (`lib/csvImport.ts`),
+  and every row with a bib imports and carries its own problem — only a row
+  with no bib is refused. `fixtures/` has the files to build against.
+- **Wave start times used to keep the date they were entered on**, so an
+  evening-before setup made every elapsed time 24 hours long on restore.
+  `RaceState.raceDate` now anchors both local resume and cloud recovery to
+  the right date.
+- **`calculateAge` used to parse `YYYY-MM-DD` as UTC**, flipping a birthday a
+  day early in Pacific time. Moot now — age is a plain number collected on
+  the form, not derived from a date at all.
+- **The public leaderboard had no `revalidate`.** `app/[slug]/page.tsx` now
+  sets `export const revalidate = 10` so open viewer tabs share one render
+  instead of each hitting Redis on its own timer.
+- **A blank wave used to throw or read NaN.** `WaveStatusBoxes.tsx` only
+  increments `totalByWave` when `rider.wave` is set, and
+  `RegistrationTab.tsx`'s wave sort treats a null wave as sorting last
+  instead of calling `.localeCompare` on it.
+- **The `n/a` → `undisclosed` gender normalization** runs at all three load
+  paths — IndexedDB load, `handleOpenRace`, and backup JSON import.
 
 ---
 

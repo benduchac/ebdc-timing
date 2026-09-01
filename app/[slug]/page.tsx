@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { getRedis, kvKeys } from "@/lib/kv";
 import { computeCategoryBuckets } from "@/lib/categories";
-import { toDateString } from "@/lib/utils";
 import type { RaceIndexEntry, RaceSnapshot, Registrant } from "@/lib/types";
 import PublicLeaderboardView from "@/components/PublicLeaderboardView";
 import TrailHero from "@/components/TrailHero";
@@ -44,7 +43,7 @@ export async function generateMetadata({
 
 // Public, unauthenticated leaderboard for one race. Fetches directly from
 // Redis server-side (no round trip through our own API) so the real
-// registrants map — including DOB — never has to leave the server; only the
+// registrants map — including age — never has to leave the server; only the
 // already-bucketed, PII-free Entry[] arrays get passed to the client
 // component. See lib/categories.ts's computeCategoryBuckets.
 export default async function RaceLeaderboardPage({ params }: PageProps) {
@@ -94,11 +93,7 @@ export default async function RaceLeaderboardPage({ params }: PageProps) {
   // operator-side cleanup item, not public-facing — exclude until resolved.
   const resolvedEntries = snapshot.entries.filter((e) => e.wave !== null);
   const registrants = new Map<string, Registrant>(snapshot.registrants);
-  const buckets = computeCategoryBuckets(
-    resolvedEntries,
-    registrants,
-    snapshot.raceDate ?? toDateString(new Date())
-  );
+  const buckets = computeCategoryBuckets(resolvedEntries, registrants);
 
   return (
     <PublicLeaderboardView
