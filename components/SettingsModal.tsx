@@ -3,6 +3,7 @@
 import { getClockSeverity } from "@/lib/utils";
 import type { ClockCheckResult } from "@/lib/types";
 import { CheckIcon, WarningIcon } from "@/components/icons";
+import CopyLinkButton from "@/components/CopyLinkButton";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -14,6 +15,7 @@ interface SettingsModalProps {
   entryCount: number;
   registrantCount: number;
   raceLabel: string;
+  startToken?: string;
   clockCheck: ClockCheckResult | null;
   checkingClock: boolean;
   onCheckClock: () => void;
@@ -31,6 +33,7 @@ export default function SettingsModal({
   entryCount,
   registrantCount,
   raceLabel,
+  startToken,
   clockCheck,
   checkingClock,
   onCheckClock,
@@ -180,6 +183,31 @@ export default function SettingsModal({
                 />
               </label>
             </div>
+          </div>
+
+          {/* Wave start line */}
+          <div className="border-2 border-ink/10 rounded-lg p-4">
+            <h3 className="font-bold mb-3 text-ink">Wave start line</h3>
+            {startToken ? (
+              <>
+                <div className="text-sm text-ink-soft mb-2">
+                  Open this on the phone at the start line — one tap per
+                  wave records its real start time here automatically.
+                </div>
+                <div className="flex items-center gap-2 bg-sand rounded-lg p-2 text-sm font-mono truncate">
+                  <span className="truncate">/start/{startToken}</span>
+                  <CopyLinkButton
+                    path={`/start/${startToken}`}
+                    title="Copy wave-start link"
+                  />
+                </div>
+              </>
+            ) : (
+              <div className="text-sm text-ink-soft">
+                Link pending first sync — connect to the internet once to
+                generate it.
+              </div>
+            )}
           </div>
 
           {/* Session */}

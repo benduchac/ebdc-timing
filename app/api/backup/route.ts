@@ -12,9 +12,9 @@ import type { RaceIndexEntry, RaceSnapshot } from "@/lib/types";
 // snapshot.
 const MAX_HISTORY = 200;
 
-// What the client actually sends — slug and lastSaved are always
-// server-assigned, never trusted from the client (see lib/slug.ts).
-type SnapshotPayload = Omit<RaceSnapshot, "slug" | "lastSaved">;
+// What the client actually sends — slug, startToken, and lastSaved are
+// always server-assigned, never trusted from the client (see lib/slug.ts).
+type SnapshotPayload = Omit<RaceSnapshot, "slug" | "startToken" | "lastSaved">;
 
 function isValidSnapshotBody(body: unknown): body is SnapshotPayload {
   if (!body || typeof body !== "object") return false;
@@ -72,19 +72,22 @@ export async function POST(request: NextRequest) {
   // operator model this app assumes (see "Honest limitations").
   const index = (await redis.get<RaceIndexEntry[]>(kvKeys.racesIndex)) ?? [];
   const existing = index.find((r) => r.id === body.raceId);
-  // Slug is assigned once, on first sync, and never recomputed — a later
-  // label edit (not currently possible in the UI, but just in case) must not
-  // silently change a race's public URL.
+  // Slug and startToken are each assigned once, on first sync, and never
+  // recomputed — a later label edit (not currently possible in the UI, but
+  // just in case) must not silently change a race's public URL, and a
+  // start-line link already handed to a volunteer must keep working.
   const slug =
     existing?.slug ??
     assignSlug(
       body.label,
       new Set(index.map((r) => r.slug))
     );
+  const startToken = existing?.startToken ?? crypto.randomUUID();
 
   const snapshot: RaceSnapshot = {
     ...body,
     slug,
+    startToken,
     lastSaved: new Date().toISOString(),
   };
 
@@ -97,6 +100,7 @@ export async function POST(request: NextRequest) {
     id: snapshot.raceId,
     label: snapshot.label,
     slug: snapshot.slug,
+    startToken: snapshot.startToken,
     createdAt: snapshot.createdAt,
     lastSaved: snapshot.lastSaved,
     entryCount: snapshot.entries.length,
@@ -107,6 +111,7 @@ export async function POST(request: NextRequest) {
     ok: true,
     lastSaved: snapshot.lastSaved,
     slug: snapshot.slug,
+    startToken: snapshot.startToken,
   });
 }
 

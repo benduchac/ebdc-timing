@@ -13,13 +13,17 @@ function CopyIcon({ className = "w-3.5 h-3.5" }: { className?: string }) {
 
 interface CopyLinkButtonProps {
   path: string; // e.g. "/ebdc-7-9" — resolved to an absolute URL at click time
+  title?: string; // tooltip text — defaults to the public-leaderboard wording
 }
 
 // "Copied!" flashes then fades over 3s (see the fadeOut keyframes in
 // globals.css) instead of a blocking alert(). key={copiedAt} remounts the
 // span on every click so the animation restarts cleanly even if clicked
 // again before the previous fade finished.
-export default function CopyLinkButton({ path }: CopyLinkButtonProps) {
+export default function CopyLinkButton({
+  path,
+  title = "Copy leaderboard link",
+}: CopyLinkButtonProps) {
   const [copiedAt, setCopiedAt] = useState<number | null>(null);
 
   const handleClick = async () => {
@@ -40,7 +44,7 @@ export default function CopyLinkButton({ path }: CopyLinkButtonProps) {
       <button
         onClick={handleClick}
         className="hover:text-flag inline-flex align-middle"
-        title="Copy leaderboard link"
+        title={title}
       >
         <CopyIcon />
       </button>
