@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import type { Registrant } from "@/lib/types";
-import { calculateAge, getGenderLabel } from "@/lib/categories";
-import { normalizeBib, toDateString } from "@/lib/utils";
+import { parseAge, getGenderLabel } from "@/lib/categories";
+import { normalizeBib } from "@/lib/utils";
 import {
   importRegistrants,
   getRegistrantIssues,
@@ -17,25 +17,14 @@ interface RegistrationTabProps {
   registrants: Map<string, Registrant>;
   onUpdateRegistrants: (registrants: Map<string, Registrant>) => void;
   hasTimingData: boolean;
-  // YYYY-MM-DD — anchors the displayed age column to race day rather than
-  // today, so it doesn't drift as setup happens over several days. Falls
-  // back to today when a race hasn't confirmed wave times yet.
-  raceDate?: string;
 }
-
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 interface EditingRegistrant {
   bib: string;
-  firstName: string;
-  lastName: string;
+  name: string;
   wave: "A" | "B" | "C" | null;
-  dob: string;
+  age: string;
   gender: string;
-  firstGravelRace?: string;
-  isParent?: string;
-  rigidBike?: string;
-  steelBike?: string;
   isNew: boolean;
   originalBib?: string; // Track original bib for edits
 }
@@ -44,7 +33,6 @@ export default function RegistrationTab({
   registrants,
   onUpdateRegistrants,
   hasTimingData,
-  raceDate,
 }: RegistrationTabProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<"bib" | "name" | "wave">("bib");
@@ -54,8 +42,6 @@ export default function RegistrationTab({
   const [deleteTypedBib, setDeleteTypedBib] = useState("");
   const [lastImport, setLastImport] = useState<ImportResult | null>(null);
 
-  const asOf = raceDate ?? toDateString(new Date());
-
   const registrantArray = Array.from(registrants.values());
 
   const filteredRegistrants = registrantArray
@@ -64,8 +50,7 @@ export default function RegistrationTab({
       const query = searchQuery.toLowerCase();
       return (
         r.bib.toLowerCase().includes(query) ||
-        r.firstName.toLowerCase().includes(query) ||
-        r.lastName.toLowerCase().includes(query)
+        r.name.toLowerCase().includes(query)
       );
     })
     .sort((a, b) => {
@@ -73,9 +58,7 @@ export default function RegistrationTab({
         case "bib":
           return parseInt(a.bib) - parseInt(b.bib);
         case "name":
-          return `${a.lastName} ${a.firstName}`.localeCompare(
-            `${b.lastName} ${b.firstName}`
-          );
+          return a.name.localeCompare(b.name);
         case "wave":
           // A rider with no wave yet (shouldn't normally happen for a
           // claimed rider, but the type allows it) sorts last, not crashes.
@@ -127,10 +110,9 @@ export default function RegistrationTab({
 
     setEditingRegistrant({
       bib: String(nextBib),
-      firstName: "",
-      lastName: "",
+      name: "",
       wave: "C", // Default to last wave for day-of registrations
-      dob: "",
+      age: "",
       gender: "",
       isNew: true,
     });
@@ -147,25 +129,11 @@ export default function RegistrationTab({
   const handleSaveRegistrant = () => {
     if (!editingRegistrant) return;
 
-    const {
-      bib: rawBib,
-      firstName,
-      lastName,
-      wave,
-      dob,
-      gender,
-      firstGravelRace,
-      isParent,
-      rigidBike,
-      steelBike,
-      isNew,
-      originalBib,
-    } = editingRegistrant;
+    const { bib: rawBib, name, wave, age, gender, isNew, originalBib } =
+      editingRegistrant;
 
-    if (!rawBib || !firstName || !lastName || !wave || !dob || !gender) {
-      alert(
-        "Please fill in Bib, First Name, Last Name, Wave, Date of birth, and Gender."
-      );
+    if (!rawBib || !name || !wave || !age || !gender) {
+      alert("Please fill in Bib, Name, Wave, Age, and Gender.");
       return;
     }
 
@@ -190,15 +158,10 @@ export default function RegistrationTab({
 
     newRegistrants.set(bib, {
       bib,
-      firstName,
-      lastName,
+      name,
       wave,
-      dob,
+      age,
       gender,
-      firstGravelRace,
-      isParent,
-      rigidBike,
-      steelBike,
     });
 
     onUpdateRegistrants(newRegistrants);
@@ -230,8 +193,10 @@ export default function RegistrationTab({
     C: registrantArray.filter((r) => r.wave === "C").length,
   };
 
-  const ageDisplay = (r: Registrant): string =>
-    ISO_DATE.test(r.dob) ? String(calculateAge(r.dob, asOf)) : "—";
+  const ageDisplay = (r: Registrant): string => {
+    const age = parseAge(r.age);
+    return age !== null ? String(age) : "—";
+  };
 
   return (
     <div className="space-y-4">
@@ -265,7 +230,7 @@ export default function RegistrationTab({
         </p>
         <p className="text-sm text-ink-soft">
           Header-driven — column order doesn&apos;t matter, column names do.
-          See docs/wordpress-registration-form.md section 4.
+          See docs/registrant-import.md section 2.
         </p>
       </div>
 
@@ -365,7 +330,7 @@ export default function RegistrationTab({
                             />
                           )}
                           <span title={issues.map((i) => i.message).join(" ")}>
-                            {registrant.firstName} {registrant.lastName}
+                            {registrant.name}
                           </span>
                         </span>
                       </td>
@@ -443,47 +408,25 @@ export default function RegistrationTab({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label
-                    htmlFor="registrant-first-name"
-                    className="block mb-1 font-semibold text-sm text-ink-soft"
-                  >
-                    First name
-                  </label>
-                  <input
-                    id="registrant-first-name"
-                    type="text"
-                    value={editingRegistrant.firstName}
-                    onChange={(e) =>
-                      setEditingRegistrant({
-                        ...editingRegistrant,
-                        firstName: e.target.value,
-                      })
-                    }
-                    className="w-full p-2 border-2 border-ink/15 bg-sand rounded-lg focus:border-clay focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="registrant-last-name"
-                    className="block mb-1 font-semibold text-sm text-ink-soft"
-                  >
-                    Last name
-                  </label>
-                  <input
-                    id="registrant-last-name"
-                    type="text"
-                    value={editingRegistrant.lastName}
-                    onChange={(e) =>
-                      setEditingRegistrant({
-                        ...editingRegistrant,
-                        lastName: e.target.value,
-                      })
-                    }
-                    className="w-full p-2 border-2 border-ink/15 bg-sand rounded-lg focus:border-clay focus:outline-none"
-                  />
-                </div>
+              <div>
+                <label
+                  htmlFor="registrant-name"
+                  className="block mb-1 font-semibold text-sm text-ink-soft"
+                >
+                  Name
+                </label>
+                <input
+                  id="registrant-name"
+                  type="text"
+                  value={editingRegistrant.name}
+                  onChange={(e) =>
+                    setEditingRegistrant({
+                      ...editingRegistrant,
+                      name: e.target.value,
+                    })
+                  }
+                  className="w-full p-2 border-2 border-ink/15 bg-sand rounded-lg focus:border-clay focus:outline-none"
+                />
               </div>
 
               <div>
@@ -512,19 +455,21 @@ export default function RegistrationTab({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label
-                    htmlFor="registrant-dob"
+                    htmlFor="registrant-age"
                     className="block mb-1 font-semibold text-sm text-ink-soft"
                   >
-                    Date of birth
+                    Age
                   </label>
                   <input
-                    id="registrant-dob"
-                    type="date"
-                    value={editingRegistrant.dob}
+                    id="registrant-age"
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    value={editingRegistrant.age}
                     onChange={(e) =>
                       setEditingRegistrant({
                         ...editingRegistrant,
-                        dob: e.target.value,
+                        age: e.target.value,
                       })
                     }
                     className="w-full p-2 border-2 border-ink/15 bg-sand rounded-lg focus:border-clay focus:outline-none"
@@ -558,47 +503,6 @@ export default function RegistrationTab({
                   </select>
                 </div>
               </div>
-
-              <div>
-                <div className="font-semibold text-sm text-ink-soft mb-2">
-                  Fun award questions
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <YesNoField
-                    label="First gravel race?"
-                    value={editingRegistrant.firstGravelRace}
-                    onChange={(v) =>
-                      setEditingRegistrant({
-                        ...editingRegistrant,
-                        firstGravelRace: v,
-                      })
-                    }
-                  />
-                  <YesNoField
-                    label="Is a parent?"
-                    value={editingRegistrant.isParent}
-                    onChange={(v) =>
-                      setEditingRegistrant({ ...editingRegistrant, isParent: v })
-                    }
-                  />
-                  <YesNoField
-                    label="Rigid bike?"
-                    value={editingRegistrant.rigidBike}
-                    onChange={(v) =>
-                      setEditingRegistrant({ ...editingRegistrant, rigidBike: v })
-                    }
-                    unsure
-                  />
-                  <YesNoField
-                    label="Steel bike?"
-                    value={editingRegistrant.steelBike}
-                    onChange={(v) =>
-                      setEditingRegistrant({ ...editingRegistrant, steelBike: v })
-                    }
-                    unsure
-                  />
-                </div>
-              </div>
             </div>
 
             <div className="flex gap-2 mt-6">
@@ -630,10 +534,7 @@ export default function RegistrationTab({
             <div className="mb-4 p-3 bg-danger-soft border-2 border-danger/40 rounded-lg">
               <p className="text-ink">
                 Are you sure you want to delete{" "}
-                <strong>
-                  {registrants.get(deleteConfirmBib)?.firstName}{" "}
-                  {registrants.get(deleteConfirmBib)?.lastName}
-                </strong>{" "}
+                <strong>{registrants.get(deleteConfirmBib)?.name}</strong>{" "}
                 (Bib #{deleteConfirmBib})?
               </p>
               {hasTimingData && (
@@ -679,33 +580,6 @@ export default function RegistrationTab({
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-interface YesNoFieldProps {
-  label: string;
-  value: string | undefined;
-  onChange: (value: string | undefined) => void;
-  unsure?: boolean;
-}
-
-// Blank/absent means "not eligible," not "unknown" — every option here maps
-// to a real value or undefined, never a guessed default.
-function YesNoField({ label, value, onChange, unsure }: YesNoFieldProps) {
-  return (
-    <div>
-      <label className="block mb-1 text-xs text-ink-soft">{label}</label>
-      <select
-        value={value ?? ""}
-        onChange={(e) => onChange(e.target.value || undefined)}
-        className="w-full p-1.5 text-sm border-2 border-ink/15 bg-sand rounded-lg focus:border-clay focus:outline-none"
-      >
-        <option value="">Skip</option>
-        <option value="yes">Yes</option>
-        <option value="no">No</option>
-        {unsure && <option value="unsure">Unsure</option>}
-      </select>
     </div>
   );
 }

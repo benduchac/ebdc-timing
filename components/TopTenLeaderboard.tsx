@@ -54,9 +54,7 @@ export default function TopTenLeaderboard({ entries }: TopTenLeaderboardProps) {
             >
               <RankBadge place={place} className="w-6 h-6 shrink-0 text-xs" />
               <BibChip bib={entry.bib} className="text-xs" />
-              <div className="flex-1 truncate">
-                {entry.firstName} {entry.lastName}
-              </div>
+              <div className="flex-1 truncate">{entry.name}</div>
               <TimeChip className="text-xs">
                 {entry.elapsedMs !== null
                   ? formatElapsedTime(entry.elapsedMs)

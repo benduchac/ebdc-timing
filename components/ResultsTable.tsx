@@ -89,9 +89,7 @@ export default function ResultsTable({
                       <BibChip bib={entry.bib} className="text-xs" />
                     </span>
                   </td>
-                  <td className="p-2">
-                    {entry.firstName} {entry.lastName}
-                  </td>
+                  <td className="p-2">{entry.name}</td>
                   <td className="p-2">Wave {entry.wave}</td>
                   <td className="p-2">
                     <span className="font-mono tabular-nums text-ink-soft text-xs">
@@ -155,9 +153,7 @@ export default function ResultsTable({
                       <BibChip bib={entry.bib} className="text-xs" />
                     </span>
                   </td>
-                  <td className="p-2">
-                    {entry.firstName} {entry.lastName}
-                  </td>
+                  <td className="p-2">{entry.name}</td>
                   <td className="p-2">
                     <span className="inline-block px-2 py-1 rounded-full text-xs font-bold bg-flag text-ink">
                       No wave assigned

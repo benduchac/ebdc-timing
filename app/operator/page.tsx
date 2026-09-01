@@ -563,7 +563,7 @@ export default function OperatorPage() {
     );
 
     let csv =
-      "Overall Place,Wave Place,Bib Number,First Name,Last Name,Wave,Finish Time,Elapsed Time,Full Timestamp\n";
+      "Overall Place,Wave Place,Bib Number,Name,Wave,Finish Time,Elapsed Time,Full Timestamp\n";
     sorted.forEach((entry, index) => {
       const overallPlace = overallRanks[index];
       const wavePlace = entry.wave
@@ -576,8 +576,7 @@ export default function OperatorPage() {
           overallPlace,
           wavePlace,
           entry.bib,
-          entry.firstName,
-          entry.lastName,
+          entry.name,
           entry.wave,
           entry.finishTime,
           entry.elapsedTime,
@@ -939,7 +938,6 @@ export default function OperatorPage() {
                 registrants={registrants}
                 onUpdateRegistrants={handleUpdateRegistrants}
                 hasTimingData={entries.length > 0}
-                raceDate={raceDate ?? undefined}
               />
             )}
 
@@ -998,7 +996,6 @@ export default function OperatorPage() {
                   <CategoryLeaderboards
                     entries={entries}
                     registrants={registrants}
-                    raceDate={raceDate ?? undefined}
                   />
                 )}
 

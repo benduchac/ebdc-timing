@@ -8,36 +8,35 @@ export type YesNoUnsure = "yes" | "no" | "unsure";
 
 export interface Registrant {
   bib: string;
-  firstName: string;
-  lastName: string;
+  // One combined field, not split — the registration form collects a single
+  // Name question, and this app never looks anyone up or displays them by
+  // last name, so there's nothing splitting would buy. See
+  // docs/registrant-import.md.
+  name: string;
   // Nullable: a badly imported row (missing/invalid wave column) still
-  // imports rather than being dropped — see docs/fun-awards-timing.md 6a.
+  // imports rather than being dropped — see docs/registrant-import.md
+  // section 6a.
   wave: "A" | "B" | "C" | null;
-  dob: string; // Format: YYYY-MM-DD
+  // Raw string, not a number: the registration form collects a plain age
+  // (not date of birth), and the importer must be able to carry an invalid
+  // value (blank, "unknown") through as a flagged, fixable field rather than
+  // silently coercing it — see docs/registrant-import.md section 6a. Parse
+  // with lib/categories.ts's parseAge before use.
+  age: string;
   // Free text, not a union: the importer must be able to carry an invalid
   // token (e.g. "Female") through as a flagged, fixable value rather than
   // silently coercing it to one of the four real tokens — see
-  // docs/fun-awards-timing.md section 6a ("never substitute a placeholder").
+  // docs/registrant-import.md section 6a ("never substitute a placeholder").
   // The four real tokens are "male" | "female" | "nonbinary" | "undisclosed";
   // anything else just doesn't match a gendered board's eligibility check.
   gender: string;
-  // Optional fun-award questions, answered at registration. Blank/absent
-  // means "not eligible for that award," not "unknown." Free text like
-  // `gender` above — an invalid token still needs to display and flag, not
-  // vanish. Eligibility checks compare against the exact YesNo/YesNoUnsure
-  // tokens; anything else just isn't eligible.
-  firstGravelRace?: string;
-  isParent?: string;
-  rigidBike?: string;
-  steelBike?: string;
 }
 
 export interface Entry {
   id: number;
   bib: string;
   wave: "A" | "B" | "C" | null;
-  firstName: string;
-  lastName: string;
+  name: string;
   finishTime: string;
   finishTimeMs: number;
   elapsedTime: string;

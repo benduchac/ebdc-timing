@@ -17,15 +17,14 @@ test("a walk-up is added through the ordinary Add registrant form, using the bib
   ).toBeVisible();
 
   // Never pre-filled with a guessed value — every field starts blank.
-  await expect(page.getByLabel("First name")).toHaveValue("");
-  await expect(page.getByLabel("Date of birth")).toHaveValue("");
+  await expect(page.getByLabel("Name")).toHaveValue("");
+  await expect(page.getByLabel("Age")).toHaveValue("");
   await expect(page.getByLabel("Gender")).toHaveValue("");
 
   await page.getByLabel("Bib number").fill("150");
-  await page.getByLabel("First name").fill("Walkup");
-  await page.getByLabel("Last name").fill("Rider");
+  await page.getByLabel("Name").fill("Walkup Rider");
   await page.getByRole("button", { name: "B", exact: true }).click();
-  await page.getByLabel("Date of birth").fill("1995-05-05");
+  await page.getByLabel("Age").fill("30");
   await page.getByLabel("Gender").selectOption("female");
   await page.getByRole("button", { name: "Add registrant", exact: true }).click();
 

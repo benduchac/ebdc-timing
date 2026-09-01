@@ -41,7 +41,7 @@ export default function DeleteEntryModal({
               <strong>Bib:</strong> {entry.bib}
             </div>
             <div>
-              <strong>Name:</strong> {entry.firstName} {entry.lastName}
+              <strong>Name:</strong> {entry.name}
             </div>
             <div>
               <strong>Finish time:</strong> {entry.finishTime}
