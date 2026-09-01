@@ -108,9 +108,19 @@ export default function OperatorPage() {
   const [waveTimesConfirmed, setWaveTimesConfirmed] = useState(false);
   const [showWaveTimesModal, setShowWaveTimesModal] = useState(false);
   // YYYY-MM-DD, set whenever wave times are confirmed (that's the date the
-  // wave-time inputs are applied to). Anchors age-on-race-day and restoring
-  // wave start times onto the right date — see lib/db.ts's RaceState.raceDate.
+  // wave-time inputs are applied to). Anchors restoring wave start times
+  // onto the right date — see lib/db.ts's RaceState.raceDate.
   const [raceDate, setRaceDate] = useState<string | null>(null);
+  // The raw ISO value last adopted from the start-line phone per wave — see
+  // lib/db.ts's RaceState.waveStartAdopted.
+  const [waveStartAdopted, setWaveStartAdopted] = useState<{
+    A?: string;
+    B?: string;
+    C?: string;
+  }>({});
+  // Transient "Wave A start time set from the start line" banner — cleared
+  // automatically, or by the operator dismissing it.
+  const [waveStartNotice, setWaveStartNotice] = useState<string | null>(null);
 
   // Modal state
   const [editingEntry, setEditingEntry] = useState<Entry | null>(null);
@@ -143,6 +153,7 @@ export default function OperatorPage() {
             C: rebaseTimeOnDate(state.waveStartTimes.C, restoreDate),
           });
           setRaceDate(state.raceDate ?? null);
+          setWaveStartAdopted(state.waveStartAdopted ?? {});
           setRegistrants(new Map(normalizeGenders(state.registrants)));
           setEntries(state.entries);
           setEntryCounter(state.entryCounter);
@@ -155,6 +166,7 @@ export default function OperatorPage() {
               label: state.raceLabel || "Untitled Race",
               createdAt: state.raceCreatedAt || state.lastSaved,
               slug: state.raceSlug,
+              startToken: state.raceStartToken,
             });
           } else if (state.entries.length > 0 || state.registrants.length > 0) {
             // Local data from before race identity existed (Phase 3) — mint
@@ -206,6 +218,14 @@ export default function OperatorPage() {
     loadPersistedState();
   }, []);
 
+  // Auto-clears the wave-start-adopted toast so it doesn't linger forever if
+  // the operator doesn't notice it to dismiss manually.
+  useEffect(() => {
+    if (!waveStartNotice) return;
+    const timeout = setTimeout(() => setWaveStartNotice(null), 8000);
+    return () => clearTimeout(timeout);
+  }, [waveStartNotice]);
+
   // Ask the browser to keep this origin's storage rather than treating it as
   // evictable cache. Best-effort: unsupported or denied is not an error, and
   // an already-persisted origin returns true without prompting.
@@ -229,9 +249,11 @@ export default function OperatorPage() {
               raceLabel: activeRace?.label,
               raceCreatedAt: activeRace?.createdAt,
               raceSlug: activeRace?.slug,
+              raceStartToken: activeRace?.startToken,
               cloudLastSyncedAt: cloudLastSyncedAt ?? undefined,
               waveTimesConfirmed,
               raceDate: raceDate ?? undefined,
+              waveStartAdopted,
               waveStartTimes: {
                 A: waveStartTimes.A.toISOString(),
                 B: waveStartTimes.B.toISOString(),
@@ -264,6 +286,7 @@ export default function OperatorPage() {
     cloudLastSyncedAt,
     waveTimesConfirmed,
     raceDate,
+    waveStartAdopted,
   ]);
 
   // Save wave times to setup config
@@ -328,12 +351,14 @@ export default function OperatorPage() {
     lastSyncedAt: cloudSyncedAt,
     error: syncError,
     slug: syncedSlug,
+    startToken: syncedStartToken,
   } = useCloudSync(
     {
       race: activeRace,
       waveStartTimes,
       waveTimesConfirmed,
       raceDate,
+      waveStartAdopted,
       registrants,
       entries,
       entryCounter,
@@ -346,14 +371,75 @@ export default function OperatorPage() {
     if (cloudSyncedAt) setCloudLastSyncedAt(cloudSyncedAt);
   }, [cloudSyncedAt]);
 
-  // The server assigns the public URL slug on first sync — thread it back
-  // into activeRace once we learn it, so the header/share-link can show it.
+  // The server assigns the public URL slug and the wave-start token on first
+  // sync — thread them back into activeRace once we learn them, so the
+  // header/share-link and the Settings wave-start link can show them.
   useEffect(() => {
     if (syncedSlug && activeRace && activeRace.slug !== syncedSlug) {
       setActiveRace({ ...activeRace, slug: syncedSlug });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [syncedSlug]);
+
+  useEffect(() => {
+    if (
+      syncedStartToken &&
+      activeRace &&
+      activeRace.startToken !== syncedStartToken
+    ) {
+      setActiveRace({ ...activeRace, startToken: syncedStartToken });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [syncedStartToken]);
+
+  // Polls the start-line phone's posted wave-start times and adopts each new
+  // one as it lands, until all three waves have been adopted — see
+  // docs/race-readiness-design.md "Wave start line". Comparing against
+  // waveStartAdopted (not waveStartTimes) is what lets a later manual
+  // correction via WaveTimeEditModal stick: the phone's stored value hasn't
+  // changed, so a poll after that correction sees nothing new to adopt.
+  useEffect(() => {
+    if (!activeRace) return;
+    const allAdopted = (["A", "B", "C"] as const).every(
+      (w) => waveStartAdopted[w]
+    );
+    if (allAdopted) return;
+
+    let cancelled = false;
+
+    const poll = async () => {
+      const passphrase = getStoredPassphrase();
+      if (!passphrase) return;
+      try {
+        const res = await fetch(
+          `/api/wave-start?raceId=${encodeURIComponent(activeRace.id)}`,
+          { headers: { Authorization: `Bearer ${passphrase}` } }
+        );
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        if (!data.ok || cancelled) return;
+
+        const waveStarts: { A?: string; B?: string; C?: string } =
+          data.waveStarts ?? {};
+        for (const wave of ["A", "B", "C"] as const) {
+          const iso = waveStarts[wave];
+          if (iso && iso !== waveStartAdopted[wave]) {
+            applyWaveStartFromField(wave, iso);
+          }
+        }
+      } catch {
+        // Offline or unreachable — the next tick tries again.
+      }
+    };
+
+    poll();
+    const interval = setInterval(poll, 5000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeRace?.id, waveStartAdopted]);
 
   const handleClockCheck = async () => {
     setCheckingClock(true);
@@ -392,6 +478,7 @@ export default function OperatorPage() {
       C: rebaseTimeOnDate(snapshot.waveStartTimes.C, restoreDate),
     });
     setRaceDate(snapshot.raceDate ?? null);
+    setWaveStartAdopted(snapshot.waveStartAdopted ?? {});
     setRegistrants(new Map(normalizeGenders(snapshot.registrants)));
     setEntries(snapshot.entries);
     setEntryCounter(snapshot.entryCounter);
@@ -448,6 +535,39 @@ export default function OperatorPage() {
 
   const handleEditWaveTime = (wave: "A" | "B" | "C") => {
     setEditingWave(wave);
+  };
+
+  // Adopts a wave-start time posted from the start-line phone — treated as
+  // authoritative over any earlier manual estimate for that wave, since it's
+  // the real observed release moment. Non-blocking (a toast, not an alert())
+  // since this fires automatically in the background while the operator may
+  // be mid-task at the finish line.
+  const applyWaveStartFromField = (wave: "A" | "B" | "C", iso: string) => {
+    const newDateTime = new Date(iso);
+
+    setWaveStartTimes((prev) => ({ ...prev, [wave]: newDateTime }));
+    setWaveTimesConfirmed(true);
+    setRaceDate(toDateString(newDateTime));
+    setWaveStartAdopted((prev) => ({ ...prev, [wave]: iso }));
+
+    setEntries((prev) =>
+      prev.map((entry) => {
+        if (entry.wave !== wave) return entry;
+        const elapsedMs = entry.finishTimeMs - newDateTime.getTime();
+        return {
+          ...entry,
+          elapsedMs,
+          elapsedTime: formatElapsedTime(elapsedMs),
+        };
+      })
+    );
+
+    setWaveStartNotice(
+      `Wave ${wave} start time set from the start line: ${newDateTime.toLocaleTimeString(
+        "en-US",
+        { hour12: true }
+      )}`
+    );
   };
 
   const handleSaveWaveTime = (wave: "A" | "B" | "C", newTimeStr: string) => {
@@ -598,7 +718,9 @@ export default function OperatorPage() {
       raceLabel: activeRace?.label,
       raceCreatedAt: activeRace?.createdAt,
       raceSlug: activeRace?.slug,
+      raceStartToken: activeRace?.startToken,
       raceDate: raceDate ?? undefined,
+      waveStartAdopted,
       waveStartTimes: {
         A: waveStartTimes.A.toISOString(),
         B: waveStartTimes.B.toISOString(),
@@ -648,6 +770,7 @@ export default function OperatorPage() {
           setWaveTimesConfirmed(!!backup.waveTimesConfirmed);
           setRaceDate(backup.raceDate ?? null);
         }
+        setWaveStartAdopted(backup.waveStartAdopted ?? {});
         if (backup.registrants) {
           setRegistrants(new Map(normalizeGenders(backup.registrants)));
         }
@@ -663,6 +786,7 @@ export default function OperatorPage() {
             label: backup.raceLabel || "Imported Race",
             createdAt: backup.raceCreatedAt || new Date().toISOString(),
             slug: backup.raceSlug,
+            startToken: backup.raceStartToken,
           });
         }
 
@@ -716,6 +840,7 @@ export default function OperatorPage() {
     setCloudLastSyncedAt(null);
     setWaveTimesConfirmed(false);
     setRaceDate(null);
+    setWaveStartAdopted({});
 
     const today = new Date();
     const year = today.getFullYear();
@@ -772,6 +897,7 @@ export default function OperatorPage() {
     setClockCheckedAt(null);
     setWaveTimesConfirmed(false);
     setRaceDate(null);
+    setWaveStartAdopted({});
     setActiveTab("registration");
 
     const today = new Date();
@@ -905,6 +1031,18 @@ export default function OperatorPage() {
           </div>
 
           <div className="bg-chalk p-4 sm:p-6">
+            {waveStartNotice && (
+              <div className="mb-4 bg-success-soft border border-success/40 rounded-lg px-3 py-2 text-sm text-moss-dark flex items-center justify-between gap-2">
+                <span>{waveStartNotice}</span>
+                <button
+                  onClick={() => setWaveStartNotice(null)}
+                  className="text-moss-dark/70 hover:text-moss-dark shrink-0"
+                >
+                  ×
+                </button>
+              </div>
+            )}
+
             {/* Status Bar */}
             <div className="flex gap-3 mb-4 text-sm flex-wrap">
               <div className="bg-sand border border-ink/10 px-3 py-1 rounded-full">
@@ -1062,6 +1200,7 @@ export default function OperatorPage() {
             entryCount={entries.length}
             registrantCount={registrants.size}
             raceLabel={activeRace.label}
+            startToken={activeRace.startToken}
             clockCheck={clockCheck}
             checkingClock={checkingClock}
             onCheckClock={handleClockCheck}

@@ -53,22 +53,34 @@ export interface RaceState {
   raceLabel?: string;
   raceCreatedAt?: string; // ISO
   raceSlug?: string; // assigned server-side on first sync; absent until then
+  // Assigned server-side alongside raceSlug on first sync — the secret that
+  // authorizes the /start/[token] wave-start-line page for this race. See
+  // docs/race-readiness-design.md "Wave start line".
+  raceStartToken?: string;
   // Last snapshot timestamp the cloud actually acked for this race. Restored
   // on load purely for the "Backed up Nm ago" idle badge text; the badge's
   // dirty/synced status itself is re-earned each session, not trusted from
   // a prior one (see docs/race-readiness-design.md "Sync indicator").
   cloudLastSyncedAt?: string;
   // True once the operator has explicitly saved wave times via the setup
-  // checklist or edited one via the Timing tab — tracks "has this been
-  // reviewed," not "is it correct" (defaults are always a valid-looking
-  // value, reviewed or not). Synced to the cloud snapshot too so recovery on
-  // a different machine doesn't force re-confirmation.
+  // checklist, edited one via the Timing tab, or had one adopted from the
+  // start-line phone — tracks "has this been reviewed," not "is it correct"
+  // (defaults are always a valid-looking value, reviewed or not). Synced to
+  // the cloud snapshot too so recovery on a different machine doesn't force
+  // re-confirmation.
   waveTimesConfirmed?: boolean;
-  // YYYY-MM-DD, the day wave start times were confirmed for. Anchors both
-  // age-on-race-day (lib/categories.ts) and restoring wave start times onto
-  // the right date instead of whatever date they happen to carry in storage.
-  // Absent on pre-2026 races; restore/age logic falls back to today.
+  // YYYY-MM-DD, the day wave start times were confirmed for. Anchors
+  // restoring wave start times onto the right date instead of whatever date
+  // they happen to carry in storage. Absent on pre-2026 races; restore logic
+  // falls back to today.
   raceDate?: string;
+  // The raw ISO timestamp last *adopted* from the start-line phone for each
+  // wave, distinct from waveStartTimes itself — lets the poll in
+  // app/operator/page.tsx tell "the phone posted something new" (adopt it)
+  // apart from "the operator has since hand-corrected this wave" (leave it
+  // alone, since the phone's stored value hasn't changed). See
+  // docs/race-readiness-design.md "Wave start line".
+  waveStartAdopted?: { A?: string; B?: string; C?: string };
   waveStartTimes: {
     A: string;
     B: string;

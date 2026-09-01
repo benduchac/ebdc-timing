@@ -56,6 +56,10 @@ function offline; anything that claims data is safe must be provably true.
   UI cleanup (green secondary buttons, richer clock-check detail text, a
   non-blocking "Copied!" link-copy affordance, background-rendering fixes
   for both a desktop scrollbar-width bug and a preventive mobile one).
+- **Done, deployed:** wave start line — a phone-first `/start/[token]` page
+  a start-line volunteer taps once per wave, posting the real release time
+  straight into the race instead of the operator typing an estimate. See
+  [Wave start line](#wave-start-line).
 - **Next:** the rest of Phase 4 (full offline dry run). Deferred separately:
   a UI reskin (visual polish, explicitly no functionality changes — planned
   for after the leaderboard, in its own branch) and a stretch-goal photo
@@ -65,13 +69,14 @@ function offline; anything that claims data is safe must be provably true.
 
 ## Surfaces & routing
 
-Two surfaces, clearly separated:
+Three surfaces, clearly separated:
 
 | Surface | Path | Access |
 |---|---|---|
 | Public results / leaderboard | `/[slug]` (e.g. `/ebdc-7-9`) | public, read-only |
 | Public landing (static brand page) | `/` | public — no race data, never redirects |
 | Operator app (scoring/editing) | `/operator` | passphrase-gated, unlinked |
+| Wave start line (start-line phone) | `/start/[token]` | token-gated, unlinked — see [Wave start line](#wave-start-line) |
 
 **Decided:** every race gets its own permanent, shareable URL derived from
 its label (`/[slug]`); that link is shared directly per race (the operator
@@ -153,7 +158,8 @@ Keys:
 
 ## Endpoints
 
-All secret-gated **except** the public leaderboard.
+All secret-gated **except** the public leaderboard and the wave-start
+endpoints, which are token-gated instead — see [Wave start line](#wave-start-line).
 
 | Method / path | Purpose | Auth |
 |---|---|---|
@@ -161,6 +167,9 @@ All secret-gated **except** the public leaderboard.
 | `POST /api/backup` | Write snapshot; update `latest`, `history`, `races:index` | secret |
 | `GET /api/races` | List the registry for the race menu | secret |
 | `GET /api/backup?id=` | Pull a race's latest snapshot (restore) | secret |
+| `POST /api/wave-start` | Post a wave's real start time | token |
+| `GET /api/wave-start?token=` | Read a race's wave-start state (the phone) | token |
+| `GET /api/wave-start?raceId=` | Poll a race's wave-start state (the operator) | secret |
 | `GET /` , `GET /[slug]` | Public leaderboard | public |
 
 The public leaderboard isn't a separate publish pipeline — no data is ever
@@ -170,6 +179,72 @@ syncs to) and does the PII filtering (age → category, never raw) at render
 time, server-side, before anything reaches the client. Simpler than the
 originally-sketched separate "publish read" endpoint, and avoids ever having
 two copies of the data to keep in sync.
+
+---
+
+## Wave start line
+
+A phone-first page, `/start/[token]`, for the volunteer standing at the
+start line: three big buttons ("Start Wave A/B/C"), one tap each as a
+wave's lead rider crosses. Posts the real release time straight into the
+race, instead of the operator typing an estimate from memory or a radio
+call after the fact.
+
+**Why this needed its own auth model.** Everything else privileged uses the
+shared operator passphrase. That doesn't fit here: the phone isn't the
+operator's device, and typing a passphrase on it (then picking the right
+race from a list) is exactly the friction this page exists to remove for
+someone whose only job is watching the trailhead. Instead, the operator
+generates a **race-specific link from Settings** (`CopyLinkButton`, same
+pattern as the public leaderboard link) with a `startToken` — a
+`crypto.randomUUID()` — baked into the URL. The link itself is the
+credential: opening it is enough, nothing to type. Assigned once, on a
+race's first sync, the same way `slug` is (`app/api/backup/route.ts`);
+never regenerated, so a link already handed to a volunteer keeps working.
+
+Anyone who obtains the link could post wave-start times for that race —
+accepted the same way `docs/known-issues.md` accepts no rate limit on
+`POST /api/auth`: a short-lived, low-value target for a single community
+race, not worth the friction of a stronger scheme.
+
+**Why the write is separate from the snapshot.** The operator's own device
+already pushes its full local state to `race:{id}:latest` on every change
+(`POST /api/backup`) — a straight overwrite, not a merge. If the phone wrote
+into that same object, the operator's *next* routine sync (debounced
+~600ms, or its retry timer) would silently clobber the phone's post with
+whatever stale value the operator's device still had locally — the exact
+failure mode `docs/known-issues.md` already flags for two operator tabs,
+guaranteed to happen here instead of just possible. So wave-start times live
+in their own key, `race:{id}:wavestarts` (a hash, fields `A`/`B`/`C` → ISO),
+written only by `POST /api/wave-start` and never touched by the snapshot
+endpoint.
+
+**How the operator picks it up.** `app/operator/page.tsx` polls
+`GET /api/wave-start?raceId=` every 5s while any wave hasn't yet been
+adopted, and adopts each new value as it lands: sets `waveStartTimes[wave]`,
+recalculates elapsed time for that wave's existing entries (same
+recalculation `handleSaveWaveTime` does for a manual edit), and shows a
+dismissible, non-blocking toast — not an `alert()`, since this fires in the
+background while the operator may be mid-task. A field-observed time is
+treated as **authoritative**, overriding any earlier manual estimate for
+that wave.
+
+The poll compares against `waveStartAdopted` (`lib/db.ts`'s
+`RaceState.waveStartAdopted`) — the raw ISO value last *adopted*, not
+`waveStartTimes` itself. That's what lets a later manual correction via
+`WaveTimeEditModal` stick: the phone's stored value hasn't changed, so the
+next poll sees nothing new to adopt. Comparing against `waveStartTimes`
+directly would re-clobber the correction the moment the interval fired
+again.
+
+**Timestamp precision.** The tap's timestamp is captured client-side, on
+the phone, at the moment of the tap (`Date.now()`, before the POST) — the
+same principle as `TimingTab.handleRecordFinish` stamping before anything
+that can block. A server-side timestamp would be skewed by however long the
+request took on a mobile hotspot; only *whether it's been sent* is
+uncertain, never *what time it was*. A tap that fails to send is kept in
+`localStorage` (keyed by token) and retried with backoff until it lands,
+surviving a reload if the phone loses signal mid-send.
 
 ---
 
@@ -311,6 +386,13 @@ the badge was already warning about.
 - **Offline + lost id** can't browse the registry until back online.
 - Client gate is soft; SVG PWA icons (fine on current Chrome/Edge — the confirmed
   race browser — PNG polish deferred).
+- **The wave-start link has no rate limit**, same accepted tradeoff as
+  `POST /api/auth` — see [Wave start line](#wave-start-line).
+- **Two phones tapping the same wave: last POST wins**, no merge. Not
+  expected in practice (one phone at the start line), and a wrong tap is
+  correctable — tapping the wave button again on the phone re-posts, or the
+  operator can hand-correct via `WaveTimeEditModal` same as any other wave
+  time.
 
 ---
 
@@ -341,6 +423,9 @@ In the Vercel project:
    no ages shown (uniformly, not just for minors), full names shown for
    everyone (consent handled by the event's existing waiver, not tracked in
    the app), age never leaves the server.
+5. **Wave start line** *(done — deployed)* — `/start/[token]`,
+   `POST`/`GET /api/wave-start`, operator-side polling and adoption. See
+   [Wave start line](#wave-start-line).
 
 ---
 

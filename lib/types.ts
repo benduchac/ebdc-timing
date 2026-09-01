@@ -18,16 +18,24 @@ export interface Race {
   // Public leaderboard URL slug (see lib/slug.ts). Assigned server-side on
   // first successful sync, so it's absent client-side until then.
   slug?: string;
+  // Secret that authorizes /start/[token] for this race — see lib/db.ts's
+  // RaceState.raceStartToken. Assigned alongside slug, same lifecycle.
+  startToken?: string;
 }
+
+// A wave's start time as posted from the start-line phone, ISO or absent.
+export type WaveStarts = { A?: string; B?: string; C?: string };
 
 export interface RaceSnapshot {
   raceId: string;
   label: string;
   createdAt: string; // ISO, set once at race creation (matches Race.createdAt)
   slug: string; // always present once persisted — server assigns it, never the client
+  startToken: string; // always present once persisted — server assigns it, never the client
   waveStartTimes: { A: string; B: string; C: string };
   waveTimesConfirmed?: boolean;
   raceDate?: string; // YYYY-MM-DD — see RaceState.raceDate in lib/db.ts
+  waveStartAdopted?: WaveStarts; // see RaceState.waveStartAdopted in lib/db.ts
   registrants: [string, Registrant][];
   entries: Entry[];
   entryCounter: number;
@@ -40,6 +48,7 @@ export interface RaceIndexEntry {
   id: string;
   label: string;
   slug: string;
+  startToken: string;
   createdAt: string;
   lastSaved: string;
   entryCount: number;

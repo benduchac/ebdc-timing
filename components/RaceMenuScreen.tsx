@@ -88,6 +88,7 @@ export default function RaceMenuScreen({ onCreate, onOpen }: RaceMenuScreenProps
           label: snapshot.label,
           createdAt: snapshot.createdAt,
           slug: snapshot.slug,
+          startToken: snapshot.startToken,
         },
         snapshot
       );

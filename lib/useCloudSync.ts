@@ -16,6 +16,7 @@ interface SyncInput {
   waveStartTimes: { A: Date; B: Date; C: Date };
   waveTimesConfirmed: boolean;
   raceDate: string | null;
+  waveStartAdopted: { A?: string; B?: string; C?: string };
   registrants: Map<string, Registrant>;
   entries: Entry[];
   entryCounter: number;
@@ -26,6 +27,7 @@ export interface CloudSync {
   lastSyncedAt: string | null;
   error: string | null;
   slug: string | null;
+  startToken: string | null;
   syncNow: () => void;
 }
 
@@ -56,6 +58,7 @@ export function useCloudSync(
   );
   const [error, setError] = useState<string | null>(null);
   const [slug, setSlug] = useState<string | null>(null);
+  const [startToken, setStartToken] = useState<string | null>(null);
 
   // Only the latest in-flight request's result may resolve the status — an
   // older, slower request landing after a newer one must not overwrite it
@@ -97,6 +100,7 @@ export function useCloudSync(
       waveStartTimes,
       waveTimesConfirmed,
       raceDate,
+      waveStartAdopted,
       registrants,
       entries,
       entryCounter,
@@ -135,6 +139,7 @@ export function useCloudSync(
           },
           waveTimesConfirmed,
           raceDate: raceDate ?? undefined,
+          waveStartAdopted,
           registrants: Array.from(registrants.entries()),
           entries,
           entryCounter,
@@ -155,6 +160,7 @@ export function useCloudSync(
       setStatus("synced");
       setLastSyncedAt(data.lastSaved);
       setSlug(data.slug ?? null);
+      setStartToken(data.startToken ?? null);
       setError(null);
       retryAttemptRef.current = 0;
     } catch {
@@ -191,6 +197,7 @@ export function useCloudSync(
     input.waveStartTimes,
     input.waveTimesConfirmed,
     input.raceDate,
+    input.waveStartAdopted,
     input.registrants,
     input.entries,
     input.entryCounter,
@@ -206,5 +213,5 @@ export function useCloudSync(
   // Drop any pending retry when the hook goes away (race switched, tab closed).
   useEffect(() => cancelRetry, [cancelRetry]);
 
-  return { status, lastSyncedAt, error, slug, syncNow };
+  return { status, lastSyncedAt, error, slug, startToken, syncNow };
 }

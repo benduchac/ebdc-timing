@@ -104,6 +104,14 @@ context.
   ...). Assigned once server-side on a race's first sync
   (`app/api/backup/route.ts`), never recomputed — reused from `races:index`
   on every later sync.
+- `app/start/[token]/page.tsx` + `components/WaveStartView.tsx` +
+  `app/api/wave-start/route.ts` — the wave-start-line phone page. Token-gated
+  (not passphrase — the link itself is the credential), assigned alongside
+  `slug` on first sync. Writes to its own `race:{id}:wavestarts` Redis hash,
+  deliberately not the snapshot the operator's device overwrites wholesale on
+  every sync. `app/operator/page.tsx` polls and adopts each new wave time,
+  tracked in `RaceState.waveStartAdopted` so a later manual correction
+  sticks. See `docs/race-readiness-design.md` "Wave start line".
 - `components/CategoryLeaderboardGrid.tsx` — pure presentational category
   grid; takes pre-bucketed `Entry[]` arrays only, no registrants/age. Shared
   by both the operator's `CategoryLeaderboards.tsx` (thin wrapper that calls
@@ -123,7 +131,7 @@ context.
   `Registrant` / `Entry` / `RaceState` / `SetupConfig` types. `clearAllData()`.
 - `lib/types.ts` — re-exports DB types plus view types (`WaveStartTimes`,
   `ClockCheckResult`), plus the Phase 3 race types (`Race`, `RaceSnapshot`,
-  `RaceIndexEntry` — all three carry `slug`).
+  `RaceIndexEntry` — all three carry `slug` and `startToken`).
 - `lib/utils.ts` — `formatElapsedTime`, `formatDurationHMS` ("Xh Ym Zs" for
   plain-language duration deltas), `formatRelativeTime` ("Xs/Xm/Xh ago",
   shared by `SyncBadge` and `SetupChecklist`'s clock panel), `normalizeBib`
@@ -170,8 +178,8 @@ below).
 
 - `raceState` holds the full snapshot (entries, registrants as `[bib, Registrant][]`,
   wave times as ISO strings, counter, plus `raceId`/`raceLabel`/`raceCreatedAt`/
-  `cloudLastSyncedAt`). Saved on every relevant state change via a
-  transactional clear+add.
+  `raceSlug`/`raceStartToken`/`cloudLastSyncedAt`/`waveStartAdopted`). Saved on
+  every relevant state change via a transactional clear+add.
 - `setupConfig` holds just wave start times (HH:MM:SS) so they survive a reset of
   race data.
 - **Cloud sync**: `useCloudSync` best-effort POSTs the snapshot to
