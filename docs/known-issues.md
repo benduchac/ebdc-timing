@@ -91,6 +91,27 @@ Real, but not worth the churn before race day.
   The design doc accepts last-write-wins between machines; a tab lock
   (BroadcastChannel or a localStorage claim) would close the one-machine
   case.
+- **No deliberate flow for handing timekeeping off to a second computer
+  mid-race.** Today a swap means: hope the outgoing laptop's last sync
+  landed, then "Open" the race from the menu on the new one — no
+  confirmation, nothing stopping the old tab from firing one more sync
+  after the new one starts recording (same root cause as the item above).
+  Physically handing off the running laptop instead is the zero-risk
+  option and needs no code — worth writing up as the recommended
+  race-day procedure regardless of whether this ships.
+
+  Proposed: a "Hand off" action (Settings, or its own confirmation
+  screen) that (1) force-flushes `useCloudSync` immediately instead of
+  waiting out its debounce, and blocks on the server's ack rather than
+  the fire-and-forget the effect does today; (2) on success, shows a
+  clear green "Synced — safe to hand off" state and puts the outgoing
+  device into a locked/read-only mode so it physically can't fire
+  another write; (3) the incoming laptop's normal "Open Race" pull from
+  the race menu is the only way back in, so there's one blessed path,
+  not an ad hoc "just open it and hope." Needs a force-flush entry point
+  on `useCloudSync` and a local lock state that survives a reload (so a
+  laptop that's been handed off doesn't quietly start scoring again if
+  someone opens the lid). Not built.
 - **No rate limit on `POST /api/auth`.** The shared passphrase is the only
   thing between the internet and overwriting a race's backup. Mitigated by
   making the passphrase long.
@@ -117,6 +138,12 @@ For what is still open above.
    and look up anyone whose name has a space in it.
 4. Watch the wave clocks on the Timing tab. Wave A reading 23-something
    before the start means the wave date is wrong.
-5. Export both the results CSV and the backup JSON before closing the tab,
+5. **Handing timekeeping off to a second computer:** on the outgoing
+   laptop, wait for the sync badge to read "Synced" (not just "Saved
+   locally"), then close that tab — don't leave it open. Only then open
+   the race on the new laptop from the race menu. Skipping the wait or
+   leaving the old tab open risks it firing one more sync that overwrites
+   whatever the new laptop records first.
+6. Export both the results CSV and the backup JSON before closing the tab,
    and check the CSV's row count against the finisher count on screen —
    unresolved finishers are not in the file.
