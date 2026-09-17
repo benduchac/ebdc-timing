@@ -252,6 +252,7 @@ function PhotoCard({
   onReject,
 }: PhotoCardProps) {
   const [showAll, setShowAll] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   // Most recent first — a photo just uploaded is far likelier to belong to a
   // rider who finished a minute ago than one from the first wave.
@@ -261,16 +262,38 @@ function PhotoCard({
 
   return (
     <div className="border-2 border-ink/10 rounded-lg p-3 bg-chalk">
+      {expanded && (
+        // The full frame, fetched only once the operator asks for it — at
+        // 112px they couldn't read a bib off it anyway, so loading it by
+        // default spent the whole transfer for none of the detail.
+        <button
+          onClick={() => setExpanded(false)}
+          className="block w-full mb-3"
+          title="Shrink"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={photo.url}
+            alt=""
+            className="w-full max-h-96 object-contain rounded bg-ink/5"
+          />
+        </button>
+      )}
+
       <div className="flex gap-3">
-        {/* Full frame here, once per photo: the operator has to read a bib
-            off it to judge a match. */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={photo.url}
-          alt=""
-          loading="lazy"
-          className="w-28 h-28 object-cover rounded shrink-0"
-        />
+        <button
+          onClick={() => setExpanded((v) => !v)}
+          className="shrink-0"
+          title={expanded ? "Shrink" : "Enlarge to read a bib"}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={photo.thumbUrl}
+            alt=""
+            loading="lazy"
+            className="w-28 h-28 object-cover rounded"
+          />
+        </button>
         <div className="min-w-0 flex-1">
           <div className="text-sm text-ink">
             Taken <strong>{formatClock(photo.capturedAtMs)}</strong>

@@ -25,6 +25,11 @@ const fixtureHash = (path: string) =>
 const PIXEL =
   "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
 
+// A 1x1 PNG, so "the full frame" is distinguishable from "the thumbnail"
+// by src alone.
+const FULL_PIXEL =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+
 const stubPhoto = (contentHash: string) => ({
   id: "33333333-3333-3333-3333-333333333333",
   url: PIXEL,
@@ -168,6 +173,37 @@ test("the same photo picked twice in one batch only uploads once", async ({
     page.getByText("Skipped 1 photo already uploaded.")
   ).toBeVisible();
   await expect(page.getByText("finish-with-exif.jpg")).toHaveCount(1);
+});
+
+test("the review queue loads thumbnails, and the full frame only on request", async ({
+  page,
+}) => {
+  // A 1600px frame rendered at 112px costs the whole transfer and shows
+  // none of the extra detail. Vercel Blob's Hobby transfer allowance is
+  // what makes that expensive rather than merely wasteful — see
+  // docs/photo-companion-design.md "Two sizes, not one".
+  await page.route("**/api/photos*", async (route) => {
+    if (route.request().method() !== "GET") return route.continue();
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ok: true,
+        photos: [{ ...stubPhoto("abc"), url: FULL_PIXEL, thumbUrl: PIXEL }],
+      }),
+    });
+  });
+
+  await unlockOperator(page);
+  await startNewRace(page);
+  await page.getByRole("button", { name: "Photos" }).click();
+
+  await expect(page.locator(`img[src="${PIXEL}"]`)).toHaveCount(1);
+  await expect(page.locator(`img[src="${FULL_PIXEL}"]`)).toHaveCount(0);
+
+  // The operator asks for it when they need to read a bib.
+  await page.locator(`img[src="${PIXEL}"]`).click();
+  await expect(page.locator(`img[src="${FULL_PIXEL}"]`)).toHaveCount(1);
 });
 
 test("photos already uploaded show as a grid, from thumbnails", async ({

@@ -255,6 +255,12 @@ Each pending photo shows the image, its capture time and where that time came
 from, and the candidate finishers with their deltas, nearest first. Approve
 against one of them, or reject.
 
+**The review queue loads thumbnails too**, not just the leaderboard. Tapping
+one enlarges it, and that is the only thing that ever fetches a full frame —
+which is when the operator actually needs to read a bib. An earlier version
+loaded the 1600px frame and drew it at 112px: the whole transfer cost, none
+of the detail.
+
 **Rejecting deletes the blob** and drops the hash field, because the store is
 public and a flag alone would leave the image sitting at a live URL. It is
 the one irreversible action here, so it takes a confirmation, matching how
