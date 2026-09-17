@@ -135,7 +135,11 @@ context.
   operator's device overwrites wholesale. Image bytes go to Vercel Blob. The
   phone reads each photo's EXIF capture time, resizes it to two sizes, and
   queues the uploads with retries. See `docs/photo-companion-design.md`.
-- `components/PhotosTab.tsx` — the operator's photo review queue. **The one
+- `components/PhotosTab.tsx` — the operator's photo review queue. A rider
+  who already has an approved photo is filtered out of every other photo's
+  options (one rider, one photo); unapproving puts them back. Riders can
+  also be found by bib or name, since a photo whose capture time fell back
+  to the file date lands nowhere near its rider. **The one
   tab that owns its own data**, deliberately: photos are not in the race
   snapshot, never touch IndexedDB, and are useless offline, so the fetching
   lives here instead of in `operator/page.tsx`. It only polls while it's

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { getStoredPassphrase } from "./OperatorGate";
 import { findCandidates, type PhotoCandidate } from "@/lib/photoMatch";
+import { normalizeBib } from "@/lib/utils";
 import type { Entry } from "@/lib/db";
 import type { RacePhoto } from "@/lib/types";
 
@@ -23,6 +24,10 @@ import type { RacePhoto } from "@/lib/types";
 // Only while the tab is open. Photo review is a post-race job; a background
 // poll would be spending a hotspot the scoring needs.
 const REFRESH_MS = 20_000;
+
+// How many search results to draw at once. The list is for recognising a
+// rider, not for scrolling a field of two hundred.
+const PICKER_LIMIT = 12;
 
 interface PhotosTabProps {
   raceId: string;
@@ -130,6 +135,18 @@ export default function PhotosTab({ raceId, entries }: PhotosTabProps) {
   const pending = photos?.filter((p) => p.status === "pending") ?? [];
   const approved = photos?.filter((p) => p.status === "approved") ?? [];
 
+  // A rider who already has a photo drops out of every other photo's
+  // options. One rider, one photo — so the list of who's left shrinks as the
+  // operator works through the queue, and the same person can't quietly be
+  // picked twice a hundred photos apart. Swapping in a better shot means
+  // unapproving the first, which puts that rider back in the list.
+  const spokenFor = new Set(
+    approved
+      .map((p) => p.entryId)
+      .filter((id): id is number => id !== null)
+  );
+  const available = entries.filter((e) => !spokenFor.has(e.id));
+
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
@@ -167,8 +184,9 @@ export default function PhotosTab({ raceId, entries }: PhotosTabProps) {
             <PhotoCard
               key={photo.id}
               photo={photo}
-              candidates={findCandidates(photo, entries)}
-              entries={entries}
+              candidates={findCandidates(photo, available)}
+              entries={available}
+              spokenForCount={spokenFor.size}
               busy={busyId === photo.id}
               onApprove={(entryId) => decide(photo.id, entryId)}
               onReject={() => reject(photo)}
@@ -237,7 +255,9 @@ export default function PhotosTab({ raceId, entries }: PhotosTabProps) {
 interface PhotoCardProps {
   photo: RacePhoto;
   candidates: PhotoCandidate[];
+  // Only riders still without a photo — see spokenFor in PhotosTab.
   entries: Entry[];
+  spokenForCount: number;
   busy: boolean;
   onApprove: (entryId: number) => void;
   onReject: () => void;
@@ -247,18 +267,33 @@ function PhotoCard({
   photo,
   candidates,
   entries,
+  spokenForCount,
   busy,
   onApprove,
   onReject,
 }: PhotoCardProps) {
   const [showAll, setShowAll] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [query, setQuery] = useState("");
 
   // Most recent first — a photo just uploaded is far likelier to belong to a
   // rider who finished a minute ago than one from the first wave.
   const allFinishers = [...entries].sort(
     (a, b) => b.finishTimeMs - a.finishTimeMs
   );
+
+  const q = query.trim().toLowerCase();
+  // normalizeBib so "057" finds bib 57 — entries store the stripped form,
+  // and the operator is reading a number off a packet, not a database.
+  const asBib = query.trim() ? normalizeBib(query) : "";
+  const matches = q
+    ? allFinishers.filter(
+        (e) =>
+          e.name.toLowerCase().includes(q) ||
+          e.bib.toLowerCase().includes(q) ||
+          e.bib === asBib
+      )
+    : allFinishers;
 
   return (
     <div className="border-2 border-ink/10 rounded-lg p-3 bg-chalk">
@@ -341,7 +376,7 @@ function PhotoCard({
               onClick={() => setShowAll((v) => !v)}
               className="text-sm underline text-ink-soft"
             >
-              {showAll ? "Hide the full list" : "Someone else"}
+              {showAll ? "Hide the search" : "Someone else"}
             </button>
             <button
               onClick={onReject}
@@ -353,21 +388,59 @@ function PhotoCard({
           </div>
 
           {showAll && (
-            <select
-              className="mt-2 w-full border-2 border-ink/10 rounded-lg p-2 text-sm bg-chalk"
-              defaultValue=""
-              disabled={busy}
-              onChange={(e) => {
-                if (e.target.value) onApprove(Number(e.target.value));
-              }}
-            >
-              <option value="">Pick a finisher...</option>
-              {allFinishers.map((entry) => (
-                <option key={entry.id} value={entry.id}>
-                  #{entry.bib} {entry.name} — {entry.finishTime}
-                </option>
-              ))}
-            </select>
+            // A dropdown of two hundred riders is unusable; typing a bib off
+            // a packet, or the part of a name the operator can remember, is
+            // how anyone actually finds someone.
+            <div className="mt-2">
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search by bib or name"
+                disabled={busy}
+                autoFocus
+                className="w-full border-2 border-ink/10 rounded-lg p-2 text-sm bg-chalk"
+              />
+              <div
+                aria-label="Finisher search results"
+                className="mt-1 max-h-48 overflow-y-auto border-2 border-ink/10 rounded-lg divide-y divide-ink/10"
+              >
+                {matches.length === 0 ? (
+                  <div className="p-2 text-sm text-ink-soft">
+                    No rider without a photo matches that.
+                  </div>
+                ) : (
+                  matches.slice(0, PICKER_LIMIT).map((entry) => (
+                    <button
+                      key={entry.id}
+                      onClick={() => onApprove(entry.id)}
+                      disabled={busy}
+                      className="w-full text-left p-2 text-sm hover:bg-sand disabled:opacity-50"
+                    >
+                      <span className="font-semibold">#{entry.bib}</span>{" "}
+                      {entry.name}
+                      <span className="text-ink-soft">
+                        {" "}
+                        — {entry.finishTime}
+                      </span>
+                    </button>
+                  ))
+                )}
+              </div>
+              {matches.length > PICKER_LIMIT && (
+                <div className="text-xs text-ink-soft mt-1">
+                  {matches.length - PICKER_LIMIT} more — keep typing to narrow
+                  it down.
+                </div>
+              )}
+              {spokenForCount > 0 && (
+                <div className="text-xs text-ink-soft mt-1">
+                  {spokenForCount} rider{spokenForCount === 1 ? "" : "s"}{" "}
+                  already {spokenForCount === 1 ? "has" : "have"} a photo and
+                  aren&apos;t listed.
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>

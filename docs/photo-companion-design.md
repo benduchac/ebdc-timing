@@ -255,6 +255,20 @@ Each pending photo shows the image, its capture time and where that time came
 from, and the candidate finishers with their deltas, nearest first. Approve
 against one of them, or reject.
 
+**A rider who has a photo drops out of every other photo's options.** One
+rider, one photo — so the list of who's left shrinks as the operator works
+down the queue, and the same person can't be picked twice a hundred photos
+apart without anyone noticing. Swapping in a better shot means unapproving
+the first, which puts that rider back in the running.
+
+**Anyone still without a photo can be found by bib or name.** The time-based
+suggestions are the fast path and will usually be right, but a photo whose
+capture time fell back to the file date lands nowhere near its rider, and
+then the operator needs to search. Typing runs against both the bib and the
+name, and `normalizeBib` means the leading zeros printed on a packet still
+find the rider. A dropdown of two hundred was the first attempt and is
+unusable at that size.
+
 **The review queue loads thumbnails too**, not just the leaderboard. Tapping
 one enlarges it, and that is the only thing that ever fetches a full frame —
 which is when the operator actually needs to read a bib. An earlier version
@@ -303,8 +317,10 @@ if Blob transfer ever gets tight, not a reason to add it now.
 ## What this does not do
 
 - **No bib or face recognition.** Time is the only signal.
-- **One photo, one finisher.** A pack shot gets approved against a single
-  rider or skipped. Attaching one photo to several riders is a later call.
+- **One photo, one finisher, and one finisher, one photo.** A pack shot gets
+  approved against a single rider or skipped, and a rider who already has a
+  photo isn't offered again. Attaching one photo to several riders, or
+  giving a rider a gallery, are both later calls.
 - **No cropping, rotating or editing.**
 - **No retention policy.** An approved photo stays in Blob until someone
   deletes it by hand. Only rejection deletes anything on its own.
