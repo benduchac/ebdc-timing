@@ -54,6 +54,10 @@ export interface RacePhoto {
   clockOffsetMs: number;
   width: number;
   height: number;
+  // SHA-256 of the original file, before resizing — how a re-picked photo is
+  // recognised as one the race already has. Empty when the phone couldn't
+  // hash it (insecure origin); dedupe just skips those. See lib/photoHash.ts.
+  contentHash: string;
   uploadedAt: string; // ISO, set server-side
   status: PhotoStatus;
   // The finisher this photo is attached to, set when approved.

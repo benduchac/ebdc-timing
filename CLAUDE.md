@@ -145,6 +145,13 @@ context.
   JPEG, and `resolveCaptureTime`'s fallback chain (EXIF → the file's
   modified time → upload time, each one recorded as `capturedSource` so the
   operator can see which). Hand-rolled, no dependency.
+- `lib/photoHash.ts` — SHA-256 of an original photo file, so a re-picked
+  one is recognised as already uploaded. The photographer is told to select
+  their whole camera roll every time (iOS has no "select all", and they
+  won't remember what they already sent), which only works because a
+  duplicate is skipped before the decode and the upload. Checked again
+  server-side, since the phone's list of what the race holds is loaded once
+  and can go stale.
 - `lib/photoMatch.ts` — `findCandidates`: the finishers within ±20s of a
   photo, nearest first. Ranks only; the operator picks.
 - `lib/db.ts` — Dexie schema (`entries`, `raceState`, `setupConfig`) and the

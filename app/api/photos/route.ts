@@ -50,6 +50,20 @@ async function findRaceIdByPhotoToken(
   return index.find((r) => r.photoToken === token)?.id ?? null;
 }
 
+async function findPhotoByHash(
+  redis: NonNullable<ReturnType<typeof getRedis>>,
+  raceId: string,
+  contentHash: string
+): Promise<RacePhoto | null> {
+  const hash =
+    (await redis.hgetall<Record<string, RacePhoto>>(
+      kvKeys.racePhotos(raceId)
+    )) ?? {};
+  return (
+    Object.values(hash).find((p) => p.contentHash === contentHash) ?? null
+  );
+}
+
 async function readPhotos(
   redis: NonNullable<ReturnType<typeof getRedis>>,
   raceId: string
@@ -92,6 +106,7 @@ export async function POST(request: NextRequest) {
   const width = Number(params.get("width"));
   const height = Number(params.get("height"));
   const source = params.get("source") as PhotoCaptureSource | null;
+  const contentHash = (params.get("contentHash") ?? "").toLowerCase();
 
   if (!token) return bad("Missing token.");
   if (!photoId || !UUID_RE.test(photoId)) return bad("Invalid photo id.");
@@ -105,9 +120,26 @@ export async function POST(request: NextRequest) {
   if (!Number.isFinite(width) || !Number.isFinite(height)) {
     return bad("Missing image dimensions.");
   }
+  // Empty is allowed — a phone on an insecure origin can't hash, and that
+  // costs dedupe, not the upload.
+  if (contentHash && !/^[0-9a-f]{64}$/.test(contentHash)) {
+    return bad("Invalid content hash.");
+  }
 
   const raceId = await findRaceIdByPhotoToken(redis, token);
   if (!raceId) return bad("Invalid or expired link.", 404);
+
+  // The phone skips what it already knows about before uploading anything,
+  // but its list can be stale — it loads once, and a second phone or an
+  // earlier session may have added photos since. Checking again here is what
+  // keeps a duplicate out of the operator's review queue, and it costs two
+  // blob writes less than storing one.
+  if (contentHash) {
+    const existing = await findPhotoByHash(redis, raceId, contentHash);
+    if (existing) {
+      return NextResponse.json({ ok: true, photo: existing, duplicate: true });
+    }
+  }
 
   let form: FormData;
   try {
@@ -172,6 +204,7 @@ export async function POST(request: NextRequest) {
     thumbUrl,
     capturedAtMs,
     capturedSource: source,
+    contentHash,
     clockOffsetMs: clamp(clockOffsetMs, -MAX_CLOCK_OFFSET_MS, MAX_CLOCK_OFFSET_MS),
     width: Math.round(width),
     height: Math.round(height),

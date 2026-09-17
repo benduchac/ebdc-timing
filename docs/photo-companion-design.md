@@ -75,6 +75,7 @@ interface RacePhoto {
   capturedAtMs: number;   // when the shutter fired — see "Capture time"
   capturedSource: "exif" | "file" | "upload";
   clockOffsetMs: number;  // the phone's measured clock error at upload
+  contentHash: string;    // SHA-256 of the original — see "Picking a hundred photos"
   width: number;
   height: number;
   uploadedAt: string;     // ISO, set server-side
@@ -134,6 +135,42 @@ knowing: `list()` bills as an advanced operation, which is part of why photo
 metadata lives in Redis rather than being read back out of the store — and
 browsing the store in the Vercel dashboard bills advanced operations too, so
 checking on it repeatedly is not free.
+
+---
+
+## Picking a hundred photos
+
+One photographer will have a hundred shots or more, and iOS has no "select
+all" in its picker. The workable move is to swipe across the whole roll —
+but only if re-picking something is free, because they will not remember
+which shots went up in the last batch. So the rule the page is built around
+is **select everything, every time**, and the app works out what's new.
+
+Every photo is identified by a SHA-256 of the original file, before
+resizing. On load the phone asks the race what it already holds and keeps
+those hashes; anything picked that matches one drops out before being
+decoded, resized or sent, and the page says how many it skipped. That makes
+a re-pick cost one read per photo instead of a decode, a resize and an
+upload — cheaper than the first pass, not more expensive.
+
+The server checks again on upload and returns the stored record instead of
+writing a second copy. The phone's list is loaded once and can go stale — a
+second phone, or an earlier session on the same one — and this is what keeps
+a duplicate out of the operator's review queue rather than merely off the
+wire.
+
+**Everything already uploaded shows as a thumbnail grid** below the button,
+which answers "did they all make it?" without scrolling a hundred rows. A
+photo that lands leaves the upload list and joins the grid, so the list only
+ever holds work in progress. An earlier draft of this doc argued against
+pulling thumbnails back from Blob, as hotspot bandwidth spent showing the
+photographer something they already have; that was wrong once the grid
+became the answer to which photos are already sent. At thumbnail size a
+hundred of them is about 2MB, on one device.
+
+A phone on an insecure origin has no `crypto.subtle` and so no hash. Dedupe
+turns off for that device rather than blocking it; the photos still upload,
+and the server still refuses exact repeats it can recognise.
 
 ---
 
@@ -200,11 +237,13 @@ Vercel caps a request body at 4.5MB, and both sizes travel together. They
 come to well under half a megabyte, but the server refuses a pair over 4MB
 rather than letting the platform return an opaque 413.
 
-**The queue lives in memory and does not survive a reload.** Deliberate:
-`WaveStartView` persists pending taps because a lost tap is a lost result,
-and a lost photo is only a lost photo. The page says plainly to keep it open
-until every photo reads "sent". Persisting the blobs to IndexedDB on the
-phone is a follow-up, not part of this.
+**The upload list lives in memory and does not survive a reload.**
+Deliberate: `WaveStartView` persists pending taps because a lost tap is a
+lost result, and a lost photo is only a lost photo. The page says plainly to
+keep it open until the list is empty — and a reload is cheap to recover from
+anyway now, since re-picking the roll skips everything that already landed.
+Persisting the blobs to IndexedDB on the phone is a follow-up, not part of
+this.
 
 ---
 
@@ -296,9 +335,6 @@ if Blob transfer ever gets tight, not a reason to add it now.
   error. The retry loop covers it either way; client uploads (a signed URL
   the phone posts to directly) would remove it, at the cost of more
   machinery.
-- **Does the phone show what it has already sent?** Proposed: local previews
-  and a status list, but no thumbnails pulled back from Blob — that spends
-  hotspot bandwidth to show the photographer something they already have.
 - **Testing.** The e2e environment has no Redis and now no Blob either, so
   the same limit `e2e/wave-start.spec.ts` documents applies: tests can pin
   the dev-preview page, the queue states and the matching function, but the

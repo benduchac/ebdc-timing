@@ -1,15 +1,57 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
+import { createHash } from "crypto";
+import { readFileSync } from "fs";
+import { resolve } from "path";
 import { unlockOperator, startNewRace } from "./helpers";
 
 // This repo's e2e environment has neither Redis nor a Blob store configured
 // (see playwright.config.ts), so a race never gets a photoToken and an
 // upload never lands. That's exactly the "not synced yet" / "storage not
-// configured" / "keeps retrying" behavior these tests pin down — the
-// authorized upload round trip needs real storage and isn't reachable here.
-// Same limit as e2e/wave-start.spec.ts.
+// configured" / "keeps retrying" behavior most of these tests pin down.
+// Where a test needs the server to have answered — the dedupe against
+// photos a previous session uploaded — the GET is faked at the network
+// boundary; what's under test there is what the phone does with the answer.
 
 const WITH_EXIF = "fixtures/photos/finish-with-exif.jpg";
 const NO_EXIF = "fixtures/photos/finish-no-exif.jpg";
+
+// The same digest lib/photoHash.ts computes in the browser.
+const fixtureHash = (path: string) =>
+  createHash("sha256")
+    .update(readFileSync(resolve(__dirname, "..", path)))
+    .digest("hex");
+
+// A 1x1 GIF, so the grid can render without reaching for a real Blob store.
+const PIXEL =
+  "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+
+const stubPhoto = (contentHash: string) => ({
+  id: "33333333-3333-3333-3333-333333333333",
+  url: PIXEL,
+  thumbUrl: PIXEL,
+  capturedAtMs: Date.now(),
+  capturedSource: "exif",
+  contentHash,
+  clockOffsetMs: 0,
+  width: 1600,
+  height: 1200,
+  uploadedAt: new Date().toISOString(),
+  status: "pending",
+  entryId: null,
+});
+
+// Answers only the list request; an upload still falls through to the real
+// route, which 503s for want of storage.
+async function stubExistingPhotos(page: Page, contentHashes: string[]) {
+  await page.route("**/api/photos*", async (route) => {
+    if (route.request().method() !== "GET") return route.continue();
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ ok: true, photos: contentHashes.map(stubPhoto) }),
+    });
+  });
+}
 
 test("Settings shows the photo link as pending until the race has synced", async ({
   page,
@@ -53,17 +95,14 @@ test("a picked photo is read, resized and queued, then retries", async ({
   await page.goto("/photo/not-a-real-token");
   await page.locator("#photoInput").setInputFiles(WITH_EXIF);
 
-  const row = page.getByText("finish-with-exif.jpg").locator("..");
-  await expect(row).toBeVisible();
+  await expect(page.getByText("finish-with-exif.jpg")).toBeVisible();
 
   // A preview only exists once the resize produced a blob, so this is the
   // EXIF read and the downscale both having run on the original.
-  await expect(
-    page.locator('img[src^="blob:"]').first()
-  ).toBeVisible();
+  await expect(page.locator('img[src^="blob:"]').first()).toBeVisible();
 
-  // No backend to accept it here, so it never reaches "Sent" — this proves
-  // the queue keeps hold of it rather than dropping it on the first failure.
+  // No backend to accept it here, so it stays in the queue — this proves the
+  // photo is held onto rather than dropped on the first failure.
   await expect(page.getByText(/Not sent yet, retrying/)).toBeVisible({
     timeout: 15_000,
   });
@@ -90,13 +129,58 @@ test("several photos queue together and upload one at a time", async ({
   await page.goto("/photo/not-a-real-token");
   await page.locator("#photoInput").setInputFiles([WITH_EXIF, NO_EXIF]);
 
-  await expect(page.getByText("0 of 2 sent")).toBeVisible();
   // One in flight at a time: the second waits rather than fighting the first
   // for the same connection.
   await expect(page.getByText("Waiting to send")).toBeVisible();
   await expect(
-    page.getByText(
-      "Keep this page open until every photo says Sent — closing it loses whatever hasn't gone yet."
-    )
+    page.getByText("Keep this page open until the list above is empty")
   ).toBeVisible();
+});
+
+test("a photo the race already has is skipped before it is uploaded", async ({
+  page,
+}) => {
+  // The case the whole dedupe exists for: the photographer re-picks their
+  // entire camera roll rather than remembering which shots they already
+  // sent, and everything already up drops out without being re-sent.
+  await stubExistingPhotos(page, [fixtureHash(WITH_EXIF)]);
+  await page.goto("/photo/not-a-real-token");
+
+  await expect(page.getByText("1 uploaded")).toBeVisible();
+
+  await page.locator("#photoInput").setInputFiles([WITH_EXIF, NO_EXIF]);
+
+  await expect(
+    page.getByText("Skipped 1 photo already uploaded.")
+  ).toBeVisible();
+  // The known one never joins the queue; the new one does.
+  await expect(page.getByText("finish-with-exif.jpg")).toHaveCount(0);
+  await expect(page.getByText("finish-no-exif.jpg")).toBeVisible();
+});
+
+test("the same photo picked twice in one batch only uploads once", async ({
+  page,
+}) => {
+  await page.goto("/photo/not-a-real-token");
+  await page.locator("#photoInput").setInputFiles([WITH_EXIF, WITH_EXIF]);
+
+  await expect(
+    page.getByText("Skipped 1 photo already uploaded.")
+  ).toBeVisible();
+  await expect(page.getByText("finish-with-exif.jpg")).toHaveCount(1);
+});
+
+test("photos already uploaded show as a grid, from thumbnails", async ({
+  page,
+}) => {
+  await stubExistingPhotos(page, [
+    fixtureHash(WITH_EXIF),
+    fixtureHash(NO_EXIF),
+  ]);
+  await page.goto("/photo/not-a-real-token");
+
+  await expect(page.getByText("2 uploaded")).toBeVisible();
+  // Thumbnails, never the full frames — see the Blob transfer note in
+  // docs/photo-companion-design.md.
+  await expect(page.locator(`img[src="${PIXEL}"]`)).toHaveCount(2);
 });

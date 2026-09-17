@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { resolveCaptureTime, type PhotoCaptureSource } from "@/lib/exif";
+import { hashFile } from "@/lib/photoHash";
 import { verifySystemClock, getClockSeverity } from "@/lib/utils";
-import type { ClockCheckResult } from "@/lib/types";
+import type { ClockCheckResult, RacePhoto } from "@/lib/types";
 import { CheckIcon, WarningIcon } from "@/components/icons";
 
 // Phone-first page for the photographer at the finish line: pick a batch of
@@ -11,6 +12,13 @@ import { CheckIcon, WarningIcon } from "@/components/icons";
 // before the resize throws it away — never from when the upload landed,
 // which on a hotspot says more about the signal than about the shutter.
 // See docs/photo-companion-design.md.
+//
+// Built for someone with a hundred-odd photos and no memory of which ones
+// they already sent. The iOS picker has no "select all", so the workable
+// move is to swipe across the whole roll every time; that only works if
+// re-picking something is free, which is what the dedupe is for. Everything
+// already uploaded shows in a grid, so "did they make it?" is answerable
+// without scrolling a list of a hundred rows.
 
 // Every photo is sent twice, at two sizes, and both are made here while the
 // phone still has the original decoded — going back for a second size later
@@ -38,18 +46,19 @@ type ItemStatus =
   | "queued"
   | "sending"
   | "retrying"
-  | "sent"
   | "failed"; // permanently — see sendItem
 
+// Only work in progress. A photo that lands leaves this list and joins the
+// grid below, which is what keeps the page readable at a hundred photos.
 interface QueueItem {
   id: string; // becomes the photo id, so it must be a real randomUUID
   name: string;
   previewUrl: string | null;
   capturedAtMs: number | null;
   source: PhotoCaptureSource | null;
+  contentHash: string;
   width: number;
   height: number;
-  bytes: number;
   status: ItemStatus;
   error?: string;
 }
@@ -64,6 +73,11 @@ export default function PhotoUploadView({
   raceLabel,
 }: PhotoUploadViewProps) {
   const [items, setItems] = useState<QueueItem[]>([]);
+  const [uploaded, setUploaded] = useState<RacePhoto[]>([]);
+  const [skipped, setSkipped] = useState(0);
+  const [checking, setChecking] = useState<{ done: number; total: number } | null>(
+    null
+  );
   const [clockCheck, setClockCheck] = useState<ClockCheckResult | null>(null);
   const [checkingClock, setCheckingClock] = useState(false);
 
@@ -77,6 +91,10 @@ export default function PhotoUploadView({
   // re-creating itself (and the pump effect) on every status change.
   const itemsRef = useRef<QueueItem[]>([]);
   const clockOffsetRef = useRef(0);
+  // Every photo this race is known to hold, by content hash — seeded from
+  // the server on load, and added to as uploads land and as files are
+  // picked, so re-picking is free both across sessions and within one.
+  const knownHashesRef = useRef(new Set<string>());
 
   useEffect(() => {
     itemsRef.current = items;
@@ -98,6 +116,23 @@ export default function PhotoUploadView({
     runClockCheck();
   }, [runClockCheck]);
 
+  // What the race already has. Powers both the grid and the dedupe; if this
+  // fails (offline, or storage not configured) the page still works, it just
+  // re-uploads photos the server then recognises and refuses.
+  useEffect(() => {
+    fetch(`/api/photos?token=${encodeURIComponent(token)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!data?.ok) return;
+        const photos: RacePhoto[] = data.photos ?? [];
+        setUploaded(photos);
+        photos.forEach((p) => {
+          if (p.contentHash) knownHashesRef.current.add(p.contentHash);
+        });
+      })
+      .catch(() => {});
+  }, [token]);
+
   useEffect(() => {
     const timers = retryTimersRef.current;
     const blobs = blobsRef.current;
@@ -116,6 +151,23 @@ export default function PhotoUploadView({
     setItems((prev) =>
       prev.map((item) => (item.id === id ? { ...item, ...patch } : item))
     );
+  }, []);
+
+  const finishItem = useCallback((id: string, photo?: RacePhoto) => {
+    blobsRef.current.delete(id);
+    thumbsRef.current.delete(id);
+    attemptsRef.current.delete(id);
+    if (photo) {
+      if (photo.contentHash) knownHashesRef.current.add(photo.contentHash);
+      setUploaded((prev) =>
+        prev.some((p) => p.id === photo.id) ? prev : [photo, ...prev]
+      );
+    }
+    setItems((prev) => {
+      const done = prev.find((i) => i.id === id);
+      if (done?.previewUrl) URL.revokeObjectURL(done.previewUrl);
+      return prev.filter((i) => i.id !== id);
+    });
   }, []);
 
   const sendItem = useCallback(
@@ -138,6 +190,7 @@ export default function PhotoUploadView({
         source: item.source,
         width: String(item.width),
         height: String(item.height),
+        contentHash: item.contentHash,
       });
 
       // Both sizes in one request, so a photo is either fully stored or not
@@ -176,10 +229,11 @@ export default function PhotoUploadView({
           throw new Error(`HTTP ${res.status}`);
         }
 
-        blobsRef.current.delete(id);
-        thumbsRef.current.delete(id);
-        attemptsRef.current.delete(id);
-        patchItem(id, { status: "sent" });
+        const data = await res.json();
+        // data.duplicate means the server already had this one — it comes
+        // back with the stored record, so it lands in the grid either way.
+        if (data.duplicate) setSkipped((prev) => prev + 1);
+        finishItem(id, data.photo as RacePhoto | undefined);
       } catch {
         const attempt = attemptsRef.current.get(id) ?? 0;
         attemptsRef.current.set(id, attempt + 1);
@@ -203,7 +257,7 @@ export default function PhotoUploadView({
         sendingRef.current = false;
       }
     },
-    [patchItem, token]
+    [finishItem, patchItem, token]
   );
 
   // One upload at a time. A phone on a hotspot gets a whole photo through
@@ -223,23 +277,46 @@ export default function PhotoUploadView({
     if (!fileList?.length) return;
     const files = Array.from(fileList);
 
-    const staged: QueueItem[] = files.map((file) => ({
+    // Hash first, decide second. Everything already uploaded drops out here,
+    // before the expensive part, so re-picking the whole roll costs a read
+    // per photo rather than a decode, a resize and an upload.
+    setChecking({ done: 0, total: files.length });
+    const fresh: { file: File; hash: string }[] = [];
+    let duplicates = 0;
+
+    for (let i = 0; i < files.length; i++) {
+      const hash = await hashFile(files[i]);
+      if (hash && knownHashesRef.current.has(hash)) {
+        duplicates++;
+      } else {
+        // Added now, not on success, so the same file picked twice in one
+        // batch only goes up once.
+        if (hash) knownHashesRef.current.add(hash);
+        fresh.push({ file: files[i], hash: hash ?? "" });
+      }
+      setChecking({ done: i + 1, total: files.length });
+    }
+    setChecking(null);
+    if (duplicates > 0) setSkipped((prev) => prev + duplicates);
+    if (fresh.length === 0) return;
+
+    const staged: QueueItem[] = fresh.map(({ file, hash }) => ({
       id: crypto.randomUUID(),
       name: file.name,
       previewUrl: null,
       capturedAtMs: null,
       source: null,
+      contentHash: hash,
       width: 0,
       height: 0,
-      bytes: 0,
       status: "preparing",
     }));
     setItems((prev) => [...prev, ...staged]);
 
     // Sequential on purpose: decoding several full-size photos at once is
     // what makes a phone stutter or run out of memory mid-batch.
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
+    for (let i = 0; i < fresh.length; i++) {
+      const { file } = fresh[i];
       const { id } = staged[i];
       try {
         const capture = await resolveCaptureTime(file);
@@ -252,7 +329,6 @@ export default function PhotoUploadView({
           source: capture.source,
           width: full.width,
           height: full.height,
-          bytes: full.blob.size + thumb.blob.size,
           status: "queued",
         });
       } catch {
@@ -270,13 +346,7 @@ export default function PhotoUploadView({
   };
 
   const clockSeverity = getClockSeverity(clockCheck);
-  const outstanding = items.filter(
-    (i) => i.status !== "sent" && i.status !== "failed"
-  ).length;
-  const sent = items.filter((i) => i.status === "sent").length;
-  const guessedTimes = items.filter(
-    (i) => i.status === "sent" && i.source !== "exif"
-  ).length;
+  const outstanding = items.filter((i) => i.status !== "failed").length;
 
   return (
     <div className="min-h-screen bg-moss-dark p-4 flex flex-col items-center">
@@ -342,102 +412,112 @@ export default function PhotoUploadView({
         />
         <button
           onClick={() => fileInputRef.current?.click()}
-          className="w-full rounded-xl p-5 bg-chalk border-2 border-ink/10 active:border-clay text-center"
+          disabled={checking !== null}
+          className="w-full rounded-xl p-5 bg-chalk border-2 border-ink/10 active:border-clay text-center disabled:opacity-60"
         >
           <div className="font-display uppercase tracking-tight text-2xl text-moss-dark">
             Add photos
           </div>
           <div className="text-ink-soft mt-1">
-            Shoot in the camera app, then pick them here
+            {checking
+              ? `Checking ${checking.done} of ${checking.total}...`
+              : "Select everything — anything already sent is skipped"}
           </div>
         </button>
 
+        {skipped > 0 && (
+          <div className="text-sand/80 text-sm text-center mt-3">
+            Skipped {skipped} photo{skipped === 1 ? "" : "s"} already uploaded.
+          </div>
+        )}
+
         {items.length > 0 && (
-          <>
-            <div className="text-chalk text-sm mt-5 mb-2 flex justify-between">
-              <span>
-                {sent} of {items.length} sent
-              </span>
-              {outstanding > 0 && <span className="text-sand/80">Working...</span>}
-            </div>
+          <div className="mt-5 space-y-2">
+            {items.map((item) => (
+              <div
+                key={item.id}
+                className={`rounded-lg p-2 flex items-center gap-3 border-2 ${
+                  item.status === "failed"
+                    ? "bg-danger-soft border-danger/60"
+                    : item.status === "retrying"
+                    ? "bg-danger-soft border-danger/40"
+                    : "bg-chalk border-ink/10"
+                }`}
+              >
+                {item.previewUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={item.previewUrl}
+                    alt=""
+                    className="w-14 h-14 object-cover rounded shrink-0"
+                  />
+                ) : (
+                  <div className="w-14 h-14 rounded bg-sand shrink-0" />
+                )}
 
-            <div className="space-y-2">
-              {items.map((item) => (
-                <div
-                  key={item.id}
-                  className={`rounded-lg p-2 flex items-center gap-3 border-2 ${
-                    item.status === "sent"
-                      ? "bg-success-soft border-success"
-                      : item.status === "failed"
-                      ? "bg-danger-soft border-danger/60"
-                      : item.status === "retrying"
-                      ? "bg-danger-soft border-danger/40"
-                      : "bg-chalk border-ink/10"
-                  }`}
-                >
-                  {item.previewUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={item.previewUrl}
-                      alt=""
-                      className="w-14 h-14 object-cover rounded shrink-0"
-                    />
-                  ) : (
-                    <div className="w-14 h-14 rounded bg-sand shrink-0" />
-                  )}
-
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm text-ink">{item.name}</div>
-                    <div className="text-xs mt-0.5">
-                      {item.status === "preparing" && (
-                        <span className="text-ink-soft">Reading...</span>
-                      )}
-                      {item.status === "queued" && (
-                        <span className="text-ink-soft">Waiting to send</span>
-                      )}
-                      {item.status === "sending" && (
-                        <span className="text-ink-soft">Sending...</span>
-                      )}
-                      {item.status === "retrying" && (
-                        <span className="text-danger font-semibold">
-                          Not sent yet, retrying...
-                        </span>
-                      )}
-                      {item.status === "sent" && (
-                        <span className="text-moss-dark font-semibold">
-                          Sent
-                          {item.capturedAtMs !== null &&
-                            ` — taken ${formatClock(item.capturedAtMs)}`}
-                          {item.source !== "exif" && " (time is a guess)"}
-                        </span>
-                      )}
-                      {item.status === "failed" && (
-                        <span className="text-danger font-semibold">
-                          {item.error ?? "Failed."}
-                        </span>
-                      )}
-                    </div>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm text-ink">{item.name}</div>
+                  <div className="text-xs mt-0.5">
+                    {item.status === "preparing" && (
+                      <span className="text-ink-soft">Reading...</span>
+                    )}
+                    {item.status === "queued" && (
+                      <span className="text-ink-soft">Waiting to send</span>
+                    )}
+                    {item.status === "sending" && (
+                      <span className="text-ink-soft">Sending...</span>
+                    )}
+                    {item.status === "retrying" && (
+                      <span className="text-danger font-semibold">
+                        Not sent yet, retrying...
+                      </span>
+                    )}
+                    {item.status === "failed" && (
+                      <span className="text-danger font-semibold">
+                        {item.error ?? "Failed."}
+                      </span>
+                    )}
                   </div>
-
-                  {item.status === "failed" && (
-                    <button
-                      onClick={() => retryFailed(item.id)}
-                      className="text-xs underline text-danger shrink-0"
-                    >
-                      Try again
-                    </button>
-                  )}
                 </div>
+
+                {item.status === "failed" && (
+                  <button
+                    onClick={() => retryFailed(item.id)}
+                    className="text-xs underline text-danger shrink-0"
+                  >
+                    Try again
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {uploaded.length > 0 && (
+          <div className="mt-6">
+            <div className="text-chalk text-sm mb-2">
+              {uploaded.length} uploaded
+            </div>
+            {/* Thumbnails, not full frames — a hundred of these is about 2MB,
+                a hundred of the originals would be 35. */}
+            <div className="grid grid-cols-4 gap-1.5">
+              {uploaded.map((photo) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  key={photo.id}
+                  src={photo.thumbUrl}
+                  alt=""
+                  loading="lazy"
+                  className="w-full aspect-square object-cover rounded"
+                />
               ))}
             </div>
-          </>
+          </div>
         )}
 
         <p className="text-sand/70 text-xs text-center mt-6 pb-6">
           {outstanding > 0
-            ? "Keep this page open until every photo says Sent — closing it loses whatever hasn't gone yet."
-            : guessedTimes > 0
-            ? "Some photos had no time recorded in them, so the operator will place those by hand."
+            ? "Keep this page open until the list above is empty — closing it loses whatever hasn't gone yet."
             : "Photos go to the operator, who matches each one to a rider before it appears anywhere."}
         </p>
       </div>
@@ -494,6 +574,3 @@ async function render(
   if (!blob) throw new Error("Couldn't encode the resized photo");
   return { blob, width, height };
 }
-
-const formatClock = (ms: number) =>
-  new Date(ms).toLocaleTimeString("en-US", { hour12: true });
