@@ -60,10 +60,17 @@ function offline; anything that claims data is safe must be provably true.
   a start-line volunteer taps once per wave, posting the real release time
   straight into the race instead of the operator typing an estimate. See
   [Wave start line](#wave-start-line).
-- **Next:** the rest of Phase 4 (full offline dry run). Deferred separately:
-  a UI reskin (visual polish, explicitly no functionality changes — planned
-  for after the leaderboard, in its own branch) and a stretch-goal photo
-  matching feature (finish-line photos matched to finishers by timestamp).
+- **Done, not yet deployed:** the finish-line photo companion, phases A and
+  B — a token-gated `/photo/[token]` upload page, Vercel Blob storage, and
+  an operator review tab that pairs each photo with the finishers who
+  crossed around when it was taken. Phase C (approved photos on the public
+  leaderboard) is specced and not built. This is the photo-matching stretch
+  goal that used to sit on this list as deferred; it has its own doc now,
+  `photo-companion-design.md`.
+- **Next:** the rest of Phase 4 (full offline dry run), and photo phase C.
+  Deferred separately: a UI reskin (visual polish, explicitly no
+  functionality changes — planned for after the leaderboard, in its own
+  branch).
 
 ---
 
@@ -77,6 +84,7 @@ Three surfaces, clearly separated:
 | Public landing (static brand page) | `/` | public — no race data, never redirects |
 | Operator app (scoring/editing) | `/operator` | passphrase-gated, unlinked |
 | Wave start line (start-line phone) | `/start/[token]` | token-gated, unlinked — see [Wave start line](#wave-start-line) |
+| Finish-line photos (photographer's phone) | `/photo/[token]` | token-gated, unlinked — see `photo-companion-design.md` |
 
 **Decided:** every race gets its own permanent, shareable URL derived from
 its label (`/[slug]`); that link is shared directly per race (the operator

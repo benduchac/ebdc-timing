@@ -4,9 +4,10 @@ Open defects and gaps in the timing app, from a full read of the codebase on
 22 August 2026 (`main` @ `486d9a1`), ahead of the 10 October race. Every item
 here was reproduced against the code, not inferred.
 
-Two companion docs own their own open questions and don't repeat them here:
-`race-readiness-design.md` (backup/sync/recovery) and `registrant-import.md`
-(the CSV import contract and age/gender category boards).
+Three companion docs own their own open questions and don't repeat them
+here: `race-readiness-design.md` (backup/sync/recovery),
+`registrant-import.md` (the CSV import contract and age/gender category
+boards), and `photo-companion-design.md` (finish-line photos).
 
 ---
 

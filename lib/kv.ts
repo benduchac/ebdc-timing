@@ -25,4 +25,10 @@ export const kvKeys = {
   // whatever stale value the operator's device still has locally. See
   // docs/race-readiness-design.md "Wave start line".
   raceWaveStarts: (id: string) => `race:${id}:wavestarts`,
+  // Hash with photo id -> RacePhoto, written by /api/photos. Kept out of
+  // raceLatest for the same reason wave starts are: the operator's device
+  // overwrites that snapshot wholesale on every sync. Image bytes live in
+  // Vercel Blob; this holds only the metadata and the URL. See
+  // docs/photo-companion-design.md "Data model".
+  racePhotos: (id: string) => `race:${id}:photos`,
 };

@@ -1,8 +1,9 @@
-# CSV fixtures
+# Test fixtures
 
-Test files for the registrant importer. The format they follow is defined in
-`docs/wordpress-registration-form.md` section 4; what the importer must do
-with a bad row is `docs/registrant-import.md` section 6a.
+CSV files for the registrant importer, and JPEGs for the photo companion.
+The CSV format is defined in `docs/wordpress-registration-form.md` section
+4; what the importer must do with a bad row is `docs/registrant-import.md`
+section 6a. The photos are described under `photos/` below.
 
 ## Files
 
@@ -69,6 +70,17 @@ The good file with CRLF line endings and a UTF-8 BOM — what a real WordPress
 or Excel export tends to produce. The BOM makes the first header read as
 `﻿bib` unless it's stripped, and header matching then fails on every
 row. Strip with `utf-8-sig` decoding or an explicit check.
+
+### `photos/` — finish-line photo fixtures
+Two JPEGs for the photo companion, both a plain gradient at 2400x1600 —
+larger than the 1600px long edge the phone resizes to, so the downscale path
+runs rather than being skipped. Regenerate with `python3
+fixtures/generate-photos.py`.
+
+| File | What it proves |
+| --- | --- |
+| `finish-with-exif.jpg` | A real EXIF block with `DateTimeOriginal` (2026:10:10 09:15:42) and `OffsetTimeOriginal` (-07:00), so the parsed time can be asserted against a known UTC instant rather than against itself. |
+| `finish-no-exif.jpg` | The same image with no EXIF at all — a screenshot or a re-saved file. Must fall back to the file's modified time and keep the upload queue moving, not throw. |
 
 ### `legacy/`
 The 2024-format files, kept as a negative test. The likeliest race-morning

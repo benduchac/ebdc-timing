@@ -127,11 +127,32 @@ context.
   shows a "Copied!" flash that fades over 3s (CSS keyframe in
   `globals.css`) instead of `alert()`. Resolves `window.location.origin` at
   click time, not from a prop, so it's never evaluated during SSR.
+- `app/photo/[token]/page.tsx` + `components/PhotoUploadView.tsx` +
+  `app/api/photos/route.ts` — the finish-line photo companion, built on the
+  same shape as the wave-start page: token-gated (its own `photoToken`, not
+  a reuse of `startToken`), assigned alongside `slug` on first sync, writing
+  to its own `race:{id}:photos` Redis hash rather than the snapshot the
+  operator's device overwrites wholesale. Image bytes go to Vercel Blob. The
+  phone reads each photo's EXIF capture time, resizes it to two sizes, and
+  queues the uploads with retries. See `docs/photo-companion-design.md`.
+- `components/PhotosTab.tsx` — the operator's photo review queue. **The one
+  tab that owns its own data**, deliberately: photos are not in the race
+  snapshot, never touch IndexedDB, and are useless offline, so the fetching
+  lives here instead of in `operator/page.tsx`. It only polls while it's
+  open — photo review is a post-race job and must not spend the hotspot the
+  scoring needs.
+- `lib/exif.ts` — reads `DateTimeOriginal`/`OffsetTimeOriginal` out of a
+  JPEG, and `resolveCaptureTime`'s fallback chain (EXIF → the file's
+  modified time → upload time, each one recorded as `capturedSource` so the
+  operator can see which). Hand-rolled, no dependency.
+- `lib/photoMatch.ts` — `findCandidates`: the finishers within ±20s of a
+  photo, nearest first. Ranks only; the operator picks.
 - `lib/db.ts` — Dexie schema (`entries`, `raceState`, `setupConfig`) and the
   `Registrant` / `Entry` / `RaceState` / `SetupConfig` types. `clearAllData()`.
 - `lib/types.ts` — re-exports DB types plus view types (`WaveStartTimes`,
   `ClockCheckResult`), plus the Phase 3 race types (`Race`, `RaceSnapshot`,
-  `RaceIndexEntry` — all three carry `slug` and `startToken`).
+  `RaceIndexEntry` — all three carry `slug`, `startToken` and `photoToken`),
+  plus `RacePhoto`.
 - `lib/utils.ts` — `formatElapsedTime`, `formatDurationHMS` ("Xh Ym Zs" for
   plain-language duration deltas), `formatRelativeTime` ("Xs/Xm/Xh ago",
   shared by `SyncBadge` and `SetupChecklist`'s clock panel), `normalizeBib`
@@ -149,6 +170,7 @@ context.
 - `RegistrationTab` — CSV upload + manual add/edit/delete of registrants.
 - `TimingTab` — the live finish-recording UI (bib input, record/unknown
   buttons, recent finishers, wave status, top-10).
+- `PhotosTab` — finish-line photo review (see above).
 - `ResultsTable` + `CategoryLeaderboards` — the Results tab views. Both are
   reused by the public `/[slug]` page too (`ResultsTable`'s `onEditEntry`/
   `onDeleteEntry` are optional — omitted there, which also hides the Actions
@@ -244,6 +266,14 @@ below).
   confirmations. Without it, a registrant loaded as "001" silently fails to
   match an operator typing "1" at the finish line. Don't reimplement the
   stripping inline — same divergent-copy risk as `formatElapsedTime`.
+- **Every photo is stored at two sizes, and the leaderboard only ever
+  loads the small one.** Vercel Blob on the Hobby plan includes 10GB of
+  transfer a month, cache hits included, and it *stops serving* rather than
+  billing when that runs out — taking the photos already on the leaderboard
+  down with it for 30 days. Full frames on a 200-rider board would spend
+  that in an afternoon. Both sizes are made on the phone from one decode and
+  sent in one request, so there's no such thing as a photo with only one of
+  them. Don't add a code path that serves `url` where `thumbUrl` belongs.
 - **Page backgrounds must use `PageBackground`, not
   `background-attachment: fixed` directly.** Two distinct rendering bugs
   motivated this: (1) a vertical scrollbar appearing/disappearing shrinks
@@ -268,6 +298,14 @@ below).
 **`docs/known-issues.md`** tracks every known defect and gap: what's been
 fixed, what's deferred, and the race-day workarounds for what's still open.
 Add to it rather than letting a finding live only in a conversation.
+
+## Finish-line photos
+
+**`docs/photo-companion-design.md`** specs the photo companion — the
+photographer's upload page, the storage behind it, matching photos to
+finishers by capture time, and the operator's review queue. Phases A and B
+are built; phase C (approved photos on the public leaderboard) is specced
+and not built.
 
 ## The 2026 registration form and CSV contract
 

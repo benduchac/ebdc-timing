@@ -16,6 +16,7 @@ interface SettingsModalProps {
   registrantCount: number;
   raceLabel: string;
   startToken?: string;
+  photoToken?: string;
   clockCheck: ClockCheckResult | null;
   checkingClock: boolean;
   onCheckClock: () => void;
@@ -34,6 +35,7 @@ export default function SettingsModal({
   registrantCount,
   raceLabel,
   startToken,
+  photoToken,
   clockCheck,
   checkingClock,
   onCheckClock,
@@ -203,6 +205,29 @@ export default function SettingsModal({
               <div className="text-sm text-ink-soft">
                 Link pending first sync — connect to the internet once to
                 generate it.
+              </div>
+            )}
+          </div>
+
+          {/* Finish line photos */}
+          <div className="border-2 border-ink/10 rounded-lg p-4">
+            <h3 className="font-bold mb-3 text-ink">Finish line photos</h3>
+            {photoToken ? (
+              <>
+                <div className="text-sm text-ink-soft mb-2">
+                  Send this to whoever is shooting the finish. Photos upload
+                  here for you to match to riders on the Photos tab; nothing
+                  appears publicly until you approve it.
+                </div>
+                <LinkWithCopy
+                  path={`/photo/${photoToken}`}
+                  copyTitle="Copy photo upload link"
+                />
+              </>
+            ) : (
+              <div className="text-sm text-ink-soft">
+                Nothing to share yet — connect to the internet once and the
+                photo link appears here.
               </div>
             )}
           </div>

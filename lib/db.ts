@@ -57,6 +57,11 @@ export interface RaceState {
   // authorizes the /start/[token] wave-start-line page for this race. See
   // docs/race-readiness-design.md "Wave start line".
   raceStartToken?: string;
+  // Assigned server-side alongside raceSlug on first sync — the secret that
+  // authorizes the /photo/[token] upload page for this race. Its own token,
+  // never a reuse of raceStartToken. See
+  // docs/photo-companion-design.md "The token".
+  racePhotoToken?: string;
   // Last snapshot timestamp the cloud actually acked for this race. Restored
   // on load purely for the "Backed up Nm ago" idle badge text; the badge's
   // dirty/synced status itself is re-earned each session, not trusted from

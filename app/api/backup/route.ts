@@ -12,9 +12,12 @@ import type { RaceIndexEntry, RaceSnapshot } from "@/lib/types";
 // snapshot.
 const MAX_HISTORY = 200;
 
-// What the client actually sends — slug, startToken, and lastSaved are
+// What the client actually sends — slug, the two tokens, and lastSaved are
 // always server-assigned, never trusted from the client (see lib/slug.ts).
-type SnapshotPayload = Omit<RaceSnapshot, "slug" | "startToken" | "lastSaved">;
+type SnapshotPayload = Omit<
+  RaceSnapshot,
+  "slug" | "startToken" | "photoToken" | "lastSaved"
+>;
 
 function isValidSnapshotBody(body: unknown): body is SnapshotPayload {
   if (!body || typeof body !== "object") return false;
@@ -72,10 +75,12 @@ export async function POST(request: NextRequest) {
   // operator model this app assumes (see "Honest limitations").
   const index = (await redis.get<RaceIndexEntry[]>(kvKeys.racesIndex)) ?? [];
   const existing = index.find((r) => r.id === body.raceId);
-  // Slug and startToken are each assigned once, on first sync, and never
+  // Slug and both tokens are each assigned once, on first sync, and never
   // recomputed — a later label edit (not currently possible in the UI, but
   // just in case) must not silently change a race's public URL, and a
-  // start-line link already handed to a volunteer must keep working.
+  // start-line or photo link already handed to a volunteer must keep
+  // working. A race that predates the photo token picks one up here on its
+  // next sync, so nothing needs migrating.
   const slug =
     existing?.slug ??
     assignSlug(
@@ -83,11 +88,13 @@ export async function POST(request: NextRequest) {
       new Set(index.map((r) => r.slug))
     );
   const startToken = existing?.startToken ?? crypto.randomUUID();
+  const photoToken = existing?.photoToken ?? crypto.randomUUID();
 
   const snapshot: RaceSnapshot = {
     ...body,
     slug,
     startToken,
+    photoToken,
     lastSaved: new Date().toISOString(),
   };
 
@@ -101,6 +108,7 @@ export async function POST(request: NextRequest) {
     label: snapshot.label,
     slug: snapshot.slug,
     startToken: snapshot.startToken,
+    photoToken: snapshot.photoToken,
     createdAt: snapshot.createdAt,
     lastSaved: snapshot.lastSaved,
     entryCount: snapshot.entries.length,
@@ -112,6 +120,7 @@ export async function POST(request: NextRequest) {
     lastSaved: snapshot.lastSaved,
     slug: snapshot.slug,
     startToken: snapshot.startToken,
+    photoToken: snapshot.photoToken,
   });
 }
 

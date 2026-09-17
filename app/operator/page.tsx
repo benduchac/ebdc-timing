@@ -25,6 +25,7 @@ import RegistrationTab from "@/components/RegistrationTab";
 import TimingTab from "@/components/TimingTab";
 import ResultsTable from "@/components/ResultsTable";
 import CategoryLeaderboards from "@/components/CategoryLeaderboards";
+import PhotosTab from "@/components/PhotosTab";
 import EditModal from "@/components/EditModal";
 import DeleteEntryModal from "@/components/DeleteEntryModal";
 import WaveTimeEditModal from "@/components/WaveTimeEditModal";
@@ -40,7 +41,7 @@ import OperatorGate, {
   getStoredPassphrase,
 } from "@/components/OperatorGate";
 
-type TabType = "registration" | "timing" | "results";
+type TabType = "registration" | "timing" | "results" | "photos";
 
 // Pre-2026 records used "n/a" for an undisclosed gender; the 2026 CSV
 // contract uses "undisclosed" instead. This carries the old value forward
@@ -167,6 +168,7 @@ export default function OperatorPage() {
               createdAt: state.raceCreatedAt || state.lastSaved,
               slug: state.raceSlug,
               startToken: state.raceStartToken,
+              photoToken: state.racePhotoToken,
             });
           } else if (state.entries.length > 0 || state.registrants.length > 0) {
             // Local data from before race identity existed (Phase 3) — mint
@@ -250,6 +252,7 @@ export default function OperatorPage() {
               raceCreatedAt: activeRace?.createdAt,
               raceSlug: activeRace?.slug,
               raceStartToken: activeRace?.startToken,
+              racePhotoToken: activeRace?.photoToken,
               cloudLastSyncedAt: cloudLastSyncedAt ?? undefined,
               waveTimesConfirmed,
               raceDate: raceDate ?? undefined,
@@ -352,6 +355,7 @@ export default function OperatorPage() {
     error: syncError,
     slug: syncedSlug,
     startToken: syncedStartToken,
+    photoToken: syncedPhotoToken,
   } = useCloudSync(
     {
       race: activeRace,
@@ -391,6 +395,17 @@ export default function OperatorPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [syncedStartToken]);
+
+  useEffect(() => {
+    if (
+      syncedPhotoToken &&
+      activeRace &&
+      activeRace.photoToken !== syncedPhotoToken
+    ) {
+      setActiveRace({ ...activeRace, photoToken: syncedPhotoToken });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [syncedPhotoToken]);
 
   // Polls the start-line phone's posted wave-start times and adopts each new
   // one as it lands, until all three waves have been adopted — see
@@ -719,6 +734,7 @@ export default function OperatorPage() {
       raceCreatedAt: activeRace?.createdAt,
       raceSlug: activeRace?.slug,
       raceStartToken: activeRace?.startToken,
+      racePhotoToken: activeRace?.photoToken,
       raceDate: raceDate ?? undefined,
       waveStartAdopted,
       waveStartTimes: {
@@ -787,6 +803,7 @@ export default function OperatorPage() {
             createdAt: backup.raceCreatedAt || new Date().toISOString(),
             slug: backup.raceSlug,
             startToken: backup.raceStartToken,
+            photoToken: backup.racePhotoToken,
           });
         }
 
@@ -1028,6 +1045,16 @@ export default function OperatorPage() {
             >
               Results
             </button>
+            <button
+              onClick={() => setActiveTab("photos")}
+              className={`px-3 sm:px-5 py-2.5 text-sm sm:text-base font-semibold border-b-[3px] transition ${
+                activeTab === "photos"
+                  ? "text-chalk border-clay"
+                  : "text-chalk/60 border-transparent hover:text-chalk/90"
+              }`}
+            >
+              Photos
+            </button>
           </div>
 
           <div className="bg-chalk p-4 sm:p-6">
@@ -1090,6 +1117,13 @@ export default function OperatorPage() {
                 onExportCSV={handleExportCSV}
                 onEditWaveTime={handleEditWaveTime}
               />
+            )}
+
+            {/* Photo review pulls its own data — see the note at the top of
+                PhotosTab. It's the one tab that needs a connection, and it
+                only fetches while it's open. */}
+            {activeTab === "photos" && (
+              <PhotosTab raceId={activeRace.id} entries={entries} />
             )}
 
             {activeTab === "results" && (
@@ -1202,6 +1236,7 @@ export default function OperatorPage() {
             registrantCount={registrants.size}
             raceLabel={activeRace.label}
             startToken={activeRace.startToken}
+            photoToken={activeRace.photoToken}
             clockCheck={clockCheck}
             checkingClock={checkingClock}
             onCheckClock={handleClockCheck}

@@ -179,8 +179,18 @@ export const verifySystemClock = async (): Promise<ClockCheckResult> => {
     const serverTimeMs: number = data.serverTimeMs;
     const localTime = new Date();
 
-    const diffMs = Math.abs(serverTimeMs - localTime.getTime());
-    const diffSeconds = Math.round(diffMs / 1000);
+    // Signed: positive means this device runs ahead of the time source.
+    // Everything that only reports drift wants the size, not the direction,
+    // so diffSeconds stays unsigned; photo matching is the one caller that
+    // needs to take the error back off a timestamp, and a second copy of
+    // this check would be a divergent copy of exactly the kind this file
+    // exists to prevent.
+    //
+    // It carries the response leg of the round trip with it — localTime is
+    // read after the answer lands. Under a second on any usable connection,
+    // and well inside the tolerance of everything that reads it.
+    const offsetMs = localTime.getTime() - serverTimeMs;
+    const diffSeconds = Math.round(Math.abs(offsetMs) / 1000);
 
     return {
       serverTime: new Date(serverTimeMs).toLocaleTimeString("en-US", {
@@ -188,6 +198,7 @@ export const verifySystemClock = async (): Promise<ClockCheckResult> => {
       }),
       localTime: localTime.toLocaleTimeString("en-US", { hour12: false }),
       diffSeconds,
+      offsetMs,
       // "ok" means genuinely fine — see getClockSeverity for the full
       // fine/caution/alert breakdown used in the UI. Tightened from the
       // original 60s: a finish-line clock is timing individual races, not

@@ -28,6 +28,7 @@ export interface CloudSync {
   error: string | null;
   slug: string | null;
   startToken: string | null;
+  photoToken: string | null;
   syncNow: () => void;
 }
 
@@ -59,6 +60,7 @@ export function useCloudSync(
   const [error, setError] = useState<string | null>(null);
   const [slug, setSlug] = useState<string | null>(null);
   const [startToken, setStartToken] = useState<string | null>(null);
+  const [photoToken, setPhotoToken] = useState<string | null>(null);
 
   // Only the latest in-flight request's result may resolve the status — an
   // older, slower request landing after a newer one must not overwrite it
@@ -161,6 +163,7 @@ export function useCloudSync(
       setLastSyncedAt(data.lastSaved);
       setSlug(data.slug ?? null);
       setStartToken(data.startToken ?? null);
+      setPhotoToken(data.photoToken ?? null);
       setError(null);
       retryAttemptRef.current = 0;
     } catch {
@@ -213,5 +216,5 @@ export function useCloudSync(
   // Drop any pending retry when the hook goes away (race switched, tab closed).
   useEffect(() => cancelRetry, [cancelRetry]);
 
-  return { status, lastSyncedAt, error, slug, startToken, syncNow };
+  return { status, lastSyncedAt, error, slug, startToken, photoToken, syncNow };
 }
