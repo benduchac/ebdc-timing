@@ -46,3 +46,41 @@ export function findCandidates(
         a.entry.id - b.entry.id
     );
 }
+
+// Beyond this, a photo and a finish aren't a near miss — they're from
+// different days, which is nearly always a wrong device clock or a photo
+// picked from an earlier shoot.
+export const DIFFERENT_DAY_MS = 12 * 60 * 60 * 1000;
+
+// The closest finisher regardless of the window. The review card falls back
+// to this when nothing matched, so "no match" can say how far off it was
+// rather than leaving the operator to guess whether the problem is seconds
+// or days.
+export function nearestEntry(
+  photo: Pick<RacePhoto, "capturedAtMs" | "clockOffsetMs">,
+  entries: Entry[]
+): PhotoCandidate | null {
+  const captured = correctedCaptureMs(photo);
+  let best: PhotoCandidate | null = null;
+  for (const entry of entries) {
+    if (!Number.isFinite(entry.finishTimeMs)) continue;
+    const deltaMs = captured - entry.finishTimeMs;
+    if (!best || Math.abs(deltaMs) < Math.abs(best.deltaMs)) {
+      best = { entry, deltaMs };
+    }
+  }
+  return best;
+}
+
+// A coarse description of how far a photo sits from a finish. Deliberately
+// not formatDurationHMS, which renders a race duration: "144h 0m 0s" is a
+// worse answer to "why did nothing match?" than "about 6 days".
+export function describeGap(ms: number): string {
+  const seconds = Math.round(Math.abs(ms) / 1000);
+  if (seconds < 90) return `${seconds} seconds`;
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 90) return `${minutes} minutes`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 36) return `${hours} hours`;
+  return `${Math.round(hours / 24)} days`;
+}

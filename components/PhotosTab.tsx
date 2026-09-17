@@ -2,7 +2,13 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { getStoredPassphrase } from "./OperatorGate";
-import { findCandidates, type PhotoCandidate } from "@/lib/photoMatch";
+import {
+  findCandidates,
+  nearestEntry,
+  describeGap,
+  DIFFERENT_DAY_MS,
+  type PhotoCandidate,
+} from "@/lib/photoMatch";
 import { normalizeBib } from "@/lib/utils";
 import type { Entry } from "@/lib/db";
 import type { RacePhoto } from "@/lib/types";
@@ -282,6 +288,8 @@ function PhotoCard({
     (a, b) => b.finishTimeMs - a.finishTimeMs
   );
 
+  const nearest = candidates.length === 0 ? nearestEntry(photo, entries) : null;
+
   const q = query.trim().toLowerCase();
   // normalizeBib so "057" finds bib 57 — entries store the stripped form,
   // and the operator is reading a number off a packet, not a database.
@@ -348,8 +356,25 @@ function PhotoCard({
 
           <div className="mt-2">
             {candidates.length === 0 ? (
+              // Say how far off it was. "Nothing matched" on its own sends
+              // the operator hunting for a bug when the answer is usually
+              // that the photo is from another day, or that no finish has
+              // been recorded anywhere near it yet.
               <div className="text-sm text-ink-soft">
-                No finisher was recorded within 20 seconds of this.
+                {!nearest ? (
+                  "No finishers recorded yet, so there's nothing to match against."
+                ) : (
+                  <>
+                    No finisher within 20 seconds. The nearest is{" "}
+                    <strong>
+                      #{nearest.entry.bib} {nearest.entry.name}
+                    </strong>
+                    , {describeGap(nearest.deltaMs)} away
+                    {Math.abs(nearest.deltaMs) > DIFFERENT_DAY_MS
+                      ? " — so this photo was taken on a different day, or a clock is wrong."
+                      : "."}
+                  </>
+                )}
               </div>
             ) : (
               <div className="flex flex-wrap gap-2">

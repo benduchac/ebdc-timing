@@ -59,6 +59,26 @@ async function stubPhotoQueue(page: Page, ids: string[]) {
   });
 }
 
+// A fixed instant today, so a photo's capture time and a hand-edited finish
+// time can be made to line up exactly.
+function todayAt(h: number, m: number, sec: number): number {
+  const d = new Date();
+  d.setHours(h, m, sec, 0);
+  return d.getTime();
+}
+
+// Sets one recorded entry's finish time through its Edit modal, the same way
+// e2e/ranking.spec.ts does.
+async function setFinishTime(page: Page, riderName: string, time: string) {
+  await page.getByRole("button", { name: "Results" }).click();
+  await page
+    .getByRole("row", { name: new RegExp(riderName) })
+    .getByTitle("Edit")
+    .click();
+  await page.locator('input[type="time"]').fill(time);
+  await page.getByRole("button", { name: "Save changes" }).click();
+}
+
 async function recordFinish(page: Page, bib: string) {
   await page.getByPlaceholder("Enter bib number").fill(bib);
   await page.getByRole("button", { name: "Record finish (Enter)" }).click();
@@ -148,5 +168,61 @@ test("a finisher can be found by name or bib instead of the suggestions", async 
   await search.fill("zzzz");
   await expect(
     page.getByText("No rider without a photo matches that.")
+  ).toBeVisible();
+});
+
+test("correcting a finisher's time re-matches the photos against it", async ({
+  page,
+}) => {
+  // The photo was taken at 10:00:05. Every finish was recorded just now, so
+  // nothing is within the match window to begin with.
+  const photos = [
+    { ...stubPhoto("aaaaaaaa-0000-4000-8000-000000000009", todayAt(10, 0, 5)) },
+  ];
+  await page.route("**/api/photos*", async (route) => {
+    if (route.request().method() !== "GET") return route.continue();
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ ok: true, photos }),
+    });
+  });
+
+  await page.getByRole("button", { name: "Photos" }).click();
+  await expect(page.getByText(/No finisher within 20 seconds/)).toBeVisible();
+
+  // Move one rider's finish to five seconds before the shutter.
+  await setFinishTime(page, "Michael Chen", "10:00:00");
+
+  await page.getByRole("button", { name: "Photos" }).click();
+  await expect(
+    page.getByRole("button", { name: /Michael Chen/ })
+  ).toHaveCount(1);
+  await expect(page.getByText(/No finisher within 20 seconds/)).toHaveCount(0);
+});
+
+test("a photo from another day says so instead of just failing to match", async ({
+  page,
+}) => {
+  // The commonest way testing goes sideways: a photo off the camera roll
+  // shot last week, against finishes recorded today. Nothing can match, and
+  // "no finisher within 20 seconds" on its own reads like a broken feature.
+  const sixDaysAgo = todayAt(10, 0, 0) - 6 * 24 * 60 * 60 * 1000;
+  await page.route("**/api/photos*", async (route) => {
+    if (route.request().method() !== "GET") return route.continue();
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ok: true,
+        photos: [stubPhoto("aaaaaaaa-0000-4000-8000-00000000000a", sixDaysAgo)],
+      }),
+    });
+  });
+
+  await page.getByRole("button", { name: "Photos" }).click();
+  await expect(page.getByText(/6 days away/)).toBeVisible();
+  await expect(
+    page.getByText(/taken on a different day, or a clock is wrong/)
   ).toBeVisible();
 });

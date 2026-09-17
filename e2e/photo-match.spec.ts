@@ -2,7 +2,12 @@ import { test, expect } from "@playwright/test";
 import { readFileSync } from "fs";
 import { resolve } from "path";
 import { readExifTimes, parseExifDateTime } from "../lib/exif";
-import { findCandidates, correctedCaptureMs } from "../lib/photoMatch";
+import {
+  findCandidates,
+  correctedCaptureMs,
+  nearestEntry,
+  describeGap,
+} from "../lib/photoMatch";
 import type { Entry } from "../lib/db";
 
 // Pure-function tests — no page, no server. Both halves of photo matching
@@ -116,5 +121,34 @@ test.describe("readExifTimes", () => {
 
   test("returns null for bytes that aren't a JPEG at all", () => {
     expect(readExifTimes(new TextEncoder().encode("nope").buffer)).toBeNull();
+  });
+});
+
+test.describe("nearestEntry", () => {
+  const entries = [
+    entry(1, "101", T - 6 * 24 * 60 * 60 * 1000),
+    entry(2, "102", T - 4 * 60 * 60 * 1000),
+    entry(3, "103", T + 90 * 60 * 1000),
+  ];
+
+  test("finds the closest finisher with no window at all", () => {
+    // 90 minutes after beats 4 hours before, which beats 6 days before.
+    const found = nearestEntry({ capturedAtMs: T, clockOffsetMs: 0 }, entries);
+    expect(found?.entry.bib).toBe("103");
+    expect(found?.deltaMs).toBe(-90 * 60 * 1000);
+  });
+
+  test("is null when there is nothing to compare against", () => {
+    expect(nearestEntry({ capturedAtMs: T, clockOffsetMs: 0 }, [])).toBeNull();
+  });
+});
+
+test.describe("describeGap", () => {
+  test("reads as a person would say it, at every scale", () => {
+    expect(describeGap(8_000)).toBe("8 seconds");
+    expect(describeGap(-8_000)).toBe("8 seconds"); // direction is shown elsewhere
+    expect(describeGap(20 * 60_000)).toBe("20 minutes");
+    expect(describeGap(5 * 3_600_000)).toBe("5 hours");
+    expect(describeGap(6 * 24 * 3_600_000)).toBe("6 days");
   });
 });

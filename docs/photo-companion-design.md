@@ -255,6 +255,17 @@ Each pending photo shows the image, its capture time and where that time came
 from, and the candidate finishers with their deltas, nearest first. Approve
 against one of them, or reject.
 
+**When nothing matches, the card says how far off it was** — the nearest
+finisher and the gap, and beyond twelve hours, that the photo is from
+another day or a clock is wrong. "No finisher within 20 seconds" on its own
+sends the operator hunting for a bug when the answer is usually a photo
+picked from an earlier shoot, which is the commonest way testing goes
+sideways.
+
+Matching keys off the absolute finish time, not elapsed, so correcting a
+**wave start** changes every elapsed time and no photo matches. Correcting a
+**finisher's own time** does re-match, immediately.
+
 **A rider who has a photo drops out of every other photo's options.** One
 rider, one photo — so the list of who's left shrinks as the operator works
 down the queue, and the same person can't be picked twice a hundred photos
