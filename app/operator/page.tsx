@@ -375,37 +375,35 @@ export default function OperatorPage() {
     if (cloudSyncedAt) setCloudLastSyncedAt(cloudSyncedAt);
   }, [cloudSyncedAt]);
 
-  // The server assigns the public URL slug and the wave-start token on first
-  // sync — thread them back into activeRace once we learn them, so the
-  // header/share-link and the Settings wave-start link can show them.
+  // The server assigns the public URL slug and both companion-link tokens on
+  // a race's first sync — thread them back into activeRace once we learn
+  // them, so the header's share link and the Settings links can show them.
+  //
+  // One effect and a functional update, both deliberate. All three values
+  // arrive in the same sync response, so one effect each would run in the
+  // same commit, each spreading the activeRace it closed over; React batches
+  // those into a single write and the last one silently drops the other
+  // two. That shipped: a brand-new race synced, was given all three, and
+  // still showed "link pending first sync" because the last effect to run
+  // overwrote the slug with a copy of the race from before it had one.
   useEffect(() => {
-    if (syncedSlug && activeRace && activeRace.slug !== syncedSlug) {
-      setActiveRace({ ...activeRace, slug: syncedSlug });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [syncedSlug]);
-
-  useEffect(() => {
-    if (
-      syncedStartToken &&
-      activeRace &&
-      activeRace.startToken !== syncedStartToken
-    ) {
-      setActiveRace({ ...activeRace, startToken: syncedStartToken });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [syncedStartToken]);
-
-  useEffect(() => {
-    if (
-      syncedPhotoToken &&
-      activeRace &&
-      activeRace.photoToken !== syncedPhotoToken
-    ) {
-      setActiveRace({ ...activeRace, photoToken: syncedPhotoToken });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [syncedPhotoToken]);
+    if (!syncedSlug && !syncedStartToken && !syncedPhotoToken) return;
+    setActiveRace((prev) => {
+      if (!prev) return prev;
+      const next: Race = {
+        ...prev,
+        ...(syncedSlug ? { slug: syncedSlug } : {}),
+        ...(syncedStartToken ? { startToken: syncedStartToken } : {}),
+        ...(syncedPhotoToken ? { photoToken: syncedPhotoToken } : {}),
+      };
+      // Hand back the same object when nothing moved, so this can't loop.
+      return next.slug === prev.slug &&
+        next.startToken === prev.startToken &&
+        next.photoToken === prev.photoToken
+        ? prev
+        : next;
+    });
+  }, [syncedSlug, syncedStartToken, syncedPhotoToken]);
 
   // Polls the start-line phone's posted wave-start times and adopts each new
   // one as it lands, until all three waves have been adopted — see
