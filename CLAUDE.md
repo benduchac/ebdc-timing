@@ -186,9 +186,16 @@ context.
   photo, nearest first. Ranks only; the operator picks.
 - `lib/publicPhotos.ts` + `components/FinisherPhoto.tsx` — photos on the
   public leaderboard. `approvedPhotosByEntry` keeps approved photos for
-  finishers on the page; `FinisherPhoto` draws the thumbnail (lazy) and links
-  the full frame. Only `FinisherPhoto` may touch a photo's `url`, and only as
-  an `href`; `e2e/public-photos.spec.ts` reads the source to hold that.
+  finishers on the page; `FinisherPhoto` draws the thumbnail (lazy) and opens
+  the full frame in a lightbox. Only `FinisherPhoto` may touch a photo's
+  `url`, and only inside its open lightbox, so the full frame loads on a tap;
+  `e2e/public-photos.spec.ts` reads the source to hold that and
+  `e2e/photo-lightbox.spec.ts` proves it in a browser.
+- `app/dev/public-preview/page.tsx` — dev-only (404 in production) preview of
+  the public leaderboard from the seeded races in `fixtures/seed/`, with
+  placeholder photos, for looking at the photo layout and for the lightbox
+  test. `fixtures/generate-seed.py` rebuilds the seeds. The seeds also load
+  through Settings → Import backup.
 - `lib/db.ts` — Dexie schema (`entries`, `raceState`, `setupConfig`) and the
   `Registrant` / `Entry` / `RaceState` / `SetupConfig` types. `clearAllData()`.
 - `lib/types.ts` — re-exports DB types plus view types (`WaveStartTimes`,

@@ -325,13 +325,23 @@ never served stale.
 `components/FinisherPhoto.tsx` draws them; the thumbnail is the last item on
 the row, after the race time, in the results table (a "Photo" column that
 exists only once someone on the page has a photo) and in the category boards.
-A failure reading
-photos leaves the board without pictures and never takes the results down.
+Tapping a thumbnail opens a lightbox
+(`FinisherPhoto`) rather than a new tab, which on a phone takes the viewer off
+the leaderboard: the full frame is requested only once it is open, and it
+closes from the × button, the dark area around the photo, or Escape. A
+failure reading photos leaves the board without pictures and never takes the
+results down.
+
+To look at this without Redis, `/dev/public-preview` renders a seeded race
+(`fixtures/seed/`) with placeholder photos from picsum.photos: add
+`?seed=mid` for the race partway through, or `?photos=none` for no photos.
+It returns 404 in any production build, and `e2e/photo-lightbox.spec.ts`
+runs against it.
 
 `/[slug]` reads `race:{id}:photos` beside the snapshot it already reads,
 keeps the approved records, and joins them to entries on `entryId`,
 server-side. The thumbnail sits with the finisher; tapping it opens the full
-frame. `loading="lazy"` on the thumbnails is load-bearing for cost, not just
+frame in a lightbox on the same page. `loading="lazy"` on the thumbnails is load-bearing for cost, not just
 for speed — a viewer who never scrolls past the top ten never fetches the
 rest.
 

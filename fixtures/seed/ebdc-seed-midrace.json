@@ -1,0 +1,1471 @@
+{
+ "exportDate": "2026-10-10T18:30:00.000Z",
+ "event": "East Bay Dirt Classic - C510",
+ "raceId": "d78c9ce2-6675-51e9-896b-6852b6a02ebc",
+ "raceLabel": "East Bay Dirt Classic \u2013 10/10/2026 (seed, mid-race)",
+ "raceCreatedAt": "2026-10-09T05:14:51.582Z",
+ "raceDate": "2026-10-10",
+ "waveStartAdopted": {},
+ "waveStartTimes": {
+  "A": "2026-10-10T16:00:00.000Z",
+  "B": "2026-10-10T16:15:00.000Z",
+  "C": "2026-10-10T16:30:00.000Z"
+ },
+ "waveTimesConfirmed": true,
+ "registrants": [
+  [
+   "1",
+   {
+    "bib": "1",
+    "name": "Sarah Johnson",
+    "wave": "A",
+    "age": "34",
+    "gender": "female"
+   }
+  ],
+  [
+   "2",
+   {
+    "bib": "2",
+    "name": "Michael Chen",
+    "wave": "A",
+    "age": "38",
+    "gender": "male"
+   }
+  ],
+  [
+   "3",
+   {
+    "bib": "3",
+    "name": "Mary Jo Van Der Berg",
+    "wave": "B",
+    "age": "46",
+    "gender": "female"
+   }
+  ],
+  [
+   "4",
+   {
+    "bib": "4",
+    "name": "Alex Rivera",
+    "wave": "C",
+    "age": "17",
+    "gender": "nonbinary"
+   }
+  ],
+  [
+   "5",
+   {
+    "bib": "5",
+    "name": "Isaac Andersen",
+    "wave": "C",
+    "age": "17",
+    "gender": "male"
+   }
+  ],
+  [
+   "6",
+   {
+    "bib": "6",
+    "name": "Priya Raman",
+    "wave": "A",
+    "age": "30",
+    "gender": "female"
+   }
+  ],
+  [
+   "7",
+   {
+    "bib": "7",
+    "name": "Leading Zero",
+    "wave": "C",
+    "age": "40",
+    "gender": "male"
+   }
+  ],
+  [
+   "8",
+   {
+    "bib": "8",
+    "name": "Siobhan O\"Brien",
+    "wave": "B",
+    "age": "35",
+    "gender": "female"
+   }
+  ],
+  [
+   "9",
+   {
+    "bib": "9",
+    "name": "Walter Smith",
+    "wave": "A",
+    "age": "46",
+    "gender": "male"
+   }
+  ],
+  [
+   "10",
+   {
+    "bib": "10",
+    "name": "Marcus Webb",
+    "wave": "A",
+    "age": "19",
+    "gender": "male"
+   }
+  ],
+  [
+   "11",
+   {
+    "bib": "11",
+    "name": "Nia Fletcher",
+    "wave": "B",
+    "age": "18",
+    "gender": "female"
+   }
+  ],
+  [
+   "12",
+   {
+    "bib": "12",
+    "name": "Robert Ellery",
+    "wave": "C",
+    "age": "50",
+    "gender": "male"
+   }
+  ],
+  [
+   "13",
+   {
+    "bib": "13",
+    "name": "Helen Marsh",
+    "wave": "B",
+    "age": "49",
+    "gender": "female"
+   }
+  ],
+  [
+   "14",
+   {
+    "bib": "14",
+    "name": "Riley Petrov",
+    "wave": "A",
+    "age": "46",
+    "gender": "undisclosed"
+   }
+  ],
+  [
+   "15",
+   {
+    "bib": "15",
+    "name": "Mateo Smith",
+    "wave": "B",
+    "age": "36",
+    "gender": "male"
+   }
+  ],
+  [
+   "16",
+   {
+    "bib": "16",
+    "name": "Riley Mensah",
+    "wave": "A",
+    "age": "24",
+    "gender": "undisclosed"
+   }
+  ],
+  [
+   "17",
+   {
+    "bib": "17",
+    "name": "Tom Smith, Jr.",
+    "wave": "C",
+    "age": "57",
+    "gender": "male"
+   }
+  ],
+  [
+   "18",
+   {
+    "bib": "18",
+    "name": "Ana Petrov",
+    "wave": "B",
+    "age": "27",
+    "gender": "female"
+   }
+  ],
+  [
+   "19",
+   {
+    "bib": "19",
+    "name": "Carol Dubois",
+    "wave": "B",
+    "age": "43",
+    "gender": "female"
+   }
+  ],
+  [
+   "20",
+   {
+    "bib": "20",
+    "name": "Donna Osei",
+    "wave": "C",
+    "age": "11",
+    "gender": "female"
+   }
+  ],
+  [
+   "21",
+   {
+    "bib": "21",
+    "name": "Cynthia Harlow",
+    "wave": "C",
+    "age": "35",
+    "gender": "female"
+   }
+  ],
+  [
+   "22",
+   {
+    "bib": "22",
+    "name": "James Ferreira",
+    "wave": "A",
+    "age": "31",
+    "gender": "male"
+   }
+  ],
+  [
+   "23",
+   {
+    "bib": "23",
+    "name": "Ava Sinclair",
+    "wave": "A",
+    "age": "10",
+    "gender": "female"
+   }
+  ],
+  [
+   "24",
+   {
+    "bib": "24",
+    "name": "Marcus Blackwood",
+    "wave": "C",
+    "age": "24",
+    "gender": "male"
+   }
+  ],
+  [
+   "25",
+   {
+    "bib": "25",
+    "name": "Theo Cassidy",
+    "wave": "B",
+    "age": "18",
+    "gender": "male"
+   }
+  ],
+  [
+   "26",
+   {
+    "bib": "26",
+    "name": "Simon Delacroix-Mbeki",
+    "wave": "B",
+    "age": "35",
+    "gender": "male"
+   }
+  ],
+  [
+   "27",
+   {
+    "bib": "27",
+    "name": "Sandra Vance",
+    "wave": "B",
+    "age": "24",
+    "gender": "female"
+   }
+  ],
+  [
+   "28",
+   {
+    "bib": "28",
+    "name": "Mateo Ibarra",
+    "wave": "B",
+    "age": "36",
+    "gender": "male"
+   }
+  ],
+  [
+   "29",
+   {
+    "bib": "29",
+    "name": "Angela Blackwood",
+    "wave": "A",
+    "age": "41",
+    "gender": "female"
+   }
+  ],
+  [
+   "30",
+   {
+    "bib": "30",
+    "name": "Jordan Sundqvist",
+    "wave": "C",
+    "age": "31",
+    "gender": "male"
+   }
+  ],
+  [
+   "31",
+   {
+    "bib": "31",
+    "name": "Ines Dubois",
+    "wave": "A",
+    "age": "16",
+    "gender": "female"
+   }
+  ],
+  [
+   "32",
+   {
+    "bib": "32",
+    "name": "Elijah Ellery",
+    "wave": "A",
+    "age": "41",
+    "gender": "male"
+   }
+  ],
+  [
+   "33",
+   {
+    "bib": "33",
+    "name": "Roger Castillo",
+    "wave": "B",
+    "age": "13",
+    "gender": "male"
+   }
+  ],
+  [
+   "34",
+   {
+    "bib": "34",
+    "name": "Jae Hallgren",
+    "wave": "B",
+    "age": "38",
+    "gender": "undisclosed"
+   }
+  ],
+  [
+   "35",
+   {
+    "bib": "35",
+    "name": "Ana Okafor",
+    "wave": "C",
+    "age": "25",
+    "gender": "female"
+   }
+  ],
+  [
+   "36",
+   {
+    "bib": "36",
+    "name": "Gary Andersen",
+    "wave": "C",
+    "age": "14",
+    "gender": "male"
+   }
+  ],
+  [
+   "37",
+   {
+    "bib": "37",
+    "name": "Frank Cassidy",
+    "wave": "B",
+    "age": "9",
+    "gender": "male"
+   }
+  ],
+  [
+   "38",
+   {
+    "bib": "38",
+    "name": "Bruce Bianchi",
+    "wave": "A",
+    "age": "47",
+    "gender": "male"
+   }
+  ],
+  [
+   "39",
+   {
+    "bib": "39",
+    "name": "Kathleen Okonkwo",
+    "wave": "A",
+    "age": "14",
+    "gender": "female"
+   }
+  ],
+  [
+   "40",
+   {
+    "bib": "40",
+    "name": "Andre Ashworth",
+    "wave": "B",
+    "age": "38",
+    "gender": "male"
+   }
+  ],
+  [
+   "41",
+   {
+    "bib": "41",
+    "name": "Angela Whitfield",
+    "wave": "A",
+    "age": "36",
+    "gender": "female"
+   }
+  ],
+  [
+   "42",
+   {
+    "bib": "42",
+    "name": "Isabella Okafor",
+    "wave": "B",
+    "age": "57",
+    "gender": "female"
+   }
+  ],
+  [
+   "43",
+   {
+    "bib": "43",
+    "name": "Dennis Bianchi",
+    "wave": "B",
+    "age": "28",
+    "gender": "male"
+   }
+  ],
+  [
+   "44",
+   {
+    "bib": "44",
+    "name": "Wayne Faulkner",
+    "wave": "C",
+    "age": "25",
+    "gender": "male"
+   }
+  ],
+  [
+   "45",
+   {
+    "bib": "45",
+    "name": "Owen Okafor",
+    "wave": "C",
+    "age": "15",
+    "gender": "male"
+   }
+  ],
+  [
+   "46",
+   {
+    "bib": "46",
+    "name": "Valentina Zero",
+    "wave": "A",
+    "age": "38",
+    "gender": "female"
+   }
+  ],
+  [
+   "47",
+   {
+    "bib": "47",
+    "name": "Autumn Okafor",
+    "wave": "A",
+    "age": "40",
+    "gender": "female"
+   }
+  ],
+  [
+   "48",
+   {
+    "bib": "48",
+    "name": "Harold Whitmore",
+    "wave": "C",
+    "age": "38",
+    "gender": "male"
+   }
+  ],
+  [
+   "49",
+   {
+    "bib": "49",
+    "name": "Tyler Ibarra",
+    "wave": "B",
+    "age": "29",
+    "gender": "male"
+   }
+  ],
+  [
+   "50",
+   {
+    "bib": "50",
+    "name": "Naomi O'Brien",
+    "wave": "C",
+    "age": "28",
+    "gender": "female"
+   }
+  ],
+  [
+   "51",
+   {
+    "bib": "51",
+    "name": "Leila Webb",
+    "wave": "C",
+    "age": "12",
+    "gender": "female"
+   }
+  ],
+  [
+   "52",
+   {
+    "bib": "52",
+    "name": "Ravi Barros",
+    "wave": "B",
+    "age": "75",
+    "gender": "male"
+   }
+  ],
+  [
+   "53",
+   {
+    "bib": "53",
+    "name": "Quinn Kowalczyk",
+    "wave": "B",
+    "age": "28",
+    "gender": "nonbinary"
+   }
+  ],
+  [
+   "54",
+   {
+    "bib": "54",
+    "name": "Adrian Pemberton",
+    "wave": "C",
+    "age": "33",
+    "gender": "male"
+   }
+  ],
+  [
+   "55",
+   {
+    "bib": "55",
+    "name": "Owen Harlow",
+    "wave": "B",
+    "age": "11",
+    "gender": "male"
+   }
+  ],
+  [
+   "56",
+   {
+    "bib": "56",
+    "name": "Cynthia Hallgren",
+    "wave": "C",
+    "age": "32",
+    "gender": "female"
+   }
+  ],
+  [
+   "57",
+   {
+    "bib": "57",
+    "name": "Sophia Rourke",
+    "wave": "B",
+    "age": "41",
+    "gender": "female"
+   }
+  ],
+  [
+   "58",
+   {
+    "bib": "58",
+    "name": "Autumn Vance",
+    "wave": "C",
+    "age": "53",
+    "gender": "female"
+   }
+  ],
+  [
+   "59",
+   {
+    "bib": "59",
+    "name": "Tyler Webb",
+    "wave": "A",
+    "age": "23",
+    "gender": "male"
+   }
+  ],
+  [
+   "60",
+   {
+    "bib": "60",
+    "name": "Harold Okonkwo",
+    "wave": "B",
+    "age": "15",
+    "gender": "male"
+   }
+  ],
+  [
+   "61",
+   {
+    "bib": "61",
+    "name": "Stella Kowalski",
+    "wave": "C",
+    "age": "45",
+    "gender": "female"
+   }
+  ],
+  [
+   "62",
+   {
+    "bib": "62",
+    "name": "Isaac Park",
+    "wave": "B",
+    "age": "73",
+    "gender": "male"
+   }
+  ],
+  [
+   "63",
+   {
+    "bib": "63",
+    "name": "Alice Ashby",
+    "wave": "C",
+    "age": "43",
+    "gender": "female"
+   }
+  ],
+  [
+   "64",
+   {
+    "bib": "64",
+    "name": "Olivia Zero",
+    "wave": "B",
+    "age": "44",
+    "gender": "female"
+   }
+  ],
+  [
+   "65",
+   {
+    "bib": "65",
+    "name": "James Kim",
+    "wave": "B",
+    "age": "59",
+    "gender": "male"
+   }
+  ],
+  [
+   "66",
+   {
+    "bib": "66",
+    "name": "Jasmine Rourke",
+    "wave": "B",
+    "age": "40",
+    "gender": "female"
+   }
+  ],
+  [
+   "67",
+   {
+    "bib": "67",
+    "name": "Sandra Moreau",
+    "wave": "C",
+    "age": "17",
+    "gender": "female"
+   }
+  ],
+  [
+   "68",
+   {
+    "bib": "68",
+    "name": "Jordan Ibarra",
+    "wave": "C",
+    "age": "14",
+    "gender": "male"
+   }
+  ],
+  [
+   "69",
+   {
+    "bib": "69",
+    "name": "Amara Barros",
+    "wave": "B",
+    "age": "10",
+    "gender": "female"
+   }
+  ],
+  [
+   "70",
+   {
+    "bib": "70",
+    "name": "Dominic Bianchi",
+    "wave": "A",
+    "age": "12",
+    "gender": "male"
+   }
+  ],
+  [
+   "71",
+   {
+    "bib": "71",
+    "name": "Wayne Dubois",
+    "wave": "A",
+    "age": "21",
+    "gender": "male"
+   }
+  ],
+  [
+   "72",
+   {
+    "bib": "72",
+    "name": "Ines Fairweather",
+    "wave": "A",
+    "age": "36",
+    "gender": "female"
+   }
+  ],
+  [
+   "73",
+   {
+    "bib": "73",
+    "name": "Nora Castillo",
+    "wave": "C",
+    "age": "72",
+    "gender": "female"
+   }
+  ],
+  [
+   "74",
+   {
+    "bib": "74",
+    "name": "Quinn Andersen",
+    "wave": "B",
+    "age": "29",
+    "gender": "nonbinary"
+   }
+  ],
+  [
+   "75",
+   {
+    "bib": "75",
+    "name": "Harold Pemberton",
+    "wave": "C",
+    "age": "32",
+    "gender": "male"
+   }
+  ],
+  [
+   "76",
+   {
+    "bib": "76",
+    "name": "Carlos Ferreira",
+    "wave": "A",
+    "age": "16",
+    "gender": "male"
+   }
+  ],
+  [
+   "77",
+   {
+    "bib": "77",
+    "name": "Dennis Rourke",
+    "wave": "C",
+    "age": "15",
+    "gender": "male"
+   }
+  ],
+  [
+   "78",
+   {
+    "bib": "78",
+    "name": "James Hollis",
+    "wave": "B",
+    "age": "37",
+    "gender": "male"
+   }
+  ],
+  [
+   "79",
+   {
+    "bib": "79",
+    "name": "Diego Rutherford",
+    "wave": "C",
+    "age": "65",
+    "gender": "male"
+   }
+  ],
+  [
+   "80",
+   {
+    "bib": "80",
+    "name": "Dominic Rourke",
+    "wave": "C",
+    "age": "19",
+    "gender": "male"
+   }
+  ],
+  [
+   "81",
+   {
+    "bib": "81",
+    "name": "Ronald Lindqvist",
+    "wave": "C",
+    "age": "19",
+    "gender": "male"
+   }
+  ],
+  [
+   "82",
+   {
+    "bib": "82",
+    "name": "Miguel Harlow",
+    "wave": "B",
+    "age": "34",
+    "gender": "male"
+   }
+  ],
+  [
+   "83",
+   {
+    "bib": "83",
+    "name": "Quinn Vance",
+    "wave": "A",
+    "age": "26",
+    "gender": "undisclosed"
+   }
+  ],
+  [
+   "84",
+   {
+    "bib": "84",
+    "name": "Sam Sundqvist",
+    "wave": "A",
+    "age": "22",
+    "gender": "male"
+   }
+  ],
+  [
+   "85",
+   {
+    "bib": "85",
+    "name": "Nia Novak",
+    "wave": "C",
+    "age": "65",
+    "gender": "female"
+   }
+  ],
+  [
+   "86",
+   {
+    "bib": "86",
+    "name": "Aaliyah Osei",
+    "wave": "B",
+    "age": "38",
+    "gender": "female"
+   }
+  ],
+  [
+   "87",
+   {
+    "bib": "87",
+    "name": "Dennis Vance",
+    "wave": "A",
+    "age": "22",
+    "gender": "male"
+   }
+  ],
+  [
+   "88",
+   {
+    "bib": "88",
+    "name": "Noah Zero",
+    "wave": "C",
+    "age": "34",
+    "gender": "male"
+   }
+  ],
+  [
+   "89",
+   {
+    "bib": "89",
+    "name": "Luna Fletcher",
+    "wave": "A",
+    "age": "34",
+    "gender": "female"
+   }
+  ],
+  [
+   "90",
+   {
+    "bib": "90",
+    "name": "Kevin Whitmore",
+    "wave": "A",
+    "age": "58",
+    "gender": "male"
+   }
+  ],
+  [
+   "91",
+   {
+    "bib": "91",
+    "name": "Nia Kowalski",
+    "wave": "A",
+    "age": "44",
+    "gender": "female"
+   }
+  ],
+  [
+   "92",
+   {
+    "bib": "92",
+    "name": "Joan Blackwood",
+    "wave": "B",
+    "age": "71",
+    "gender": "female"
+   }
+  ],
+  [
+   "93",
+   {
+    "bib": "93",
+    "name": "Ronald Mensah",
+    "wave": "B",
+    "age": "44",
+    "gender": "male"
+   }
+  ],
+  [
+   "94",
+   {
+    "bib": "94",
+    "name": "Sandra Ellery",
+    "wave": "B",
+    "age": "38",
+    "gender": "female"
+   }
+  ],
+  [
+   "95",
+   {
+    "bib": "95",
+    "name": "Carol Andersen",
+    "wave": "C",
+    "age": "35",
+    "gender": "female"
+   }
+  ],
+  [
+   "96",
+   {
+    "bib": "96",
+    "name": "Diane Kestrel",
+    "wave": "B",
+    "age": "64",
+    "gender": "female"
+   }
+  ],
+  [
+   "97",
+   {
+    "bib": "97",
+    "name": "Wayne Lindgren",
+    "wave": "B",
+    "age": "36",
+    "gender": "male"
+   }
+  ],
+  [
+   "98",
+   {
+    "bib": "98",
+    "name": "Aaliyah Ibarra",
+    "wave": "C",
+    "age": "61",
+    "gender": "female"
+   }
+  ],
+  [
+   "99",
+   {
+    "bib": "99",
+    "name": "William Bianchi",
+    "wave": "B",
+    "age": "12",
+    "gender": "male"
+   }
+  ],
+  [
+   "100",
+   {
+    "bib": "100",
+    "name": "Sandra Park",
+    "wave": "B",
+    "age": "20",
+    "gender": "female"
+   }
+  ]
+ ],
+ "entryCounter": 41,
+ "entries": [
+  {
+   "id": 1,
+   "bib": "71",
+   "wave": "A",
+   "name": "Wayne Dubois",
+   "finishTime": "10:22:34 AM",
+   "finishTimeMs": 1791652954000,
+   "elapsedTime": "1:22:34",
+   "elapsedMs": 4954000,
+   "timestamp": "2026-10-10T17:22:34.000Z"
+  },
+  {
+   "id": 2,
+   "bib": "2",
+   "wave": "A",
+   "name": "Michael Chen",
+   "finishTime": "10:23:56 AM",
+   "finishTimeMs": 1791653036000,
+   "elapsedTime": "1:23:56",
+   "elapsedMs": 5036000,
+   "timestamp": "2026-10-10T17:23:56.000Z"
+  },
+  {
+   "id": 3,
+   "bib": "59",
+   "wave": "A",
+   "name": "Tyler Webb",
+   "finishTime": "10:30:23 AM",
+   "finishTimeMs": 1791653423000,
+   "elapsedTime": "1:30:23",
+   "elapsedMs": 5423000,
+   "timestamp": "2026-10-10T17:30:23.000Z"
+  },
+  {
+   "id": 4,
+   "bib": "22",
+   "wave": "A",
+   "name": "James Ferreira",
+   "finishTime": "10:34:27 AM",
+   "finishTimeMs": 1791653667000,
+   "elapsedTime": "1:34:27",
+   "elapsedMs": 5667000,
+   "timestamp": "2026-10-10T17:34:27.000Z"
+  },
+  {
+   "id": 5,
+   "bib": "1",
+   "wave": "A",
+   "name": "Sarah Johnson",
+   "finishTime": "10:39:09 AM",
+   "finishTimeMs": 1791653949000,
+   "elapsedTime": "1:39:09",
+   "elapsedMs": 5949000,
+   "timestamp": "2026-10-10T17:39:09.000Z"
+  },
+  {
+   "id": 6,
+   "bib": "47",
+   "wave": "A",
+   "name": "Autumn Okafor",
+   "finishTime": "10:43:42 AM",
+   "finishTimeMs": 1791654222000,
+   "elapsedTime": "1:43:42",
+   "elapsedMs": 6222000,
+   "timestamp": "2026-10-10T17:43:42.000Z"
+  },
+  {
+   "id": 7,
+   "bib": "32",
+   "wave": "A",
+   "name": "Elijah Ellery",
+   "finishTime": "10:47:15 AM",
+   "finishTimeMs": 1791654435000,
+   "elapsedTime": "1:47:15",
+   "elapsedMs": 6435000,
+   "timestamp": "2026-10-10T17:47:15.000Z"
+  },
+  {
+   "id": 8,
+   "bib": "UNK-1",
+   "wave": null,
+   "name": "Unknown rider",
+   "finishTime": "10:47:55 AM",
+   "finishTimeMs": 1791654475000,
+   "elapsedTime": "N/A",
+   "elapsedMs": null,
+   "timestamp": "2026-10-10T17:47:55.000Z"
+  },
+  {
+   "id": 9,
+   "bib": "9",
+   "wave": "A",
+   "name": "Walter Smith",
+   "finishTime": "10:48:54 AM",
+   "finishTimeMs": 1791654534000,
+   "elapsedTime": "1:48:54",
+   "elapsedMs": 6534000,
+   "timestamp": "2026-10-10T17:48:54.000Z"
+  },
+  {
+   "id": 10,
+   "bib": "76",
+   "wave": "A",
+   "name": "Carlos Ferreira",
+   "finishTime": "10:49:44 AM",
+   "finishTimeMs": 1791654584000,
+   "elapsedTime": "1:49:44",
+   "elapsedMs": 6584000,
+   "timestamp": "2026-10-10T17:49:44.000Z"
+  },
+  {
+   "id": 11,
+   "bib": "29",
+   "wave": "A",
+   "name": "Angela Blackwood",
+   "finishTime": "10:50:01 AM",
+   "finishTimeMs": 1791654601000,
+   "elapsedTime": "1:50:01",
+   "elapsedMs": 6601000,
+   "timestamp": "2026-10-10T17:50:01.000Z"
+  },
+  {
+   "id": 12,
+   "bib": "16",
+   "wave": "A",
+   "name": "Riley Mensah",
+   "finishTime": "10:50:36 AM",
+   "finishTimeMs": 1791654636000,
+   "elapsedTime": "1:50:36",
+   "elapsedMs": 6636000,
+   "timestamp": "2026-10-10T17:50:36.000Z"
+  },
+  {
+   "id": 13,
+   "bib": "23",
+   "wave": "A",
+   "name": "Ava Sinclair",
+   "finishTime": "10:51:23 AM",
+   "finishTimeMs": 1791654683000,
+   "elapsedTime": "1:51:23",
+   "elapsedMs": 6683000,
+   "timestamp": "2026-10-10T17:51:23.000Z"
+  },
+  {
+   "id": 14,
+   "bib": "91",
+   "wave": "A",
+   "name": "Nia Kowalski",
+   "finishTime": "10:51:26 AM",
+   "finishTimeMs": 1791654686000,
+   "elapsedTime": "1:51:26",
+   "elapsedMs": 6686000,
+   "timestamp": "2026-10-10T17:51:26.000Z"
+  },
+  {
+   "id": 15,
+   "bib": "89",
+   "wave": "A",
+   "name": "Luna Fletcher",
+   "finishTime": "10:51:43 AM",
+   "finishTimeMs": 1791654703000,
+   "elapsedTime": "1:51:43",
+   "elapsedMs": 6703000,
+   "timestamp": "2026-10-10T17:51:43.000Z"
+  },
+  {
+   "id": 16,
+   "bib": "6",
+   "wave": "A",
+   "name": "Priya Raman",
+   "finishTime": "10:53:02 AM",
+   "finishTimeMs": 1791654782000,
+   "elapsedTime": "1:53:02",
+   "elapsedMs": 6782000,
+   "timestamp": "2026-10-10T17:53:02.000Z"
+  },
+  {
+   "id": 17,
+   "bib": "46",
+   "wave": "A",
+   "name": "Valentina Zero",
+   "finishTime": "10:54:24 AM",
+   "finishTimeMs": 1791654864000,
+   "elapsedTime": "1:54:24",
+   "elapsedMs": 6864000,
+   "timestamp": "2026-10-10T17:54:24.000Z"
+  },
+  {
+   "id": 18,
+   "bib": "31",
+   "wave": "A",
+   "name": "Ines Dubois",
+   "finishTime": "10:54:29 AM",
+   "finishTimeMs": 1791654869000,
+   "elapsedTime": "1:54:29",
+   "elapsedMs": 6869000,
+   "timestamp": "2026-10-10T17:54:29.000Z"
+  },
+  {
+   "id": 19,
+   "bib": "87",
+   "wave": "A",
+   "name": "Dennis Vance",
+   "finishTime": "10:54:57 AM",
+   "finishTimeMs": 1791654897000,
+   "elapsedTime": "1:54:57",
+   "elapsedMs": 6897000,
+   "timestamp": "2026-10-10T17:54:57.000Z"
+  },
+  {
+   "id": 20,
+   "bib": "38",
+   "wave": "A",
+   "name": "Bruce Bianchi",
+   "finishTime": "10:56:31 AM",
+   "finishTimeMs": 1791654991000,
+   "elapsedTime": "1:56:31",
+   "elapsedMs": 6991000,
+   "timestamp": "2026-10-10T17:56:31.000Z"
+  },
+  {
+   "id": 21,
+   "bib": "90",
+   "wave": "A",
+   "name": "Kevin Whitmore",
+   "finishTime": "10:56:38 AM",
+   "finishTimeMs": 1791654998000,
+   "elapsedTime": "1:56:38",
+   "elapsedMs": 6998000,
+   "timestamp": "2026-10-10T17:56:38.000Z"
+  },
+  {
+   "id": 22,
+   "bib": "39",
+   "wave": "A",
+   "name": "Kathleen Okonkwo",
+   "finishTime": "10:57:18 AM",
+   "finishTimeMs": 1791655038000,
+   "elapsedTime": "1:57:18",
+   "elapsedMs": 7038000,
+   "timestamp": "2026-10-10T17:57:18.000Z"
+  },
+  {
+   "id": 23,
+   "bib": "84",
+   "wave": "A",
+   "name": "Sam Sundqvist",
+   "finishTime": "10:57:35 AM",
+   "finishTimeMs": 1791655055000,
+   "elapsedTime": "1:57:35",
+   "elapsedMs": 7055000,
+   "timestamp": "2026-10-10T17:57:35.000Z"
+  },
+  {
+   "id": 24,
+   "bib": "999",
+   "wave": null,
+   "name": "Unknown rider",
+   "finishTime": "10:57:43 AM",
+   "finishTimeMs": 1791655063000,
+   "elapsedTime": "N/A",
+   "elapsedMs": null,
+   "timestamp": "2026-10-10T17:57:43.000Z"
+  },
+  {
+   "id": 25,
+   "bib": "26",
+   "wave": "B",
+   "name": "Simon Delacroix-Mbeki",
+   "finishTime": "10:58:12 AM",
+   "finishTimeMs": 1791655092000,
+   "elapsedTime": "1:43:12",
+   "elapsedMs": 6192000,
+   "timestamp": "2026-10-10T17:58:12.000Z"
+  },
+  {
+   "id": 26,
+   "bib": "55",
+   "wave": "B",
+   "name": "Owen Harlow",
+   "finishTime": "10:58:12 AM",
+   "finishTimeMs": 1791655092000,
+   "elapsedTime": "1:43:12",
+   "elapsedMs": 6192000,
+   "timestamp": "2026-10-10T17:58:12.000Z"
+  },
+  {
+   "id": 27,
+   "bib": "70",
+   "wave": "A",
+   "name": "Dominic Bianchi",
+   "finishTime": "10:58:59 AM",
+   "finishTimeMs": 1791655139000,
+   "elapsedTime": "1:58:59",
+   "elapsedMs": 7139000,
+   "timestamp": "2026-10-10T17:58:59.000Z"
+  },
+  {
+   "id": 28,
+   "bib": "10",
+   "wave": "A",
+   "name": "Marcus Webb",
+   "finishTime": "11:02:59 AM",
+   "finishTimeMs": 1791655379000,
+   "elapsedTime": "2:02:59",
+   "elapsedMs": 7379000,
+   "timestamp": "2026-10-10T18:02:59.000Z"
+  },
+  {
+   "id": 29,
+   "bib": "37",
+   "wave": "B",
+   "name": "Frank Cassidy",
+   "finishTime": "11:05:07 AM",
+   "finishTimeMs": 1791655507000,
+   "elapsedTime": "1:50:07",
+   "elapsedMs": 6607000,
+   "timestamp": "2026-10-10T18:05:07.000Z"
+  },
+  {
+   "id": 30,
+   "bib": "83",
+   "wave": "A",
+   "name": "Quinn Vance",
+   "finishTime": "11:06:48 AM",
+   "finishTimeMs": 1791655608000,
+   "elapsedTime": "2:06:48",
+   "elapsedMs": 7608000,
+   "timestamp": "2026-10-10T18:06:48.000Z"
+  },
+  {
+   "id": 31,
+   "bib": "96",
+   "wave": "B",
+   "name": "Diane Kestrel",
+   "finishTime": "11:06:54 AM",
+   "finishTimeMs": 1791655614000,
+   "elapsedTime": "1:51:54",
+   "elapsedMs": 6714000,
+   "timestamp": "2026-10-10T18:06:54.000Z"
+  },
+  {
+   "id": 32,
+   "bib": "62",
+   "wave": "B",
+   "name": "Isaac Park",
+   "finishTime": "11:08:05 AM",
+   "finishTimeMs": 1791655685000,
+   "elapsedTime": "1:53:05",
+   "elapsedMs": 6785000,
+   "timestamp": "2026-10-10T18:08:05.000Z"
+  },
+  {
+   "id": 33,
+   "bib": "69",
+   "wave": "B",
+   "name": "Amara Barros",
+   "finishTime": "11:09:10 AM",
+   "finishTimeMs": 1791655750000,
+   "elapsedTime": "1:54:10",
+   "elapsedMs": 6850000,
+   "timestamp": "2026-10-10T18:09:10.000Z"
+  },
+  {
+   "id": 34,
+   "bib": "74",
+   "wave": "B",
+   "name": "Quinn Andersen",
+   "finishTime": "11:10:01 AM",
+   "finishTimeMs": 1791655801000,
+   "elapsedTime": "1:55:01",
+   "elapsedMs": 6901000,
+   "timestamp": "2026-10-10T18:10:01.000Z"
+  },
+  {
+   "id": 35,
+   "bib": "40",
+   "wave": "B",
+   "name": "Andre Ashworth",
+   "finishTime": "11:10:37 AM",
+   "finishTimeMs": 1791655837000,
+   "elapsedTime": "1:55:37",
+   "elapsedMs": 6937000,
+   "timestamp": "2026-10-10T18:10:37.000Z"
+  },
+  {
+   "id": 36,
+   "bib": "60",
+   "wave": "B",
+   "name": "Harold Okonkwo",
+   "finishTime": "11:13:42 AM",
+   "finishTimeMs": 1791656022000,
+   "elapsedTime": "1:58:42",
+   "elapsedMs": 7122000,
+   "timestamp": "2026-10-10T18:13:42.000Z"
+  },
+  {
+   "id": 37,
+   "bib": "11",
+   "wave": "B",
+   "name": "Nia Fletcher",
+   "finishTime": "11:16:33 AM",
+   "finishTimeMs": 1791656193000,
+   "elapsedTime": "2:01:33",
+   "elapsedMs": 7293000,
+   "timestamp": "2026-10-10T18:16:33.000Z"
+  },
+  {
+   "id": 38,
+   "bib": "72",
+   "wave": "A",
+   "name": "Ines Fairweather",
+   "finishTime": "11:16:48 AM",
+   "finishTimeMs": 1791656208000,
+   "elapsedTime": "2:16:48",
+   "elapsedMs": 8208000,
+   "timestamp": "2026-10-10T18:16:48.000Z"
+  },
+  {
+   "id": 39,
+   "bib": "25",
+   "wave": "B",
+   "name": "Theo Cassidy",
+   "finishTime": "11:16:54 AM",
+   "finishTimeMs": 1791656214000,
+   "elapsedTime": "2:01:54",
+   "elapsedMs": 7314000,
+   "timestamp": "2026-10-10T18:16:54.000Z"
+  },
+  {
+   "id": 40,
+   "bib": "97",
+   "wave": "B",
+   "name": "Wayne Lindgren",
+   "finishTime": "11:17:18 AM",
+   "finishTimeMs": 1791656238000,
+   "elapsedTime": "2:02:18",
+   "elapsedMs": 7338000,
+   "timestamp": "2026-10-10T18:17:18.000Z"
+  },
+  {
+   "id": 41,
+   "bib": "19",
+   "wave": "B",
+   "name": "Carol Dubois",
+   "finishTime": "11:19:48 AM",
+   "finishTimeMs": 1791656388000,
+   "elapsedTime": "2:04:48",
+   "elapsedMs": 7488000,
+   "timestamp": "2026-10-10T18:19:48.000Z"
+  }
+ ]
+}

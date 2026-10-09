@@ -66,20 +66,24 @@ test.describe("approvedPhotosByEntry", () => {
   });
 });
 
-// Only the small copy may be drawn. Vercel Blob stops serving for 30 days
-// once the month's transfer runs out; a leaderboard that loads full frames
-// would get there in an afternoon. The components can't be rendered inside
-// Playwright's runner (it rewrites component imports), so this reads the
-// source for the rule instead. The markup itself was checked once against the
-// dev server.
+// Where photos are allowed to reach the full frame. Vercel Blob stops serving
+// for 30 days once the month's transfer runs out; a leaderboard that loads
+// full frames would get there in an afternoon. The components can't be
+// rendered inside Playwright's runner (it rewrites component imports), so
+// this reads the source for the structure; e2e/photo-lightbox.spec.ts proves
+// the behavior against the dev preview page.
 const read = (path: string) => readFileSync(resolve(__dirname, "..", path), "utf8");
 
-test("only FinisherPhoto draws a photo, and it draws the thumbnail", () => {
+test("the full frame is only rendered inside FinisherPhoto's open lightbox", () => {
   const photo = read("components/FinisherPhoto.tsx");
+  // The thumbnail is what the page draws, lazily.
   expect(photo).toContain("src={photo.thumbUrl}");
   expect(photo).toContain('loading="lazy"');
-  expect(photo).toContain("href={photo.url}");
-  expect(photo).not.toContain("src={photo.url}");
+  // The one use of the full URL sits after the `open &&` gate.
+  const uses = photo.split("src={photo.url}").length - 1;
+  expect(uses).toBe(1);
+  expect(photo.indexOf("{open &&")).toBeGreaterThan(-1);
+  expect(photo.indexOf("src={photo.url}")).toBeGreaterThan(photo.indexOf("{open &&"));
 });
 
 test("the public views reach photos only through FinisherPhoto", () => {

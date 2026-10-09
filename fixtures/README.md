@@ -88,3 +88,16 @@ mistake isn't a malformed export — it's uploading last year's file. Neither
 has a `bib` or `name` header, so the importer should refuse both by name
 ("this doesn't look like a 2026 registration export") rather than importing
 nothing quietly.
+
+## `seed/` — a seeded race
+
+Two backup JSONs of a realistic race, built from `registrants-2026.csv` by
+`generate-seed.py` (fixed seed, so re-running reproduces them). Load either
+through the operator's Settings → Import backup, or look at the public view of
+them at `/dev/public-preview` (dev only).
+
+- `ebdc-seed-midrace.json`: the race at 11:20, partway through. 100 riders
+  registered, 41 finishes recorded, two of them unresolved.
+- `ebdc-seed-final.json`: 94 finishes, 92 ranked. Eight riders did not finish,
+  two finishes are tied, and two are unresolved: `UNK-1` and an unregistered
+  bib 999. Times run from 1:22 to 3:19, and every category board is populated.
