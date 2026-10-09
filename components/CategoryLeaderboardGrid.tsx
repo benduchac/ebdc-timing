@@ -16,6 +16,7 @@ interface LeaderboardCardProps {
   title: string;
   entries: Entry[];
   displayLimit: number;
+  expandLimit: number;
 }
 
 // One ranked row — bib, name, wave, elapsed on one line — used by the
@@ -43,7 +44,12 @@ function RankedRow({ entry, place }: { entry: Entry; place: number }) {
 // server-side via lib/categories.ts's computeCategoryBuckets and only ever
 // passes the resulting Entry[] buckets down — birthdate never reaches the
 // client bundle.
-function LeaderboardCard({ title, entries, displayLimit }: LeaderboardCardProps) {
+function LeaderboardCard({
+  title,
+  entries,
+  displayLimit,
+  expandLimit,
+}: LeaderboardCardProps) {
   const [showAll, setShowAll] = useState(false);
 
   if (entries.length === 0) {
@@ -62,8 +68,14 @@ function LeaderboardCard({ title, entries, displayLimit }: LeaderboardCardProps)
   // Ranks computed over the full list before truncating to the display
   // limit, so showing fewer rows never shifts a tie group's numbers.
   const ranks = computeStandardRanks(entries);
-  const displayedEntries = showAll ? entries : entries.slice(0, displayLimit);
+  const displayedEntries = entries.slice(0, showAll ? expandLimit : displayLimit);
   const hasMore = entries.length > displayLimit;
+  const collapseLabel =
+    displayLimit === 1 ? "Show winner only" : `Show top ${displayLimit}`;
+  const expandLabel =
+    entries.length <= expandLimit
+      ? `Show all ${entries.length} finishers`
+      : `Show top ${expandLimit}`;
 
   return (
     <div className="bg-chalk border border-ink/10 rounded-lg p-4">
@@ -81,13 +93,14 @@ function LeaderboardCard({ title, entries, displayLimit }: LeaderboardCardProps)
           onClick={() => setShowAll(!showAll)}
           className="w-full mt-3 py-2 bg-sand text-moss-dark rounded-lg font-semibold hover:bg-ink/10 transition"
         >
-          {showAll ? `Show top ${displayLimit}` : `Show all ${entries.length} finishers`}
+          {showAll ? collapseLabel : expandLabel}
         </button>
       )}
 
       <div className="mt-3 pt-3 border-t border-ink/10 text-xs text-ink-soft text-center">
         {entries.length} finisher{entries.length !== 1 ? "s" : ""} total
-        {hasMore && !showAll && ` (showing top ${displayLimit})`}
+        {displayedEntries.length < entries.length &&
+          ` (showing top ${displayedEntries.length})`}
       </div>
     </div>
   );
@@ -108,6 +121,7 @@ export default function CategoryLeaderboardGrid({
             title={board.name}
             entries={board.entries}
             displayLimit={board.displayLimit}
+            expandLimit={board.expandLimit}
           />
         ))}
       </div>

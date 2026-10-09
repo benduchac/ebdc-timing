@@ -1,7 +1,5 @@
 import type { Entry, Registrant } from "./db";
 
-export type AgeCategory = "junior" | "adult" | "masters";
-
 /**
  * Parses a registrant's raw `age` field into a non-negative integer, or null
  * if it's missing/invalid. The registration form collects a plain age
@@ -12,22 +10,9 @@ export function parseAge(age: string): number | null {
   return Number(age);
 }
 
-export function getAgeCategory(age: number): AgeCategory {
-  if (age <= 18) return "junior";
-  if (age >= 50) return "masters";
-  return "adult";
-}
-
-export function getCategoryLabel(category: AgeCategory): string {
-  switch (category) {
-    case "junior":
-      return "Junior (18U)";
-    case "adult":
-      return "Adult (19-49)";
-    case "masters":
-      return "Masters (50+)";
-  }
-}
+// U18 includes 18 (the board is named for the 18U field, as on the form).
+export const JUNIOR_MAX_AGE = 18;
+export const MASTERS_MIN_AGE = 50;
 
 export function getGenderLabel(gender: string): string {
   switch (gender) {
@@ -58,9 +43,10 @@ function sortByElapsed(entries: Entry[]): Entry[] {
 export interface CategoryBoard {
   id: string;
   name: string;
-  // How many places a board shows before "Show all" — a smaller field
-  // (Masters, Junior) doesn't need as many rows as Overall to feel complete.
+  // Places shown by default: the places awarded at the event.
   displayLimit: number;
+  // Places shown after "Show top N" — a cap, not the full field.
+  expandLimit: number;
   entries: Entry[];
 }
 
@@ -68,51 +54,58 @@ interface BoardDefinition {
   id: string;
   name: string;
   displayLimit: number;
+  expandLimit: number;
   eligible: (rider: Registrant) => boolean;
 }
 
-const isMasters = (rider: Registrant) => {
-  const age = parseAge(rider.age);
-  return age !== null && getAgeCategory(age) === "masters";
-};
+const ageOf = (rider: Registrant) => parseAge(rider.age);
 const isJunior = (rider: Registrant) => {
-  const age = parseAge(rider.age);
-  return age !== null && getAgeCategory(age) === "junior";
+  const age = ageOf(rider);
+  return age !== null && age <= JUNIOR_MAX_AGE;
+};
+const isMasters = (rider: Registrant) => {
+  const age = ageOf(rider);
+  return age !== null && age >= MASTERS_MIN_AGE;
 };
 
-// Exact age/gender cutoffs and board list for 2026 are still open — see
-// docs/registrant-import.md section 5. These five boards are the pre-2026
-// baseline, kept as-is until that's decided.
+// The 2026 awards. Boards are independent: a rider appears on every board
+// they qualify for. Nonbinary and undisclosed riders qualify only for U18
+// (not split by gender); the other four need male or female.
 const BOARDS: BoardDefinition[] = [
   {
-    id: "overallMale",
-    name: "Overall male",
-    displayLimit: 10,
+    id: "u18",
+    name: "U18",
+    displayLimit: 1,
+    expandLimit: 10,
+    eligible: isJunior,
+  },
+  {
+    id: "men",
+    name: "Men",
+    displayLimit: 3,
+    expandLimit: 25,
     eligible: (r) => r.gender === "male",
   },
   {
-    id: "overallFemale",
-    name: "Overall female",
-    displayLimit: 10,
+    id: "women",
+    name: "Women",
+    displayLimit: 3,
+    expandLimit: 25,
     eligible: (r) => r.gender === "female",
   },
   {
-    id: "juniorMale",
-    name: "Junior male (18U)",
-    displayLimit: 3,
-    eligible: (r) => r.gender === "male" && isJunior(r),
+    id: "mastersMen",
+    name: "50+ Men",
+    displayLimit: 1,
+    expandLimit: 10,
+    eligible: (r) => r.gender === "male" && isMasters(r),
   },
   {
-    id: "juniorFemale",
-    name: "Junior female (18U)",
-    displayLimit: 3,
-    eligible: (r) => r.gender === "female" && isJunior(r),
-  },
-  {
-    id: "masters",
-    name: "Masters (50+)",
-    displayLimit: 3,
-    eligible: isMasters,
+    id: "mastersWomen",
+    name: "50+ Women",
+    displayLimit: 1,
+    expandLimit: 10,
+    eligible: (r) => r.gender === "female" && isMasters(r),
   },
 ];
 
@@ -138,6 +131,7 @@ export function computeCategoryBuckets(
     id: board.id,
     name: board.name,
     displayLimit: board.displayLimit,
+    expandLimit: board.expandLimit,
     entries: sortByElapsed(
       finished.filter((e) => {
         const rider = registrants.get(e.bib);

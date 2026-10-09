@@ -57,17 +57,12 @@ age-on-race-day. Accepted tradeoff for a simpler form (see
 turns out to matter for a real rider.
 
 `lib/categories.ts`'s `parseAge` validates the raw string (a non-negative
-whole number, or `null`); `getAgeCategory` applies the cutoffs below.
+whole number, or `null`); the board definitions apply the cutoffs below.
 
 ```yaml
-age_categories:
-  - id: junior
-    logic: "age <= 18"
-    note: "18 inclusive."
-  - id: masters
-    logic: "age >= 50"
-  - id: adult
-    logic: "everyone else"
+age_cutoffs:
+  junior: "age <= 18"    # 18 inclusive; JUNIOR_MAX_AGE
+  masters: "age >= 50"   # MASTERS_MIN_AGE
 ```
 
 ---
@@ -75,25 +70,27 @@ age_categories:
 ## 4. Category Boards
 
 ```yaml
-category_boards:
-  - name: "Overall male"
+category_boards:        # the 2026 awards, in display order
+  - name: "U18"
+    eligibility: "age <= 18"            # any gender
+    display_limit: 1
+    expand_limit: 10
+  - name: "Men"
     eligibility: "gender == 'male'"
-    display_limit: 10
-  - name: "Overall female"
+    display_limit: 3
+    expand_limit: 25
+  - name: "Women"
     eligibility: "gender == 'female'"
-    display_limit: 10
-  - name: "Junior male (18U)"
-    eligibility: "gender == 'male' and age_category == 'junior'"
     display_limit: 3
-  - name: "Junior female (18U)"
-    eligibility: "gender == 'female' and age_category == 'junior'"
-    display_limit: 3
-  - name: "Masters (50+)"
-    eligibility: "age_category == 'masters'"
-    display_limit: 3
-    note: >
-      One combined (all-genders) board — a gendered split shipped once and
-      was reverted, too many near-identical boards for a field this size.
+    expand_limit: 25
+  - name: "50+ Men"
+    eligibility: "gender == 'male' and age >= 50"
+    display_limit: 1
+    expand_limit: 10
+  - name: "50+ Women"
+    eligibility: "gender == 'female' and age >= 50"
+    display_limit: 1
+    expand_limit: 10
 
 ranking_rules:
   sort_key: elapsed_time   # finish time minus that rider's own wave start
@@ -102,23 +99,28 @@ ranking_rules:
     Entries with no wave assigned (unresolved unknown bibs) have no elapsed
     time and are excluded from every board until resolved.
   gendered_boards: >
-    Only gender == 'male' or 'female' appear in gendered boards. 'nonbinary'
-    and 'undisclosed' riders are still ranked in every non-gendered board
-    (Masters, overall results).
+    Only gender == 'male' or 'female' appear in Men, Women, 50+ Men and
+    50+ Women. 'nonbinary' and 'undisclosed' riders rank on U18 (if the age
+    fits) and in the Results tab's full list, nowhere else.
+  overlap: >
+    Boards are independent. A rider appears on every board they qualify for,
+    so a U18 or 50+ winner can also be in the Men or Women top 3. Whether a
+    rider takes two awards is decided at the podium, not in the app.
 ```
 
-This is the pre-2026 baseline, unchanged by the fun-awards cut. The exact
-cutoffs and board list for 2026 are still open — see
-`docs/wordpress-registration-form.md` section 5.
+U18 is one board for both genders. No women registered in that age group
+for 2026, so a gendered split would have been an empty board.
 
 ### 4a. Board display
 
 A UI decision, not a data one — `CategoryLeaderboardGrid.tsx`.
 
-**Boards cap their default display per board, not one shared number.** A
-small field doesn't need as many rows shown as a large one to feel complete:
-Masters top 3, Junior (each gender) top 3, Overall (each gender) top 10.
-"Show all" still expands to the full field on any board.
+**Each board shows the places awarded at the event, and expands to a
+per-board cap.** Default view: U18 and both 50+ boards show the winner, Men
+and Women show the top 3. The button expands U18 and the 50+ boards to 10
+rows and Men and Women to 25. A board with fewer finishers than its cap reads
+"Show all N finishers". `displayLimit` and `expandLimit` live on each board
+in `lib/categories.ts`.
 
 ---
 
@@ -132,6 +134,8 @@ Masters top 3, Junior (each gender) top 3, Overall (each gender) top 10.
 - [x] **Fun award categories — cut.** Not on the live form. Age/gender
   leaderboards only for 2026. See section 1.
 - [x] **`JUNIOR_AGE_CUTOFF` value** — 18, inclusive.
+- [x] **Age/gender cutoffs and board list for 2026** — decided 8 October
+  2026: U18 (one board), Men, Women, 50+ Men, 50+ Women. See section 4.
 - [x] **CSV column order** — free. The importer is header-driven. Column
   *names* are fixed (section 2).
 - [x] **Name is a single field** — the registration form collects one Name
@@ -150,8 +154,6 @@ Masters top 3, Junior (each gender) top 3, Overall (each gender) top 10.
 - [ ] **Minimum entrants per board** — a board with one eligible rider is
   arguably worse than no board. Decide a floor, or accept single-entrant
   boards.
-- [ ] **Age/gender category cutoffs and board list for 2026** — see
-  `docs/wordpress-registration-form.md` section 5.
 
 ---
 

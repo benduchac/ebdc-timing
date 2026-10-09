@@ -231,10 +231,6 @@ and lives only in WordPress.
 
 ## 5. Open Questions
 
-- [ ] **Age/gender category cutoffs and leaderboard list for 2026** — the
-  pre-existing five boards (Overall male/female, Junior male/female 18U,
-  Masters 50+ combined) are the baseline until decided otherwise. See
-  `docs/registrant-import.md` section 4.
 - [ ] **Wave time cutoffs** — currently reusing last year's brackets
   (A – 1hr 30 to 2hr / B – 2hr to 2hr 25 / C – over 2hr 25). Confirm for 2026
   or supply new ones.
