@@ -70,11 +70,7 @@ age_cutoffs:
 ## 4. Category Boards
 
 ```yaml
-category_boards:        # the 2026 awards, in display order
-  - name: "18U"
-    eligibility: "age <= 18"            # any gender
-    display_limit: 1
-    expand_limit: 10
+category_boards:        # the 2026 awards, in display order (two per row)
   - name: "Men"
     eligibility: "gender == 'male'"
     display_limit: 3
@@ -89,6 +85,10 @@ category_boards:        # the 2026 awards, in display order
     expand_limit: 10
   - name: "50+ Women"
     eligibility: "gender == 'female' and age >= 50"
+    display_limit: 1
+    expand_limit: 10
+  - name: "18U"
+    eligibility: "age <= 18"            # any gender
     display_limit: 1
     expand_limit: 10
 
@@ -116,8 +116,8 @@ for 2026, so a gendered split would have been an empty board.
 A UI decision, not a data one — `CategoryLeaderboardGrid.tsx`.
 
 **Each board shows the places awarded at the event, and expands to a
-per-board cap.** Default view: 18U and both 50+ boards show the winner, Men
-and Women show the top 3. The button expands 18U and the 50+ boards to 10
+per-board cap.** Default view: Men and Women show the top 3; both 50+ boards and 18U show
+the winner. The button expands 18U and the 50+ boards to 10
 rows and Men and Women to 25. A board with fewer finishers than its cap reads
 "Show all N finishers". `displayLimit` and `expandLimit` live on each board
 in `lib/categories.ts`.

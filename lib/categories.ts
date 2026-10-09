@@ -68,17 +68,11 @@ const isMasters = (rider: Registrant) => {
   return age !== null && age >= MASTERS_MIN_AGE;
 };
 
-// The 2026 awards. Boards are independent: a rider appears on every board
+// The 2026 awards, in display order (two per row, so 18U sits alone on the
+// last row). Boards are independent: a rider appears on every board
 // they qualify for. Nonbinary and undisclosed riders qualify only for 18U
 // (not split by gender); the other four need male or female.
 const BOARDS: BoardDefinition[] = [
-  {
-    id: "junior",
-    name: "18U",
-    displayLimit: 1,
-    expandLimit: 10,
-    eligible: isJunior,
-  },
   {
     id: "men",
     name: "Men",
@@ -106,6 +100,13 @@ const BOARDS: BoardDefinition[] = [
     displayLimit: 1,
     expandLimit: 10,
     eligible: (r) => r.gender === "female" && isMasters(r),
+  },
+  {
+    id: "junior",
+    name: "18U",
+    displayLimit: 1,
+    expandLimit: 10,
+    eligible: isJunior,
   },
 ];
 
