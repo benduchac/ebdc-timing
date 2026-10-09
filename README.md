@@ -2,6 +2,9 @@
 
 Race timing app for the East Bay Dirt Classic charity bike race.
 
+<img width="1471" height="717" alt="image" src="https://github.com/user-attachments/assets/01a0346d-d990-4ae3-b2e5-bb89e099f0aa" />
+
+
 ## Setup
 
 ```bash
