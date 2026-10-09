@@ -38,6 +38,11 @@ export default function ResultsTable({
   });
   const overallRanks = computeStandardRanks(sortedValid);
 
+  // The photo goes last on the row, after the race time. The column exists
+  // only once someone on the page has a photo, so a race with none shows no
+  // empty column. Only the public leaderboard passes photos.
+  const showPhotoColumn = validEntries.some((e) => photos?.[e.id]);
+
   // Helper to check if a bib is duplicated
   const isDuplicateBib = (bib: string, allEntries: Entry[]): boolean => {
     return allEntries.filter((e) => e.bib === bib).length > 1;
@@ -65,6 +70,9 @@ export default function ResultsTable({
               <th className="p-2 text-left font-semibold">Wave</th>
               <th className="p-2 text-left font-semibold">Finished at</th>
               <th className="p-2 text-left font-semibold">Race Time</th>
+              {showPhotoColumn && (
+                <th className="p-2 text-left font-semibold">Photo</th>
+              )}
               {editable && <th className="p-2 text-left font-semibold">Actions</th>}
             </tr>
           </thead>
@@ -93,19 +101,7 @@ export default function ResultsTable({
                       <BibChip bib={entry.bib} className="text-xs" />
                     </span>
                   </td>
-                  <td className="p-2">
-                    {photos?.[entry.id] ? (
-                      <span className="inline-flex items-center gap-2">
-                        <FinisherPhoto
-                          photo={photos[entry.id]}
-                          className="w-12 h-12"
-                        />
-                        {entry.name}
-                      </span>
-                    ) : (
-                      entry.name
-                    )}
-                  </td>
+                  <td className="p-2">{entry.name}</td>
                   <td className="p-2">Wave {entry.wave}</td>
                   <td className="p-2">
                     <span className="font-mono tabular-nums text-ink-soft text-xs">
@@ -124,6 +120,16 @@ export default function ResultsTable({
                         : "N/A"}
                     </TimeChip>
                   </td>
+                  {showPhotoColumn && (
+                    <td className="p-2">
+                      {photos?.[entry.id] && (
+                        <FinisherPhoto
+                          photo={photos[entry.id]}
+                          className="w-12 h-12"
+                        />
+                      )}
+                    </td>
+                  )}
                   {editable && (
                     <td className="p-2">
                       {onEditEntry && (
@@ -186,6 +192,7 @@ export default function ResultsTable({
                     </span>
                   </td>
                   <td className="p-2 text-ink-soft">-</td>
+                  {showPhotoColumn && <td className="p-2" />}
                   {editable && (
                     <td className="p-2">
                       {onEditEntry && (

@@ -38,7 +38,6 @@ function RankedRow({
     <div className="flex items-center gap-2 text-sm border-b border-ink/10 pb-2">
       <RankBadge place={place} className="w-6 h-6 shrink-0 text-xs" />
       <BibChip bib={entry.bib} className="text-xs" />
-      {photo && <FinisherPhoto photo={photo} className="w-10 h-10" />}
       <div className="flex-1 truncate">
         <div className="font-semibold">{entry.name}</div>
         <div className="text-xs text-ink-soft">Wave {entry.wave}</div>
@@ -46,6 +45,8 @@ function RankedRow({
       <TimeChip className="text-xs">
         {entry.elapsedMs !== null ? formatElapsedHuman(entry.elapsedMs) : "N/A"}
       </TimeChip>
+      {/* Last on the row, after the time. */}
+      {photo && <FinisherPhoto photo={photo} className="w-10 h-10" />}
     </div>
   );
 }

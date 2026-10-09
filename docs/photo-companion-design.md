@@ -322,8 +322,10 @@ never served stale.
 ## Publishing
 
 *Built 9 October.* `lib/publicPhotos.ts` picks the photos and
-`components/FinisherPhoto.tsx` draws them; the thumbnail goes beside the
-rider in the results table and in the category boards. A failure reading
+`components/FinisherPhoto.tsx` draws them; the thumbnail is the last item on
+the row, after the race time, in the results table (a "Photo" column that
+exists only once someone on the page has a photo) and in the category boards.
+A failure reading
 photos leaves the board without pictures and never takes the results down.
 
 `/[slug]` reads `race:{id}:photos` beside the snapshot it already reads,
