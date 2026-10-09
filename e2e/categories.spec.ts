@@ -39,8 +39,8 @@ test.describe("category boards", () => {
     expect(
       buckets.map((b) => [b.name, b.displayLimit, b.expandLimit])
     ).toEqual([
-      ["Men", 3, 25],
-      ["Women", 3, 25],
+      ["Men's Overall", 3, 25],
+      ["Women's Overall", 3, 25],
       ["50+ Men", 1, 10],
       ["50+ Women", 1, 10],
       ["18U", 1, 10],

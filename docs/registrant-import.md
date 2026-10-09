@@ -71,11 +71,11 @@ age_cutoffs:
 
 ```yaml
 category_boards:        # the 2026 awards, in display order (two per row)
-  - name: "Men"
+  - name: "Men's Overall"
     eligibility: "gender == 'male'"
     display_limit: 3
     expand_limit: 25
-  - name: "Women"
+  - name: "Women's Overall"
     eligibility: "gender == 'female'"
     display_limit: 3
     expand_limit: 25
@@ -135,7 +135,7 @@ in `lib/categories.ts`.
   leaderboards only for 2026. See section 1.
 - [x] **`JUNIOR_AGE_CUTOFF` value** — 18, inclusive.
 - [x] **Age/gender cutoffs and board list for 2026** — decided 8 October
-  2026: 18U (one board), Men, Women, 50+ Men, 50+ Women. See section 4.
+  2026: Men's Overall, Women's Overall, 50+ Men, 50+ Women, 18U (one board). See section 4.
 - [x] **CSV column order** — free. The importer is header-driven. Column
   *names* are fixed (section 2).
 - [x] **Name is a single field** — the registration form collects one Name

@@ -75,14 +75,14 @@ const isMasters = (rider: Registrant) => {
 const BOARDS: BoardDefinition[] = [
   {
     id: "men",
-    name: "Men",
+    name: "Men's Overall",
     displayLimit: 3,
     expandLimit: 25,
     eligible: (r) => r.gender === "male",
   },
   {
     id: "women",
-    name: "Women",
+    name: "Women's Overall",
     displayLimit: 3,
     expandLimit: 25,
     eligible: (r) => r.gender === "female",
