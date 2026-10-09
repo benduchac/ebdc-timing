@@ -10,7 +10,7 @@ export function parseAge(age: string): number | null {
   return Number(age);
 }
 
-// U18 includes 18 (the board is named for the 18U field, as on the form).
+// 18U includes 18 (the board is named for the 18U field, as on the form).
 export const JUNIOR_MAX_AGE = 18;
 export const MASTERS_MIN_AGE = 50;
 
@@ -69,12 +69,12 @@ const isMasters = (rider: Registrant) => {
 };
 
 // The 2026 awards. Boards are independent: a rider appears on every board
-// they qualify for. Nonbinary and undisclosed riders qualify only for U18
+// they qualify for. Nonbinary and undisclosed riders qualify only for 18U
 // (not split by gender); the other four need male or female.
 const BOARDS: BoardDefinition[] = [
   {
-    id: "u18",
-    name: "U18",
+    id: "junior",
+    name: "18U",
     displayLimit: 1,
     expandLimit: 10,
     eligible: isJunior,

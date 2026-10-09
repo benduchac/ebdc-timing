@@ -71,7 +71,7 @@ age_cutoffs:
 
 ```yaml
 category_boards:        # the 2026 awards, in display order
-  - name: "U18"
+  - name: "18U"
     eligibility: "age <= 18"            # any gender
     display_limit: 1
     expand_limit: 10
@@ -100,15 +100,15 @@ ranking_rules:
     time and are excluded from every board until resolved.
   gendered_boards: >
     Only gender == 'male' or 'female' appear in Men, Women, 50+ Men and
-    50+ Women. 'nonbinary' and 'undisclosed' riders rank on U18 (if the age
+    50+ Women. 'nonbinary' and 'undisclosed' riders rank on 18U (if the age
     fits) and in the Results tab's full list, nowhere else.
   overlap: >
     Boards are independent. A rider appears on every board they qualify for,
-    so a U18 or 50+ winner can also be in the Men or Women top 3. Whether a
+    so a 18U or 50+ winner can also be in the Men or Women top 3. Whether a
     rider takes two awards is decided at the podium, not in the app.
 ```
 
-U18 is one board for both genders. No women registered in that age group
+18U is one board for both genders. No women registered in that age group
 for 2026, so a gendered split would have been an empty board.
 
 ### 4a. Board display
@@ -116,8 +116,8 @@ for 2026, so a gendered split would have been an empty board.
 A UI decision, not a data one — `CategoryLeaderboardGrid.tsx`.
 
 **Each board shows the places awarded at the event, and expands to a
-per-board cap.** Default view: U18 and both 50+ boards show the winner, Men
-and Women show the top 3. The button expands U18 and the 50+ boards to 10
+per-board cap.** Default view: 18U and both 50+ boards show the winner, Men
+and Women show the top 3. The button expands 18U and the 50+ boards to 10
 rows and Men and Women to 25. A board with fewer finishers than its cap reads
 "Show all N finishers". `displayLimit` and `expandLimit` live on each board
 in `lib/categories.ts`.
@@ -135,7 +135,7 @@ in `lib/categories.ts`.
   leaderboards only for 2026. See section 1.
 - [x] **`JUNIOR_AGE_CUTOFF` value** — 18, inclusive.
 - [x] **Age/gender cutoffs and board list for 2026** — decided 8 October
-  2026: U18 (one board), Men, Women, 50+ Men, 50+ Women. See section 4.
+  2026: 18U (one board), Men, Women, 50+ Men, 50+ Women. See section 4.
 - [x] **CSV column order** — free. The importer is header-driven. Column
   *names* are fixed (section 2).
 - [x] **Name is a single field** — the registration form collects one Name

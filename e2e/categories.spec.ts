@@ -39,7 +39,7 @@ test.describe("category boards", () => {
     expect(
       buckets.map((b) => [b.name, b.displayLimit, b.expandLimit])
     ).toEqual([
-      ["U18", 1, 10],
+      ["18U", 1, 10],
       ["Men", 3, 25],
       ["Women", 3, 25],
       ["50+ Men", 1, 10],
@@ -47,7 +47,7 @@ test.describe("category boards", () => {
     ]);
   });
 
-  test("U18 includes 18 and excludes 19, and takes any gender", () => {
+  test("18U includes 18 and excludes 19, and takes any gender", () => {
     const boards = boardsFor(
       [
         rider("1", "male", "17"),
@@ -58,7 +58,7 @@ test.describe("category boards", () => {
       ],
       { "1": 100, "2": 200, "3": 50, "4": 300, "5": 400 }
     );
-    expect(boards.u18).toEqual(["1", "2", "4", "5"]);
+    expect(boards.junior).toEqual(["1", "2", "4", "5"]);
   });
 
   test("50+ starts at 50, not 49, and splits by gender", () => {
@@ -76,7 +76,7 @@ test.describe("category boards", () => {
     expect(boards.mastersWomen).toEqual(["3"]);
   });
 
-  test("nonbinary and undisclosed riders appear on U18 only", () => {
+  test("nonbinary and undisclosed riders appear on 18U only", () => {
     const boards = boardsFor(
       [
         rider("1", "nonbinary", "14"),
@@ -85,7 +85,7 @@ test.describe("category boards", () => {
       ],
       { "1": 100, "2": 200, "3": 300 }
     );
-    expect(boards.u18).toEqual(["1"]);
+    expect(boards.junior).toEqual(["1"]);
     expect(boards.men).toEqual([]);
     expect(boards.women).toEqual([]);
     expect(boards.mastersMen).toEqual([]);
@@ -98,7 +98,7 @@ test.describe("category boards", () => {
       { "1": 100, "2": 200 }
     );
     expect(boards.men).toEqual(["1", "2"]);
-    expect(boards.u18).toEqual(["1"]);
+    expect(boards.junior).toEqual(["1"]);
     expect(boards.mastersMen).toEqual(["2"]);
   });
 
@@ -113,7 +113,7 @@ test.describe("category boards", () => {
     );
     expect(boards.men).toEqual(["1", "3"]);
     expect(boards.women).toEqual(["2"]);
-    expect(boards.u18).toEqual([]);
+    expect(boards.junior).toEqual([]);
     expect(boards.mastersMen).toEqual([]);
     expect(boards.mastersWomen).toEqual([]);
   });
