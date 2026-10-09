@@ -84,6 +84,23 @@ lock, so two syncs landing in the same instant could both pass.
 
 ---
 
+## Fixed — 9 October 2026
+
+- **The results CSV dropped unresolved finishers.** `handleExportCSV` kept
+  only entries with a wave, so a rider recorded as `UNK-n`, or under a bib
+  nobody had registered, was missing from the official record, and the
+  confirmation only counted the rows it wrote. Those riders now follow the
+  ranked rows, in the order they crossed, with `UNRESOLVED` in the Overall
+  Place column and the wave, wave place and elapsed time blank. The columns
+  are unchanged, and the popup says how many unresolved rows were added.
+- **The brand sticker covered the Settings gear.** It is fixed to the
+  top-right of every page (`app/layout.tsx`), so on the operator screen it sat
+  over the gear at most widths. The top bar now keeps 96px clear on the right.
+  The rest of the page still scrolls under the sticker, which only matters for
+  what is hidden behind it, not for taps (it ignores them).
+
+---
+
 ## Fixed — CSV/registrant revision, 26 August 2026
 
 Confirmed against the current code while stripping the fun-awards feature
@@ -118,9 +135,6 @@ and moving the CSV to `bib,name,wave,age,gender` (see
 
 Real, but not worth the churn before race day.
 
-- **The results CSV drops unresolved finishers.** `handleExportCSV` filters to
-  entries with a wave and the confirmation counts only those, so the file that
-  becomes the official record omits the riders still needing a decision.
 - **Unknown-rider numbers get reused.** The next `UNK-n` is numbered from the
   count of existing ones, so deleting UNK-1 makes the next unknown UNK-2 as
   well.
@@ -167,6 +181,7 @@ For what is still open above.
    the race over, so don't use it on a second laptop just to look; use the
    public leaderboard. If a laptop is ever reopened with an old copy, it
    shows a red "out of date" banner; press **Save a copy and leave**.
-6. Export both the results CSV and the backup JSON before closing the tab,
-   and check the CSV's row count against the finisher count on screen —
-   unresolved finishers are not in the file.
+6. Export both the results CSV and the backup JSON before closing the tab.
+   Resolve any `UNK-n` or unregistered-bib finishers first (Results tab, give
+   each a wave) so they are ranked. Any still open are listed at the end of
+   the CSV as `UNRESOLVED`; check that block is empty or expected.

@@ -725,8 +725,35 @@ export default function OperatorPage() {
           .join(",") + "\n";
     });
 
+    // Finishers with no wave can't be ranked (no start time to measure from),
+    // but they are riders who crossed the line, and this file is the official
+    // record. List them after the ranked rows with the place column saying so,
+    // in the same columns, so nothing about the file's shape changes.
+    const unresolved = entries
+      .filter((e) => e.wave === null)
+      .sort((a, b) => a.finishTimeMs - b.finishTimeMs);
+    unresolved.forEach((entry) => {
+      csv +=
+        [
+          "UNRESOLVED",
+          "",
+          entry.bib,
+          entry.name,
+          "",
+          entry.finishTime,
+          "",
+          entry.timestamp,
+        ]
+          .map(csvField)
+          .join(",") + "\n";
+    });
+
     downloadFile(csv, `EBDC-results-${getDateString()}.csv`, "text/csv");
-    alert(`Exported ${sorted.length} finishers to CSV!`);
+    alert(
+      unresolved.length === 0
+        ? `Exported ${sorted.length} finishers to CSV!`
+        : `Exported ${sorted.length} ranked finishers to CSV, plus ${unresolved.length} unresolved at the end of the file. Give each a wave in the Results tab to rank them, then export again.`
+    );
   };
 
   // Shown on the race menu after this computer leaves a race.
@@ -1057,9 +1084,11 @@ export default function OperatorPage() {
         <div className="max-w-6xl mx-auto rounded-2xl overflow-hidden shadow-xl">
           {/* Top bar — the trail photo lives here (and nowhere else in the
               working screens), so it doesn't compete with the data tables
-              below it. */}
+              below it. The right padding keeps the Settings gear clear of
+              the fixed brand sticker in app/layout.tsx, which reaches 92px
+              in from the edge. */}
           <div
-            className="bg-cover bg-center text-chalk px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3"
+            className="bg-cover bg-center text-chalk pl-4 sm:pl-6 pr-24 py-3 flex flex-wrap items-center justify-between gap-3"
             style={{
               backgroundImage:
                 "linear-gradient(rgba(33,42,28,0.55), rgba(33,42,28,0.72)), url(/timing_bg.webp)",
