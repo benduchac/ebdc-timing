@@ -147,6 +147,15 @@ Real, but not worth the churn before race day.
   The fix is a 10-second shared cache (`unstable_cache`) around the page's
   reads, with the title and body sharing one load: about 3,000 commands for a
   3-hour race whatever the audience. Not built.
+- **Two overlapping start-line sends can land out of order.** `POST
+  /api/wave-start` writes whichever request arrives last. If a phone's first tap
+  is slow and the volunteer restarts the wave, the restart can land first and
+  the slow first tap after it, leaving the server with the older time while the
+  phone shows the newer one as synced. Needs a slow request and a restart inside
+  the same window. A fix is for the server to keep the later timestamp for a
+  wave (a restart is always a later tap), at the cost of a phone with a fast
+  clock outranking a correct one; a per-phone sequence number would avoid that.
+  Not built.
 - **Unknown-rider numbers get reused.** The next `UNK-n` is numbered from the
   count of existing ones, so deleting UNK-1 makes the next unknown UNK-2 as
   well.

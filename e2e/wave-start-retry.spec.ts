@@ -10,10 +10,21 @@ interface Stub {
   hang: boolean; // accept a request and never answer
   posts: number[]; // timestampMs of every attempt, in order
   starts: Record<string, string>;
+  // When on, every POST waits here until released, then succeeds. gates[i]
+  // releases the i-th request.
+  gated: boolean;
+  gates: (() => void)[];
 }
 
 async function stubServer(page: Page): Promise<Stub> {
-  const state: Stub = { online: false, hang: false, posts: [], starts: {} };
+  const state: Stub = {
+    online: false,
+    hang: false,
+    posts: [],
+    starts: {},
+    gated: false,
+    gates: [],
+  };
   await page.route("**/api/wave-start*", async (route) => {
     const request = route.request();
     if (request.method() === "GET") {
@@ -26,6 +37,16 @@ async function stubServer(page: Page): Promise<Stub> {
     const body = JSON.parse(request.postData() ?? "{}");
     state.posts.push(body.timestampMs);
     if (state.hang) return new Promise<void>(() => {}); // never answers
+    if (state.gated) {
+      await new Promise<void>((resolve) => state.gates.push(resolve));
+      const startedAt = new Date(body.timestampMs).toISOString();
+      state.starts[body.wave] = startedAt;
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ ok: true, wave: body.wave, startedAt }),
+      });
+    }
     if (!state.online) return route.abort("connectionfailed");
     const startedAt = new Date(body.timestampMs).toISOString();
     state.starts[body.wave] = startedAt;
@@ -149,22 +170,77 @@ test("a second wake while an attempt is still out does not send a second copy", 
   expect(server.posts.length).toBe(1);
 });
 
-test("restarting a wave while the first tap is still sending does not lose the restart", async ({
+test("a slow connection that needs longer than 8 seconds still gets a send through", async ({
   page,
 }) => {
   await page.clock.install();
   const server = await stubServer(page);
+  server.gated = true; // every request waits to be released
+  await page.goto(`/start/${TOKEN}`);
+  await waveA(page).click();
+  await expect.poll(() => server.gates.length).toBe(1);
+
+  // The first attempt is given up on at 8 seconds and retried a moment later.
+  await page.clock.fastForward(8_500);
+  await page.clock.fastForward(2_500);
+  await expect.poll(() => server.gates.length).toBe(2);
+
+  // The second is allowed longer, so a reply that takes 10 seconds counts.
+  await page.clock.fastForward(10_000);
+  server.gates[1]();
+  await expect(waveA(page)).toContainText(SENT);
+  expect(server.posts.length).toBe(2);
+});
+
+test("waking the screen replaces a send that is stuck, rather than waiting it out", async ({
+  page,
+}) => {
+  await page.clock.install();
+  const server = await stubServer(page);
+  server.hang = true;
+  await page.goto(`/start/${TOKEN}`);
+  await waveA(page).click();
+  await expect.poll(() => server.posts.length).toBe(1);
+
+  // Stuck for a while: older than the grace period, younger than the timeout.
+  await page.clock.fastForward(3_000);
+  server.hang = false;
   server.online = true;
+  await page.evaluate(() => window.dispatchEvent(new Event("online")));
+
+  await expect(waveA(page)).toContainText(SENT, { timeout: 1_500 });
+  expect(server.posts.length).toBe(2);
+});
+
+test("a late reply for a replaced tap does not put the old time back", async ({ page }) => {
+  await page.clock.install();
+  const server = await stubServer(page);
+  server.gated = true;
   await page.goto(`/start/${TOKEN}`);
 
-  await waveA(page).click(); // tap 1, sent
-  await expect(waveA(page)).toContainText(SENT);
-  await waveA(page).click(); // arms the restart
-  await waveA(page).click(); // tap 2, the restart
-  await expect.poll(() => new Set(server.posts).size).toBe(2);
+  await waveA(page).click(); // tap 1: its request is held open
+  await expect.poll(() => server.gates.length).toBe(1);
+  const first = server.posts[0];
 
-  // The server ends up with the second tap's time.
-  const [first, second] = [...new Set(server.posts)];
-  await expect.poll(() => server.starts.A).toBe(new Date(second).toISOString());
+  await page.clock.fastForward(2_000);
+  await waveA(page).click(); // arm
+  await waveA(page).click(); // tap 2, the restart
+  await expect.poll(() => server.gates.length).toBe(2);
+  const second = server.posts[1];
   expect(second).toBeGreaterThan(first);
+
+  // Tap 2's reply comes back first and is confirmed...
+  server.gates[1]();
+  await expect(waveA(page)).toContainText(SENT);
+  const showing = await waveA(page).innerText();
+  const t2 = showing.match(/\d{1,2}:\d{2}:\d{2} [AP]M/)![0];
+
+  // ...then tap 1's reply arrives, carrying the older time.
+  server.gates[0]();
+  await page.waitForTimeout(300);
+  expect(await waveA(page).innerText()).toContain(t2);
+  await expect(page.getByRole("group", { name: "Wave time sync status" })).toHaveAttribute(
+    "data-state",
+    "synced"
+  );
 });

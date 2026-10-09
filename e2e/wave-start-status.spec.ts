@@ -65,7 +65,7 @@ test("with nothing started the box says so, and is not green", async ({ page }) 
   await stubServer(page);
   await page.goto(`/start/${TOKEN}`);
   await expect(box(page)).toContainText("No wave times yet");
-  await expect(box(page)).not.toHaveClass(/bg-success-soft/);
+  await expect(box(page)).toHaveAttribute("data-state", "empty");
 });
 
 test("the box is below the buttons", async ({ page }) => {
@@ -83,7 +83,7 @@ test("green when everything this phone sent is on the server", async ({ page }) 
   await button(page, "A").click();
 
   await expect(box(page)).toContainText("All wave times synced to the server");
-  await expect(box(page)).toHaveClass(/bg-success-soft/);
+  await expect(box(page)).toHaveAttribute("data-state", "synced");
   await expect(box(page)).toContainText("Wave A");
   await expect(box(page)).toContainText("synced");
   await expect(box(page)).not.toContainText("screenshot");
@@ -95,7 +95,7 @@ test("amber, with the unsent time, when there is no signal", async ({ page }) =>
   await button(page, "A").click();
 
   await expect(box(page)).toContainText("Waiting to sync — take a screenshot for backup");
-  await expect(box(page)).toHaveClass(/bg-warning-soft/);
+  await expect(box(page)).toHaveAttribute("data-state", "unsent");
   await expect(box(page).getByRole("listitem")).toContainText(["Wave A"]);
   await expect(box(page)).toContainText("not sent");
   // The time on the button is the time in the box, so a screenshot matches.
@@ -108,12 +108,12 @@ test("amber turns green by itself when the signal comes back", async ({ page }) 
   const server = await stubServer(page);
   await page.goto(`/start/${TOKEN}`);
   await button(page, "A").click();
-  await expect(box(page)).toHaveClass(/bg-warning-soft/);
+  await expect(box(page)).toHaveAttribute("data-state", "unsent");
 
   server.online = true;
   await page.evaluate(() => window.dispatchEvent(new Event("online")));
 
-  await expect(box(page)).toHaveClass(/bg-success-soft/, { timeout: 2_000 });
+  await expect(box(page)).toHaveAttribute("data-state", "synced", { timeout: 2_000 });
   await expect(box(page)).toContainText("All wave times synced to the server");
 });
 
@@ -186,4 +186,56 @@ test("a tap replaced while its request was still out does not come back to retry
   expect(afterwards.length).toBeGreaterThan(0);
   expect(new Set(afterwards)).toEqual(new Set([second]));
   expect(server.starts.A).toBe(new Date(second).toISOString());
+});
+
+test("the status area is plain text beside a bar, not another button", async ({ page }) => {
+  const server = await stubServer(page);
+  await page.goto(`/start/${TOKEN}`);
+  await button(page, "A").click();
+  const styles = async () =>
+    box(page).evaluate((el) => {
+      const c = getComputedStyle(el);
+      return {
+        background: c.backgroundColor,
+        radius: c.borderTopLeftRadius,
+        top: c.borderTopWidth,
+        left: c.borderLeftWidth,
+      };
+    });
+
+  for (const wait of ["unsent", "synced"] as const) {
+    if (wait === "synced") {
+      server.online = true;
+      await page.evaluate(() => window.dispatchEvent(new Event("online")));
+    }
+    await expect(box(page)).toHaveAttribute("data-state", wait, { timeout: 2_000 });
+    const st = await styles();
+    expect(st.background).toBe("rgba(0, 0, 0, 0)"); // no fill
+    expect(st.radius).toBe("0px"); // not rounded like the buttons
+    expect(st.top).toBe("0px"); // no box border
+    expect(st.left).toBe("4px"); // just the accent bar
+  }
+  // And the microcopy that promised it would send by itself is gone.
+  await expect(box(page)).not.toContainText("sends by itself");
+});
+
+test("two taps in a row leave nothing behind, on screen or in storage", async ({ page }) => {
+  const server = await stubServer(page);
+  server.online = true;
+  await page.goto(`/start/${TOKEN}`);
+
+  // A's reply and B's tap land close together.
+  await button(page, "A").click();
+  await button(page, "B").click();
+  await button(page, "C").click();
+
+  await expect(box(page)).toHaveAttribute("data-state", "synced");
+  for (const wave of ["A", "B", "C"] as const) {
+    await expect(button(page, wave)).toContainText(/^Wave .Started at \d{1,2}:\d{2}:\d{2} [AP]M$/);
+  }
+  const saved = await page.evaluate(
+    (key) => localStorage.getItem(key),
+    `ebdc-wave-start-pending:${TOKEN}`
+  );
+  expect(JSON.parse(saved ?? "{}")).toEqual({});
 });

@@ -274,24 +274,32 @@ original tap time, without another tap.
 
 **Unsent taps are retried briskly.** Until one lands, the laptop is scoring
 that wave against a draft start time, so the wait between tries starts at 2s
-and never passes 15s. An attempt that has not answered in 8s is dropped and
-retried, instead of hanging on a dead connection. The signal coming back, or
-the screen waking, sends every unsent tap at once rather than at the next
-timer step, since a phone may pause a page's timers while it is away.
+and never passes 15s. An attempt that has not answered is dropped and retried,
+instead of hanging on a dead connection, with a limit that grows (8s, 12s, 20s,
+then 30s) so a slow but working connection can finish a send; a retry carries
+the same tap time, so a send that landed and is sent again is harmless. The
+signal coming back, or the screen waking, sends every unsent tap at once
+rather than at the next timer step, since a phone may pause a page's timers
+while it is away; a send that has been out more than 2s is presumed stuck and
+is replaced, and a younger one is left to finish.
 
 **A restart made with no signal shows the new time.** The button prefers this
 phone's unsent tap to the server's older confirmed time ("Restarted at 9:03:10
 AM — not sent yet"); it used to keep showing the old green time, so the re-tap
 looked as though it had done nothing. A tap replaced before it sent is
-dropped, and never retried over the newer one.
+dropped, and never retried over the newer one. A reply that arrives late for a
+tap that was since replaced is not shown, so the older time cannot reappear.
+The server still writes whichever request arrives last (known issue below), so
+the order of two overlapping sends from one phone is not guaranteed there.
 
 **The status box under the buttons** says whether this phone's times are on
 the server. Green, "All wave times synced to the server", when nothing is
 unsent; amber, "Waiting to sync — take a screenshot for backup", once an
 attempt has failed, listing each wave with its time and whether it was sent;
 neutral while a send is still in flight; and "No wave times yet" before any
-tap. The amber box is laid out so a screenshot is a usable record, and it
-says the page sends by itself when the signal returns.
+tap. It is plain text beside a coloured bar, with no fill or rounded box, so
+it does not read as another button; the amber one lists every wave with its
+time so that a screenshot is a usable record.
 
 ---
 
