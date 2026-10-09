@@ -79,10 +79,10 @@ context.
   (downloads the local copy, clears it, back to the race menu). Taking a race
   over is only ever the race menu's **Start scoring**, never a side effect.
   The backup JSON carries `cloudLastSyncedAt` so an import on another
-  computer is accepted when it is current. `flush()` resolves once the server has
-  answered, and **Finish scoring** (Settings) uses it: it clears the local
-  copy only after a confirmed save. Two tabs in one browser share a device
-  id, so they are not protected from each other.
+  computer is accepted when it is current. `flush()` resolves once the
+  server has answered, and **Finish scoring** (Settings, two presses) uses
+  it: it clears the local copy only after a confirmed save. Two tabs in one
+  browser share a device id, so they are not protected from each other.
 - `components/RaceMenuScreen.tsx` — shown when there's no local `activeRace`;
   if online, lists races from `GET /api/races` to resume with **Start
   scoring** (pulls `race:{id}:latest` via `GET /api/backup?id=`; there is no
@@ -204,8 +204,8 @@ context.
 
 ### Modals
 `EditModal`, `DeleteEntryModal`, `WaveTimeEditModal`, `WaveTimesSetupModal`,
-`SettingsModal` (clock check, backup import/export, session lock, Switch
-Race, and — dev builds only — a "Reset to Blank Slate" button; see gotcha
+`SettingsModal` (clock check, backup import/export, session lock, Finish
+scoring, Switch Race, and — dev builds only — a "Reset to Blank Slate" button; see gotcha
 below).
 
 ## Data model & timing semantics
@@ -256,8 +256,11 @@ below).
   to be a harder-confirmation version of the exact same underlying action as
   "Switch to a Different Race" (both cleared local state and returned to the
   race menu), which was confusing once cloud backup made both equally safe
-  and recoverable; Switch Race is now the only escape hatch, with a
-  confirm() only when there's genuinely unsynced data at risk.
+  and recoverable; Switch Race is now the only escape hatch for abandoning
+  a race, with a confirm() only when there's genuinely unsynced data at
+  risk. Handing a race to another computer is a different action, **Finish
+  scoring**, which refuses to clear anything until the server confirms it
+  holds everything.
 - `verifySystemClock` (via `/api/time`) degrades gracefully offline
   (`ok: null`). A drifted device clock silently shifts every recorded
   elapsed time by the drift amount (wave start is typed independently of the
@@ -365,7 +368,12 @@ race id in the cloud, which is what makes a lost/dead scoring laptop recoverable
 ## Race-day operating notes
 
 - The app assumes a browser tab kept open for the whole race; `beforeunload`
-  warns if there are entries. Auto-backup JSONs land in the Downloads folder and
-  are the recovery path.
+  warns if there are entries. Cloud sync is the backup; a JSON lands in the
+  Downloads folder only when exported by hand or by **Save a copy and leave**.
+- Handing scoring to a second computer: the outgoing one runs Settings →
+  **Finish scoring**, the incoming one presses **Start scoring** on the race
+  menu. Pressing Start scoring takes the race over, so don't use it on a
+  second laptop just to look; the public `/[slug]` page is the read-only
+  view. The full procedure is workaround 5 in `docs/known-issues.md`.
 - Connectivity on-site is via **mobile hotspot** (assume it can drop — offline
   behavior must hold).
