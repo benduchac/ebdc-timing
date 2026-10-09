@@ -159,7 +159,7 @@ Keys:
 - `races:index` — registry: map/list of `{ id, label, createdAt, lastSaved,
   entryCount }` for the race menu (cheap; no full snapshots).
 - `race:{id}:latest` — current full snapshot.
-- `race:{id}:history` — capped rolling list (last ~20 snapshots) so a corrupt or
+- `race:{id}:history` — capped rolling list (last 200 snapshots; nothing in the app reads it, restoring one is a manual Redis step) so a corrupt or
   accidental overwrite can be rolled back.
 
 ---

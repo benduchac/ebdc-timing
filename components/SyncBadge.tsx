@@ -35,6 +35,17 @@ export default function SyncBadge({ status, lastSyncedAt, error }: SyncBadgeProp
     );
   }
 
+  if (status === "conflict") {
+    return (
+      <div
+        className="bg-danger text-chalk px-3 py-1 rounded-full text-sm font-semibold"
+        title={error ?? undefined}
+      >
+        Out of date
+      </div>
+    );
+  }
+
   if (status === "never") {
     return (
       <div className="bg-danger-soft text-danger px-3 py-1 rounded-full text-sm font-semibold">

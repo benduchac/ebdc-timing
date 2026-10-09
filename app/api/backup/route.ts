@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { isAuthorized } from "@/lib/auth";
 import { getRedis, kvKeys } from "@/lib/kv";
 import { assignSlug } from "@/lib/slug";
+import { isWriteAllowed } from "@/lib/syncGuard";
 import type { RaceIndexEntry, RaceSnapshot } from "@/lib/types";
 
 // Capped rolling history so a corrupt or accidental overwrite can be rolled
@@ -17,7 +18,10 @@ const MAX_HISTORY = 200;
 type SnapshotPayload = Omit<
   RaceSnapshot,
   "slug" | "startToken" | "photoToken" | "lastSaved"
->;
+> & {
+  // Sent for the write check only; baseSavedAt is never stored.
+  baseSavedAt?: string | null;
+};
 
 function isValidSnapshotBody(body: unknown): body is SnapshotPayload {
   if (!body || typeof body !== "object") return false;
@@ -90,8 +94,27 @@ export async function POST(request: NextRequest) {
   const startToken = existing?.startToken ?? crypto.randomUUID();
   const photoToken = existing?.photoToken ?? crypto.randomUUID();
 
+  // Refuse a write from a device that has not seen the copy now in the cloud.
+  // Checked against the registry entry, which carries the same lastSaved and
+  // writerId as the snapshot, so it costs no extra read. Nothing is written,
+  // so a refused write never reaches the history list either.
+  if (!isWriteAllowed(existing, body)) {
+    return NextResponse.json(
+      {
+        ok: false,
+        conflict: true,
+        error:
+          "Another computer has newer results for this race. Syncing is stopped so nothing is overwritten.",
+        lastSaved: existing?.lastSaved,
+      },
+      { status: 409 }
+    );
+  }
+
+  const { baseSavedAt: _baseSavedAt, ...snapshotBody } = body;
+  void _baseSavedAt;
   const snapshot: RaceSnapshot = {
-    ...body,
+    ...snapshotBody,
     slug,
     startToken,
     photoToken,
@@ -112,6 +135,7 @@ export async function POST(request: NextRequest) {
     createdAt: snapshot.createdAt,
     lastSaved: snapshot.lastSaved,
     entryCount: snapshot.entries.length,
+    writerId: snapshot.writerId,
   });
   await redis.set(kvKeys.racesIndex, nextIndex);
 

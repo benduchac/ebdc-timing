@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { getClockSeverity } from "@/lib/utils";
 import type { ClockCheckResult } from "@/lib/types";
 import { CheckIcon, WarningIcon } from "@/components/icons";
@@ -11,6 +12,9 @@ interface SettingsModalProps {
   onExportBackup: () => void;
   onImportBackup: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onSwitchRace: () => void;
+  // Saves everything to the cloud, waits for the server to confirm, then
+  // returns to the race menu. Resolves with a message when it did not finish.
+  onFinishScoring: () => Promise<string | null>;
   onLock: () => void;
   entryCount: number;
   registrantCount: number;
@@ -30,6 +34,7 @@ export default function SettingsModal({
   onExportBackup,
   onImportBackup,
   onSwitchRace,
+  onFinishScoring,
   onLock,
   entryCount,
   registrantCount,
@@ -42,7 +47,18 @@ export default function SettingsModal({
   isDev,
   onDevResetOnboarding,
 }: SettingsModalProps) {
+  const [finishing, setFinishing] = useState(false);
+  const [finishError, setFinishError] = useState<string | null>(null);
+
   if (!isOpen) return null;
+
+  const handleFinish = async () => {
+    setFinishing(true);
+    setFinishError(null);
+    const problem = await onFinishScoring();
+    setFinishing(false);
+    setFinishError(problem);
+  };
 
   const clockSeverity = getClockSeverity(clockCheck);
 
@@ -245,6 +261,30 @@ export default function SettingsModal({
               Requires the operator passphrase to unlock again. Data already
               saved locally is unaffected.
             </p>
+          </div>
+
+          {/* Hand off */}
+          <div className="border-2 border-moss/40 rounded-lg p-4">
+            <h3 className="font-bold mb-3 text-ink">Hand off scoring</h3>
+            <button
+              onClick={handleFinish}
+              disabled={finishing}
+              className="w-full py-2 bg-moss-dark text-chalk rounded-lg font-semibold hover:bg-moss disabled:opacity-60"
+            >
+              {finishing ? "Saving to the cloud…" : "Finish scoring"}
+            </button>
+            <p className="text-xs text-ink-soft mt-2">
+              Use this when another computer is taking over, and again when
+              you take the race back. It sends everything to the cloud and
+              waits for the server to confirm, then returns this computer to
+              the race menu. The next computer can then Open the race. If the
+              cloud can&apos;t confirm, nothing is cleared.
+            </p>
+            {finishError && (
+              <p role="alert" className="text-sm text-danger font-semibold mt-2">
+                {finishError}
+              </p>
+            )}
           </div>
 
           {/* Danger Zone */}

@@ -42,6 +42,32 @@ overlap on the 2026 feature work.
 
 ---
 
+## Fixed — handoff safety, 8 October 2026
+
+- **A stale laptop could overwrite the cloud copy.** A sync uploads the whole
+  snapshot, so a laptop that had been handed off, then reconnected, woke up or
+  was reopened (it restores its old local copy and syncs on load) rolled the
+  cloud, and the public leaderboard, back to its old state. `POST
+  /api/backup` now refuses a write from a device that is not based on the
+  cloud copy (`lib/syncGuard.ts`): each sync sends a device id and the
+  `lastSaved` it last loaded or wrote. A refusal returns 409, writes nothing
+  (so it adds no history entry), and the operator app shows a red banner with
+  **Load latest from cloud**. Recording keeps working on the refused device;
+  its entries stay local until the latest copy is loaded, which first
+  downloads a JSON of the local copy.
+- **There was no safe way to leave a race for another computer.** Settings
+  now has **Finish scoring**: it syncs, waits for the server's confirmation,
+  and only then clears the local copy and returns to the race menu. If the
+  cloud doesn't confirm, or another computer is ahead, nothing is cleared.
+  "Switch to a different race" stays; it only warns.
+
+Not covered: two computers recording at the same time (the second to sync is
+refused and sees the banner, but the entries are not merged), and the gap in
+recording while the computers swap. The check reads then writes without a
+lock, so two syncs landing in the same instant could both pass.
+
+---
+
 ## Fixed — CSV/registrant revision, 26 August 2026
 
 Confirmed against the current code while stripping the fun-awards feature
@@ -87,32 +113,9 @@ Real, but not worth the churn before race day.
   NetworkFirst cache that expires after 24 hours. Handled operationally for
   now (see below); the code fix is a dedicated cache rule with a long
   max-age.
-- **A second operator tab overwrites the cloud snapshot.** The sync effect
-  fires on mount, so a second tab uploads whatever it loaded from IndexedDB.
-  The design doc accepts last-write-wins between machines; a tab lock
-  (BroadcastChannel or a localStorage claim) would close the one-machine
-  case.
-- **No deliberate flow for handing timekeeping off to a second computer
-  mid-race.** Today a swap means: hope the outgoing laptop's last sync
-  landed, then "Open" the race from the menu on the new one — no
-  confirmation, nothing stopping the old tab from firing one more sync
-  after the new one starts recording (same root cause as the item above).
-  Physically handing off the running laptop instead is the zero-risk
-  option and needs no code — worth writing up as the recommended
-  race-day procedure regardless of whether this ships.
-
-  Proposed: a "Hand off" action (Settings, or its own confirmation
-  screen) that (1) force-flushes `useCloudSync` immediately instead of
-  waiting out its debounce, and blocks on the server's ack rather than
-  the fire-and-forget the effect does today; (2) on success, shows a
-  clear green "Synced — safe to hand off" state and puts the outgoing
-  device into a locked/read-only mode so it physically can't fire
-  another write; (3) the incoming laptop's normal "Open Race" pull from
-  the race menu is the only way back in, so there's one blessed path,
-  not an ad hoc "just open it and hope." Needs a force-flush entry point
-  on `useCloudSync` and a local lock state that survives a reload (so a
-  laptop that's been handed off doesn't quietly start scoring again if
-  someone opens the lid). Not built.
+- **Two operator tabs in one browser still overwrite each other.** They share
+  a device id, so the write check (below) treats them as one device. A tab
+  lock (BroadcastChannel or a localStorage claim) would close it.
 - **No rate limit on `POST /api/auth`.** The shared passphrase is the only
   thing between the internet and overwriting a race's backup. Mitigated by
   making the passphrase long.
@@ -140,11 +143,12 @@ For what is still open above.
 4. Watch the wave clocks on the Timing tab. Wave A reading 23-something
    before the start means the wave date is wrong.
 5. **Handing timekeeping off to a second computer:** on the outgoing
-   laptop, wait for the sync badge to read "Synced" (not just "Saved
-   locally"), then close that tab — don't leave it open. Only then open
-   the race on the new laptop from the race menu. Skipping the wait or
-   leaving the old tab open risks it firing one more sync that overwrites
-   whatever the new laptop records first.
+   laptop, record the last finisher, then Settings → **Finish scoring**. It
+   returns to the race menu once the cloud confirms. Then the incoming laptop
+   unlocks `/operator` and Opens the race. Someone writes down bibs for the
+   gap. To take the race back, repeat in the other direction. If a laptop is
+   ever reopened with an old copy, it shows a red "out of date" banner;
+   press **Load latest from cloud**.
 6. Export both the results CSV and the backup JSON before closing the tab,
    and check the CSV's row count against the finisher count on screen —
    unresolved finishers are not in the file.

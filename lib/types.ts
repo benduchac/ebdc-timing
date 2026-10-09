@@ -82,6 +82,9 @@ export interface RaceSnapshot {
   entries: Entry[];
   entryCounter: number;
   lastSaved: string; // ISO, set server-side on every write
+  // The device that made this write — see lib/syncGuard.ts. Absent on
+  // snapshots written before devices were tracked.
+  writerId?: string;
 }
 
 // Cheap per-race summary stored in the `races:index` registry so the race
@@ -95,6 +98,9 @@ export interface RaceIndexEntry {
   createdAt: string;
   lastSaved: string;
   entryCount: number;
+  // Same as RaceSnapshot.writerId; kept here so the write check needs no
+  // second read of the full snapshot.
+  writerId?: string;
 }
 
 export interface ClockCheckResult {

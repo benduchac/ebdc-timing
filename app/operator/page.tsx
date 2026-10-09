@@ -31,6 +31,7 @@ import DeleteEntryModal from "@/components/DeleteEntryModal";
 import WaveTimeEditModal from "@/components/WaveTimeEditModal";
 import SettingsModal from "@/components/SettingsModal";
 import SyncBadge from "@/components/SyncBadge";
+import SyncConflictBanner from "@/components/SyncConflictBanner";
 import SetupChecklist from "@/components/SetupChecklist";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import WaveTimesSetupModal from "@/components/WaveTimesSetupModal";
@@ -356,6 +357,8 @@ export default function OperatorPage() {
     slug: syncedSlug,
     startToken: syncedStartToken,
     photoToken: syncedPhotoToken,
+    flush: flushSync,
+    clearConflict,
   } = useCloudSync(
     {
       race: activeRace,
@@ -723,6 +726,81 @@ export default function OperatorPage() {
     alert(`Exported ${sorted.length} finishers to CSV!`);
   };
 
+  // Fetches this race's latest cloud copy and replaces the local one with it.
+  // Used when the server refused a sync because another computer is ahead.
+  // The local copy is downloaded first: it may hold entries the cloud never
+  // saw, and this replaces it.
+  const [loadingLatest, setLoadingLatest] = useState(false);
+  const [loadLatestError, setLoadLatestError] = useState<string | null>(null);
+  const handleLoadLatest = async () => {
+    if (!activeRace) return;
+    const passphrase = getStoredPassphrase();
+    if (!passphrase) {
+      setLoadLatestError("Locked — unlock the operator app first.");
+      return;
+    }
+    setLoadingLatest(true);
+    setLoadLatestError(null);
+    try {
+      const res = await fetch(
+        `/api/backup?id=${encodeURIComponent(activeRace.id)}`,
+        { headers: { Authorization: `Bearer ${passphrase}` } }
+      );
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        setLoadLatestError(data.error ?? "Couldn't load the latest copy.");
+        return;
+      }
+      handleExportBackup();
+      const snapshot: RaceSnapshot = data.snapshot;
+      handleOpenRace(
+        {
+          id: snapshot.raceId,
+          label: snapshot.label,
+          createdAt: snapshot.createdAt,
+          slug: snapshot.slug,
+          startToken: snapshot.startToken,
+          photoToken: snapshot.photoToken,
+        },
+        snapshot
+      );
+      clearConflict();
+    } catch {
+      setLoadLatestError("Couldn't reach the server.");
+    } finally {
+      setLoadingLatest(false);
+    }
+  };
+
+  // The safe way to leave a race for another computer: the server has to
+  // confirm it holds everything before the local copy is cleared. Switch Race
+  // only warns; this refuses.
+  const [finishNotice, setFinishNotice] = useState<string | null>(null);
+  const handleFinishScoring = async (): Promise<string | null> => {
+    if (syncStatus === "conflict") {
+      return "This computer is out of date. Load the latest copy first (red banner at the top), then finish scoring.";
+    }
+    const result = await flushSync();
+    if (result === "conflict") {
+      return "Another computer has newer results, so nothing was cleared. Load the latest copy first (red banner at the top).";
+    }
+    if (result !== "ok") {
+      return "The cloud didn't confirm the save, so nothing was cleared. Check the connection and try again.";
+    }
+    const count = entries.length;
+    try {
+      await clearLocalRaceState();
+    } catch (error) {
+      return "Saved to the cloud, but clearing this computer failed: " + (error as Error).message;
+    }
+    setActiveTab("registration");
+    setShowSettings(false);
+    setFinishNotice(
+      `Scoring finished. All ${count} finish${count === 1 ? "" : "es"} are saved in the cloud. The next computer can Open this race now.`
+    );
+    return null;
+  };
+
   const handleExportBackup = () => {
     const backup = {
       exportDate: new Date().toISOString(),
@@ -938,7 +1016,14 @@ export default function OperatorPage() {
   if (!activeRace) {
     return (
       <OperatorGate>
-        <RaceMenuScreen onCreate={handleCreateRace} onOpen={handleOpenRace} />
+        <RaceMenuScreen
+          onCreate={handleCreateRace}
+          onOpen={(race, snapshot) => {
+            setFinishNotice(null);
+            handleOpenRace(race, snapshot);
+          }}
+          notice={finishNotice}
+        />
       </OperatorGate>
     );
   }
@@ -1010,6 +1095,14 @@ export default function OperatorPage() {
               </button>
             </div>
           </div>
+
+          {syncStatus === "conflict" && (
+            <SyncConflictBanner
+              loading={loadingLatest}
+              error={loadLatestError ?? syncError}
+              onLoadLatest={handleLoadLatest}
+            />
+          )}
 
           {/* Tab Navigation */}
           <div className="bg-moss flex px-2 sm:px-4">
@@ -1229,6 +1322,7 @@ export default function OperatorPage() {
             onExportBackup={handleExportBackup}
             onImportBackup={handleImportBackup}
             onSwitchRace={handleSwitchRace}
+            onFinishScoring={handleFinishScoring}
             onLock={handleLock}
             entryCount={entries.length}
             registrantCount={registrants.size}

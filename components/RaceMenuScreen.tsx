@@ -8,12 +8,18 @@ import TrailHero from "./TrailHero";
 interface RaceMenuScreenProps {
   onCreate: (label: string) => void;
   onOpen: (race: Race, snapshot: RaceSnapshot) => void;
+  // Shown above the menu, e.g. after "Finish scoring" returns here.
+  notice?: string | null;
 }
 
 // Recovery-aware startup screen: shown when there's no local activeRace. If
 // online, offers to resume any race from the cloud registry; always offers
 // Start New. See docs/race-readiness-design.md "Race lifecycle & recovery".
-export default function RaceMenuScreen({ onCreate, onOpen }: RaceMenuScreenProps) {
+export default function RaceMenuScreen({
+  onCreate,
+  onOpen,
+  notice,
+}: RaceMenuScreenProps) {
   const [online, setOnline] = useState(true);
   const [races, setRaces] = useState<RaceIndexEntry[] | null>(null);
   const [listError, setListError] = useState<string | null>(null);
@@ -115,6 +121,14 @@ export default function RaceMenuScreen({ onCreate, onOpen }: RaceMenuScreenProps
           subtitle="Resume an in-progress race, or start a new one."
         />
         <div className="bg-chalk p-6 sm:p-8">
+          {notice && (
+            <div
+              role="status"
+              className="bg-success-soft border border-success/40 rounded-lg p-3 text-sm text-moss-dark mb-4"
+            >
+              {notice}
+            </div>
+          )}
           {!online && (
             <div className="bg-warning-soft border border-warning/40 rounded-lg p-3 text-sm text-ink-soft mb-4">
               Offline — can&apos;t browse existing races right now. The menu

@@ -70,6 +70,16 @@ context.
   state change (debounced ~600ms), drives `components/SyncBadge.tsx`. Status
   distinguishes "dirty" (change queued, about to sync — calm) from "error"
   (an attempt actually failed — the alarm state); see the hook's top comment.
+- `lib/syncGuard.ts` + `lib/deviceId.ts` — the write check on `POST
+  /api/backup`. A sync uploads the whole snapshot, so the last device to
+  write wins; the server refuses (409) a device whose copy is older than the
+  cloud's, judged by a per-browser device id and the `lastSaved` that device
+  last loaded or wrote. `useCloudSync` goes to a `conflict` status on a 409,
+  stops retrying, and `SyncConflictBanner` offers **Load latest from cloud**
+  (downloads the local copy first). `flush()` resolves once the server has
+  answered, and **Finish scoring** (Settings) uses it: it clears the local
+  copy only after a confirmed save. Two tabs in one browser share a device
+  id, so they are not protected from each other.
 - `components/RaceMenuScreen.tsx` — shown when there's no local `activeRace`;
   if online, lists races from `GET /api/races` to resume (pulls
   `race:{id}:latest` via `GET /api/backup?id=`), always offers Start New
