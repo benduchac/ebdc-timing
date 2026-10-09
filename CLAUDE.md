@@ -127,7 +127,9 @@ context.
   tracked in `RaceState.waveStartAdopted` so a later manual correction
   sticks. The phone page refreshes what other phones sent (15s, then 60s once
   all three waves are in) and merges it in; a failed refresh never clears the
-  screen. See `docs/race-readiness-design.md` "Wave start line".
+  screen. Unsent taps retry from 2s up to 15s, at once when the signal returns,
+  and a status box under the buttons says green/amber whether they are on the
+  server (screenshot-able when amber). See `docs/race-readiness-design.md` "Wave start line".
 - `components/RankedRow.tsx` — one ranked card row (rank, bib, name, wave,
   race time, photo last). Used by the category boards, and by `ResultsTable`
   in place of its table below 640px when it is the public, read-only one.

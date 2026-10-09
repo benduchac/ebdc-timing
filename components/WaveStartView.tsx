@@ -41,8 +41,16 @@ function savePending(token: string, pending: Partial<Record<Wave, PendingTap>>) 
   }
 }
 
-const RETRY_BASE_MS = 5_000;
-const RETRY_MAX_MS = 60_000;
+// An unsent tap is the one thing on this page that is time-critical: until it
+// lands, the laptop is scoring that wave against a draft start time. The
+// requests are tiny and there are at most three, so retry briskly and never
+// back off far.
+const RETRY_BASE_MS = 2_000;
+const RETRY_MAX_MS = 15_000;
+// An attempt that has not answered by now is on a dead connection. Without
+// this it can hang for minutes, and a retry is only scheduled once an attempt
+// fails.
+const SEND_TIMEOUT_MS = 8_000;
 
 // How often the page asks what other phones have sent. Once all three waves
 // are known there is little left to learn but a correction, so it slows down:
@@ -55,6 +63,67 @@ const REFRESH_TIMEOUT_MS = 8_000;
 
 const formatTime = (iso: string) =>
   new Date(iso).toLocaleTimeString("en-US", { hour12: true });
+
+interface SyncRow {
+  wave: Wave;
+  time: string;
+  unsent: boolean;
+  failed: boolean;
+}
+
+// Whether this phone's wave times have reached the server, in words and colour
+// a volunteer can read at a glance, and laid out so that a screenshot of it is
+// a usable record. Amber only once an attempt has actually failed: a tap on a
+// good connection is on the server before anyone could read an amber box.
+function SyncStatusBox({ rows }: { rows: SyncRow[] }) {
+  const unsent = rows.some((r) => r.unsent);
+  const failed = rows.some((r) => r.failed);
+
+  const tone = failed
+    ? "bg-warning-soft border-warning text-ink"
+    : unsent
+    ? "bg-sand border-ink/10 text-ink"
+    : rows.length > 0
+    ? "bg-success-soft border-success text-moss-dark"
+    : "bg-chalk/90 border-ink/10 text-ink-soft";
+
+  const title = failed
+    ? "Waiting to sync — take a screenshot for backup"
+    : unsent
+    ? "Sending wave times…"
+    : rows.length > 0
+    ? "All wave times synced to the server"
+    : "No wave times yet";
+
+  return (
+    <div
+      role="group"
+      aria-label="Wave time sync status"
+      className={`mt-4 rounded-xl border-2 p-4 ${tone}`}
+    >
+      <div className="font-semibold">{title}</div>
+      {rows.length > 0 && (
+        <ul className="mt-2 space-y-1 text-sm font-mono tabular-nums">
+          {rows.map((r) => (
+            <li key={r.wave} className="flex justify-between gap-3">
+              <span>Wave {r.wave}</span>
+              <span>
+                {r.time}
+                {r.unsent ? (r.failed ? " — not sent" : " — sending") : " — synced"}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {failed && (
+        <p className="mt-2 text-xs">
+          It sends by itself when the signal is back. Tap a wave again only if a
+          time here is wrong.
+        </p>
+      )}
+    </div>
+  );
+}
 
 // Phone-first page for the start-line volunteer: three big buttons, one tap
 // each, right when a wave's lead rider crosses. Captures the tap's timestamp
@@ -87,6 +156,15 @@ export default function WaveStartView({
   const armTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const retryTimeoutsRef = useRef<Partial<Record<Wave, ReturnType<typeof setTimeout>>>>({});
   const retryAttemptsRef = useRef<Partial<Record<Wave, number>>>({});
+  // Attempts on the wire, by wave and tap time, so a signal-returns retry
+  // doesn't stack a second copy of one that is still in flight. Keyed by tap
+  // time as well because a restart is a different tap and must not be blocked
+  // by the one it replaces.
+  const inFlightRef = useRef<Set<string>>(new Set());
+  // The unsent taps as of right now, kept in step with state by hand wherever
+  // a tap is made, because an attempt starts in the same breath as the tap,
+  // before React has rendered it.
+  const pendingRef = useRef<Partial<Record<Wave, PendingTap>>>(pending);
 
   const runClockCheck = useCallback(async () => {
     setCheckingClock(true);
@@ -173,14 +251,26 @@ export default function WaveStartView({
 
   const attemptSend = useCallback(
     async (wave: Wave, timestampMs: number) => {
+      // A retry for a tap that has since been replaced (restarted) or already
+      // confirmed must not go out: it would put an older time over the newer
+      // one on the server.
+      if (pendingRef.current[wave]?.timestampMs !== timestampMs) return;
+
+      const attemptKey = `${wave}:${timestampMs}`;
+      if (inFlightRef.current.has(attemptKey)) return;
+      inFlightRef.current.add(attemptKey);
+
       const existingTimeout = retryTimeoutsRef.current[wave];
       if (existingTimeout) clearTimeout(existingTimeout);
 
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), SEND_TIMEOUT_MS);
       try {
         const res = await fetch("/api/wave-start", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ token, wave, timestampMs }),
+          signal: controller.signal,
         });
         if (!res.ok) throw new Error("send failed");
         const data = await res.json();
@@ -188,8 +278,12 @@ export default function WaveStartView({
 
         setWaveStarts((prev) => ({ ...prev, [wave]: data.startedAt }));
         setPending((prev) => {
+          // Only this tap's own record: a restart made while this was in
+          // flight is a newer tap with its own send still to come.
+          if (prev[wave] && prev[wave]!.timestampMs !== timestampMs) return prev;
           const next = { ...prev };
           delete next[wave];
+          pendingRef.current = next;
           savePending(token, next);
           return next;
         });
@@ -200,9 +294,12 @@ export default function WaveStartView({
           // attempt was in flight — don't resurrect a stale one.
           if (!current || current.timestampMs !== timestampMs) return prev;
           const next = { ...prev, [wave]: { ...current, failed: true } };
+          pendingRef.current = next;
           savePending(token, next);
           return next;
         });
+        // A replaced or confirmed tap has nothing left to retry.
+        if (pendingRef.current[wave]?.timestampMs !== timestampMs) return;
         const attempt = retryAttemptsRef.current[wave] ?? 0;
         retryAttemptsRef.current[wave] = attempt + 1;
         const delay = Math.min(RETRY_BASE_MS * 2 ** attempt, RETRY_MAX_MS);
@@ -210,10 +307,39 @@ export default function WaveStartView({
           () => attemptSend(wave, timestampMs),
           delay
         );
+      } finally {
+        clearTimeout(timeout);
+        inFlightRef.current.delete(attemptKey);
       }
     },
     [token]
   );
+
+  // Sends every unsent tap now, instead of at the next backoff step. The signal
+  // coming back, or the screen waking, is the moment that matters, and a phone
+  // may have paused this page's timers for as long as it was away.
+  const sendPendingNow = useCallback(() => {
+    for (const wave of WAVES) {
+      const tap = pendingRef.current[wave];
+      if (!tap) continue;
+      retryAttemptsRef.current[wave] = 0;
+      attemptSend(wave, tap.timestampMs);
+    }
+  }, [attemptSend]);
+
+  useEffect(() => {
+    // The signal returning is worth a send even if the page is hidden: it may
+    // still be alive. Waking the screen only counts once it is showing.
+    const onVisible = () => {
+      if (document.visibilityState !== "hidden") sendPendingNow();
+    };
+    window.addEventListener("online", sendPendingNow);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.removeEventListener("online", sendPendingNow);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [sendPendingNow]);
 
   // Resume any tap that didn't finish sending before the last reload.
   useEffect(() => {
@@ -250,11 +376,10 @@ export default function WaveStartView({
 
     setConfirmArmed(null);
     retryAttemptsRef.current[wave] = 0;
-    setPending((prev) => {
-      const next = { ...prev, [wave]: { timestampMs, failed: false } };
-      savePending(token, next);
-      return next;
-    });
+    const next = { ...pendingRef.current, [wave]: { timestampMs, failed: false } };
+    pendingRef.current = next;
+    savePending(token, next);
+    setPending(next);
     attemptSend(wave, timestampMs);
   };
 
@@ -337,18 +462,21 @@ export default function WaveStartView({
             const tap = pending[wave];
             const armed = confirmArmed === wave;
 
+            // An unsent tap outranks the server's time: it is the newer one,
+            // and showing the old confirmed time instead made a restart made
+            // offline look as though the tap had done nothing.
             let state: "idle" | "armed" | "sending" | "retrying" | "confirmed";
             if (armed) state = "armed";
+            else if (tap) state = tap.failed ? "retrying" : "sending";
             else if (startedAt) state = "confirmed";
-            else if (tap?.failed) state = "retrying";
-            else if (tap) state = "sending";
             else state = "idle";
 
-            const displayTime = startedAt
-              ? formatTime(startedAt)
-              : tap
+            const displayTime = tap
               ? formatTime(new Date(tap.timestampMs).toISOString())
+              : startedAt
+              ? formatTime(startedAt)
               : null;
+            const verb = tap && startedAt ? "Restarted" : "Started";
 
             return (
               <button
@@ -379,12 +507,12 @@ export default function WaveStartView({
                 )}
                 {state === "sending" && (
                   <div className="text-ink-soft mt-1">
-                    Started at {displayTime} — sending...
+                    {verb} at {displayTime} — sending...
                   </div>
                 )}
                 {state === "retrying" && (
                   <div className="text-danger font-semibold mt-1">
-                    Started at {displayTime} — not sent yet, retrying...
+                    {verb} at {displayTime} — not sent yet, retrying...
                   </div>
                 )}
                 {state === "confirmed" && (
@@ -396,6 +524,19 @@ export default function WaveStartView({
             );
           })}
         </div>
+
+        <SyncStatusBox
+          rows={WAVES.filter((w) => pending[w] || waveStarts[w]).map((w) => ({
+            wave: w,
+            time: formatTime(
+              pending[w]
+                ? new Date(pending[w]!.timestampMs).toISOString()
+                : waveStarts[w]!
+            ),
+            unsent: !!pending[w],
+            failed: !!pending[w]?.failed,
+          }))}
+        />
 
         <p className="text-sand/70 text-xs text-center mt-6 pb-6">
           Each button records the moment you tap it. Tap a wave twice to

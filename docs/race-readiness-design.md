@@ -268,8 +268,30 @@ same principle as `TimingTab.handleRecordFinish` stamping before anything
 that can block. A server-side timestamp would be skewed by however long the
 request took on a mobile hotspot; only *whether it's been sent* is
 uncertain, never *what time it was*. A tap that fails to send is kept in
-`localStorage` (keyed by token) and retried with backoff until it lands,
-surviving a reload if the phone loses signal mid-send.
+`localStorage` (keyed by token) and retried until it lands, surviving a reload
+if the phone loses signal mid-send: reopening the page sends it, with the
+original tap time, without another tap.
+
+**Unsent taps are retried briskly.** Until one lands, the laptop is scoring
+that wave against a draft start time, so the wait between tries starts at 2s
+and never passes 15s. An attempt that has not answered in 8s is dropped and
+retried, instead of hanging on a dead connection. The signal coming back, or
+the screen waking, sends every unsent tap at once rather than at the next
+timer step, since a phone may pause a page's timers while it is away.
+
+**A restart made with no signal shows the new time.** The button prefers this
+phone's unsent tap to the server's older confirmed time ("Restarted at 9:03:10
+AM — not sent yet"); it used to keep showing the old green time, so the re-tap
+looked as though it had done nothing. A tap replaced before it sent is
+dropped, and never retried over the newer one.
+
+**The status box under the buttons** says whether this phone's times are on
+the server. Green, "All wave times synced to the server", when nothing is
+unsent; amber, "Waiting to sync — take a screenshot for backup", once an
+attempt has failed, listing each wave with its time and whether it was sent;
+neutral while a send is still in flight; and "No wave times yet" before any
+tap. The amber box is laid out so a screenshot is a usable record, and it
+says the page sends by itself when the signal returns.
 
 ---
 
