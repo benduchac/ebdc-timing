@@ -25,10 +25,12 @@ half-built.
 - **A — capture and store** *(built)*. `/photo/[token]`, `POST /api/photos`,
   the Blob store, the per-race photo token. Photos land safely; nobody sees
   them yet.
-- **B — review and match** *(built)*. A Photos tab in the operator app:
-  candidate finishers by capture time, approve or reject.
-- **C — publish** *(not built)*. Approved photos beside their finisher on
-  `/[slug]`.
+- **B — review and match** *(built)*. Candidate finishers by capture time,
+  approve or reject, in two places: a Photos tab in the operator app, and a
+  Match view on the photographer's phone page (added 9 October, see
+  "Review").
+- **C — publish** *(built, 9 October)*. Approved photos beside their finisher
+  on `/[slug]`.
 
 Phases A and B are written and pass the test suite, but no photo has been
 through a real Blob store yet — that needs a deploy. See "Testing" under
@@ -42,11 +44,12 @@ through a real Blob store yet — that needs a deploy. See "Testing" under
 |---|---|---|
 | Photographer's phone page | `/photo/[token]` | token-gated, unlinked |
 | Upload | `POST /api/photos` | token |
-| Read a race's photos (the phone) | `GET /api/photos?token=` | token |
+| Read a race's photos (the phone) | `GET /api/photos?token=` (`&finishers=1` adds the finisher list) | token |
 | Read a race's photos (the operator) | `GET /api/photos?raceId=` | secret |
-| Approve / reassign | `PATCH /api/photos` | secret |
-| Reject (deletes the files) | `DELETE /api/photos` | secret |
+| Approve / reassign | `PATCH /api/photos` | secret, or token for its own race |
+| Reject (deletes the files) | `DELETE /api/photos` | secret, or token for its own race |
 | Review queue | operator app, fourth tab | passphrase |
+| Match view | `/photo/[token]`, second view | token |
 | Approved photos | `/[slug]` | public |
 
 One route file, `app/api/photos/route.ts`. Its two-caller GET copies
@@ -251,6 +254,20 @@ this.
 
 A fourth operator tab, "Photos", carrying a count of what's pending.
 
+**The same queue also runs on the photographer's phone.** The person shooting
+the finish line is a scorer, and having them switch the scoring laptop from
+timing to matching is the riskier way to do it, so `/photo/[token]` has an
+Upload | Match switch. Match shows the same cards (`PhotoReview`, shared with
+the operator tab) and decides with the photo link: `PATCH`/`DELETE
+/api/photos` accept `token` in place of the passphrase, and only for the
+race that token belongs to. The finishers come from `GET /api/photos?token=
+&finishers=1`, read from the snapshot the laptop syncs: id, bib, name and
+finish time only, never age or any registrant data. They are as fresh as the
+laptop's last sync. The Upload view stays mounted while Match is showing,
+because it holds the queue of photos still being sent, and Match polls only
+while it is on screen. The operator tab stays, for after the race and as a
+fallback.
+
 Each pending photo shows the image, its capture time and where that time came
 from, and the candidate finishers with their deltas, nearest first. Approve
 against one of them, or reject.
@@ -304,6 +321,11 @@ never served stale.
 
 ## Publishing
 
+*Built 9 October.* `lib/publicPhotos.ts` picks the photos and
+`components/FinisherPhoto.tsx` draws them; the thumbnail goes beside the
+rider in the results table and in the category boards. A failure reading
+photos leaves the board without pictures and never takes the results down.
+
 `/[slug]` reads `race:{id}:photos` beside the snapshot it already reads,
 keeps the approved records, and joins them to entries on `entryId`,
 server-side. The thumbnail sits with the finisher; tapping it opens the full
@@ -337,7 +359,10 @@ if Blob transfer ever gets tight, not a reason to add it now.
   deletes it by hand. Only rejection deletes anything on its own.
 - **No rate limit on the upload endpoint**, the same accepted trade-off as
   the wave-start link and `POST /api/auth`. Someone with the link can fill
-  the Blob store; the review queue means they can't publish anything.
+  the Blob store. Since the Match view, the link can also approve a photo onto
+  the leaderboard and delete one, for its own race only. The link goes to a
+  scorer, and a hand-made request is the same exposure as the wave-start link;
+  keep it as private as the passphrase.
 
 ---
 

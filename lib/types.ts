@@ -36,6 +36,15 @@ export interface Race {
 // docs/photo-companion-design.md "Data model".
 export type PhotoStatus = "pending" | "approved";
 
+// What the public leaderboard needs of an approved photo, keyed by the
+// finisher's entry id. Plain data so it can cross from the Server Component
+// to the client view.
+export interface PublicPhoto {
+  thumbUrl: string;
+  url: string;
+}
+export type PhotosByEntry = Record<number, PublicPhoto>;
+
 export interface RacePhoto {
   id: string;
   // The full frame, for the operator's review card and for a viewer who

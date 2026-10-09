@@ -64,10 +64,11 @@ function offline; anything that claims data is safe must be provably true.
   B — a token-gated `/photo/[token]` upload page, Vercel Blob storage, and
   an operator review tab that pairs each photo with the finishers who
   crossed around when it was taken. Phase C (approved photos on the public
-  leaderboard) is specced and not built. This is the photo-matching stretch
+  leaderboard) was built on 9 October, and matching can also be done from
+  the photographer's phone. This is the photo-matching stretch
   goal that used to sit on this list as deferred; it has its own doc now,
   `photo-companion-design.md`.
-- **Next:** the rest of Phase 4 (full offline dry run), and photo phase C.
+- **Next:** the rest of Phase 4 (full offline dry run), and the first test of photos against a real Blob store.
   Deferred separately: a UI reskin (visual polish, explicitly no
   functionality changes — planned for after the leaderboard, in its own
   branch).

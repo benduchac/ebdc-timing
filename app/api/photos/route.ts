@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { put, del } from "@vercel/blob";
 import { isAuthorized } from "@/lib/auth";
 import { getRedis, kvKeys } from "@/lib/kv";
+import type { PhotoFinisher } from "@/lib/photoMatch";
 import type {
   PhotoCaptureSource,
   RaceIndexEntry,
   RacePhoto,
+  RaceSnapshot,
 } from "@/lib/types";
 
 // The photographer's phone has no passphrase — the token in its URL is the
@@ -77,6 +79,44 @@ async function readPhotos(
   return Object.values(hash).sort((a, b) =>
     b.uploadedAt.localeCompare(a.uploadedAt)
   );
+}
+
+// The finishers a photo can be matched to, for the photographer's phone.
+// Read from the snapshot the operator's laptop keeps in sync, so it is as
+// fresh as that sync. Only what the review card shows: no age, no
+// registrant data, nothing the public leaderboard doesn't already print.
+async function readFinishers(
+  redis: NonNullable<ReturnType<typeof getRedis>>,
+  raceId: string
+): Promise<PhotoFinisher[]> {
+  const snapshot = await redis.get<RaceSnapshot>(kvKeys.raceLatest(raceId));
+  return (snapshot?.entries ?? []).map((e) => ({
+    id: e.id,
+    bib: e.bib,
+    name: e.name,
+    finishTime: e.finishTime,
+    finishTimeMs: e.finishTimeMs,
+  }));
+}
+
+// Who may change a race's photos, and which race. The photo link reaches its
+// own race and no other; the operator passphrase reaches any race it names.
+// A request that carries a token is judged by the token alone, so a raceId
+// sent beside it can't point it somewhere else.
+async function resolveRaceForWrite(
+  request: NextRequest,
+  redis: NonNullable<ReturnType<typeof getRedis>>,
+  input: { token?: unknown; raceId?: unknown }
+): Promise<string | NextResponse> {
+  if (typeof input.token === "string" && input.token) {
+    const found = await findRaceIdByPhotoToken(redis, input.token);
+    return found ?? bad("Invalid or expired link.", 404);
+  }
+  if (!isAuthorized(request)) return bad("Unauthorized.", 401);
+  if (typeof input.raceId !== "string" || !input.raceId) {
+    return bad("Missing raceId.");
+  }
+  return input.raceId;
 }
 
 const notConfigured = (what: string) =>
@@ -247,19 +287,26 @@ export async function GET(request: NextRequest) {
     return bad("Missing raceId or token.");
   }
 
+  // The phone asks for finishers only on its Match view, which polls; the
+  // upload view's own reads stay as light as they were.
+  const wantFinishers =
+    !!token && request.nextUrl.searchParams.get("finishers") === "1";
+
   return NextResponse.json({
     ok: true,
     label,
     photos: await readPhotos(redis, raceId),
+    ...(wantFinishers
+      ? { finishers: await readFinishers(redis, raceId) }
+      : {}),
   });
 }
 
-// The operator's decision. entryId attaches the photo to a finisher and
-// publishes it; null puts it back to pending, which is what makes approval
-// reversible.
+// The matching decision, from the operator's Photos tab (passphrase) or the
+// photographer's phone (photo link). entryId attaches the photo to a
+// finisher and publishes it; null puts it back to pending, which is what
+// makes approval reversible.
 export async function PATCH(request: NextRequest) {
-  if (!isAuthorized(request)) return bad("Unauthorized.", 401);
-
   const redis = getRedis();
   if (!redis) return notConfigured("Backup storage");
 
@@ -270,8 +317,14 @@ export async function PATCH(request: NextRequest) {
     return bad("Invalid request.");
   }
 
-  const { raceId, photoId, entryId } = (body ?? {}) as Record<string, unknown>;
-  if (typeof raceId !== "string" || !raceId) return bad("Missing raceId.");
+  const { photoId, entryId } = (body ?? {}) as Record<string, unknown>;
+  const resolved = await resolveRaceForWrite(
+    request,
+    redis,
+    (body ?? {}) as Record<string, unknown>
+  );
+  if (resolved instanceof NextResponse) return resolved;
+  const raceId = resolved;
   if (typeof photoId !== "string" || !photoId) return bad("Missing photoId.");
   if (entryId !== null && typeof entryId !== "number") {
     return bad("entryId must be a finisher id or null.");
@@ -297,14 +350,18 @@ export async function PATCH(request: NextRequest) {
 // record marked "rejected" would leave the photo sitting at a live URL —
 // see docs/photo-companion-design.md "Review".
 export async function DELETE(request: NextRequest) {
-  if (!isAuthorized(request)) return bad("Unauthorized.", 401);
-
   const redis = getRedis();
   if (!redis) return notConfigured("Backup storage");
 
-  const raceId = request.nextUrl.searchParams.get("raceId");
-  const photoId = request.nextUrl.searchParams.get("photoId");
-  if (!raceId || !photoId) return bad("Missing raceId or photoId.");
+  const params = request.nextUrl.searchParams;
+  const resolved = await resolveRaceForWrite(request, redis, {
+    token: params.get("token"),
+    raceId: params.get("raceId"),
+  });
+  if (resolved instanceof NextResponse) return resolved;
+  const raceId = resolved;
+  const photoId = params.get("photoId");
+  if (!photoId) return bad("Missing photoId.");
 
   const existing = await redis.hget<RacePhoto>(
     kvKeys.racePhotos(raceId),

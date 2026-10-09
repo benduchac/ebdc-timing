@@ -1,6 +1,15 @@
 import type { Entry } from "./db";
 import type { RacePhoto } from "./types";
 
+// What matching and the review card need to know about a finisher. The
+// operator tab has whole Entry records; the photographer's phone is sent only
+// these fields (never age or anything from the registrant list), and both go
+// through the same code.
+export type PhotoFinisher = Pick<
+  Entry,
+  "id" | "bib" | "name" | "finishTime" | "finishTimeMs"
+>;
+
 // Pairs a photo with the finishers who crossed around the time it was taken.
 // See docs/photo-companion-design.md "Matching".
 
@@ -10,7 +19,7 @@ import type { RacePhoto } from "./types";
 export const PHOTO_MATCH_WINDOW_MS = 20_000;
 
 export interface PhotoCandidate {
-  entry: Entry;
+  entry: PhotoFinisher;
   // Signed: negative means the photo was taken before the finish was
   // recorded, which is the normal direction (the operator types after the
   // rider crosses).
@@ -28,7 +37,7 @@ export function correctedCaptureMs(
 
 export function findCandidates(
   photo: Pick<RacePhoto, "capturedAtMs" | "clockOffsetMs">,
-  entries: Entry[],
+  entries: PhotoFinisher[],
   windowMs: number = PHOTO_MATCH_WINDOW_MS
 ): PhotoCandidate[] {
   const captured = correctedCaptureMs(photo);
@@ -58,7 +67,7 @@ export const DIFFERENT_DAY_MS = 12 * 60 * 60 * 1000;
 // or days.
 export function nearestEntry(
   photo: Pick<RacePhoto, "capturedAtMs" | "clockOffsetMs">,
-  entries: Entry[]
+  entries: PhotoFinisher[]
 ): PhotoCandidate | null {
   const captured = correctedCaptureMs(photo);
   let best: PhotoCandidate | null = null;

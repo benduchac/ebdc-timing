@@ -149,6 +149,16 @@ context.
   operator's device overwrites wholesale. Image bytes go to Vercel Blob. The
   phone reads each photo's EXIF capture time, resizes it to two sizes, and
   queues the uploads with retries. See `docs/photo-companion-design.md`.
+- `components/PhotoCompanion.tsx` + `components/PhotoMatchView.tsx` — the
+  photographer's phone page is Upload | Match. Match is the review queue
+  below, run from the photo link instead of the passphrase, so the scorer
+  taking the photos never has to switch the scoring laptop to matching.
+  `PATCH`/`DELETE /api/photos` accept `token` for the token's own race, and
+  `GET ?token=&finishers=1` returns id, bib, name and finish time per
+  finisher (no age). `PhotoUploadView` stays mounted while Match shows: it
+  holds the queue of photos still uploading.
+- `components/PhotoReview.tsx` — the review cards, shared by `PhotosTab` and
+  `PhotoMatchView`; display only, it fetches nothing.
 - `components/PhotosTab.tsx` — the operator's photo review queue. A rider
   who already has an approved photo is filtered out of every other photo's
   options (one rider, one photo); unapproving puts them back. Riders can
@@ -172,6 +182,11 @@ context.
   and can go stale.
 - `lib/photoMatch.ts` — `findCandidates`: the finishers within ±20s of a
   photo, nearest first. Ranks only; the operator picks.
+- `lib/publicPhotos.ts` + `components/FinisherPhoto.tsx` — photos on the
+  public leaderboard. `approvedPhotosByEntry` keeps approved photos for
+  finishers on the page; `FinisherPhoto` draws the thumbnail (lazy) and links
+  the full frame. Only `FinisherPhoto` may touch a photo's `url`, and only as
+  an `href`; `e2e/public-photos.spec.ts` reads the source to hold that.
 - `lib/db.ts` — Dexie schema (`entries`, `raceState`, `setupConfig`) and the
   `Registrant` / `Entry` / `RaceState` / `SetupConfig` types. `clearAllData()`.
 - `lib/types.ts` — re-exports DB types plus view types (`WaveStartTimes`,
@@ -332,9 +347,10 @@ Add to it rather than letting a finding live only in a conversation.
 
 **`docs/photo-companion-design.md`** specs the photo companion — the
 photographer's upload page, the storage behind it, matching photos to
-finishers by capture time, and the operator's review queue. Phases A and B
-are built; phase C (approved photos on the public leaderboard) is specced
-and not built.
+finishers by capture time, and the review queue (on the operator laptop and
+on the photographer's phone). All three phases are built, including
+approved photos on the public leaderboard; none of it has run against a real
+Blob store yet.
 
 ## The 2026 registration form and CSV contract
 

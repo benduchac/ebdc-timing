@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getRedis, kvKeys } from "@/lib/kv";
 import type { RaceIndexEntry } from "@/lib/types";
-import PhotoUploadView from "@/components/PhotoUploadView";
+import PhotoCompanion from "@/components/PhotoCompanion";
 import TrailHero from "@/components/TrailHero";
 
 interface PageProps {
@@ -64,7 +64,7 @@ export default async function PhotoUploadPage({ params }: PageProps) {
             [Dev preview] Photo storage isn&apos;t configured locally —
             uploads won&apos;t finish. See .env.example.
           </div>
-          <PhotoUploadView token={token} raceLabel="Dev Preview Race" />
+          <PhotoCompanion token={token} raceLabel="Dev Preview Race" />
         </>
       );
     }
@@ -98,5 +98,5 @@ export default async function PhotoUploadPage({ params }: PageProps) {
     );
   }
 
-  return <PhotoUploadView token={token} raceLabel={race.label} />;
+  return <PhotoCompanion token={token} raceLabel={race.label} />;
 }

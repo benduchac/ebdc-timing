@@ -1,8 +1,9 @@
 "use client";
 
-import type { Entry } from "@/lib/types";
+import type { Entry, PhotosByEntry } from "@/lib/types";
 import { formatElapsedHuman, computeStandardRanks } from "@/lib/utils";
 import BibChip from "@/components/BibChip";
+import FinisherPhoto from "@/components/FinisherPhoto";
 import TimeChip from "@/components/TimeChip";
 import RankBadge from "@/components/RankBadge";
 import { EditIcon, TrashIcon, WarningIcon } from "@/components/icons";
@@ -11,12 +12,15 @@ interface ResultsTableProps {
   entries: Entry[];
   onEditEntry?: (id: number) => void;
   onDeleteEntry?: (id: number) => void;
+  // Approved photos by entry id. Only the public leaderboard passes this.
+  photos?: PhotosByEntry;
 }
 
 export default function ResultsTable({
   entries,
   onEditEntry,
   onDeleteEntry,
+  photos,
 }: ResultsTableProps) {
   // Read-only when no handlers are supplied — the public leaderboard reuses
   // this component with neither, so the Actions column doesn't render at
@@ -89,7 +93,19 @@ export default function ResultsTable({
                       <BibChip bib={entry.bib} className="text-xs" />
                     </span>
                   </td>
-                  <td className="p-2">{entry.name}</td>
+                  <td className="p-2">
+                    {photos?.[entry.id] ? (
+                      <span className="inline-flex items-center gap-2">
+                        <FinisherPhoto
+                          photo={photos[entry.id]}
+                          className="w-12 h-12"
+                        />
+                        {entry.name}
+                      </span>
+                    ) : (
+                      entry.name
+                    )}
+                  </td>
                   <td className="p-2">Wave {entry.wave}</td>
                   <td className="p-2">
                     <span className="font-mono tabular-nums text-ink-soft text-xs">

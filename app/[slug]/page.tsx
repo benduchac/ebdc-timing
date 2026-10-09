@@ -1,7 +1,14 @@
 import type { Metadata } from "next";
 import { getRedis, kvKeys } from "@/lib/kv";
 import { computeCategoryBuckets } from "@/lib/categories";
-import type { RaceIndexEntry, RaceSnapshot, Registrant } from "@/lib/types";
+import { approvedPhotosByEntry } from "@/lib/publicPhotos";
+import type {
+  PhotosByEntry,
+  RaceIndexEntry,
+  RacePhoto,
+  RaceSnapshot,
+  Registrant,
+} from "@/lib/types";
 import PublicLeaderboardView from "@/components/PublicLeaderboardView";
 import TrailHero from "@/components/TrailHero";
 
@@ -27,6 +34,26 @@ async function loadRaceBySlug(slug: string): Promise<RaceSnapshot | null> {
   if (!entry) return null;
 
   return (await redis.get<RaceSnapshot>(kvKeys.raceLatest(entry.id))) ?? null;
+}
+
+// Approved photos for the finishers on the page, keyed by entry id. A photo
+// problem must never take the results down with it, so any failure here is an
+// empty set: the board simply shows no pictures.
+async function loadApprovedPhotos(
+  raceId: string,
+  shownEntryIds: Set<number>
+): Promise<PhotosByEntry> {
+  try {
+    const redis = getRedis();
+    if (!redis) return {};
+    const hash =
+      (await redis.hgetall<Record<string, RacePhoto>>(
+        kvKeys.racePhotos(raceId)
+      )) ?? {};
+    return approvedPhotosByEntry(Object.values(hash), shownEntryIds);
+  } catch {
+    return {};
+  }
 }
 
 export async function generateMetadata({
@@ -94,6 +121,10 @@ export default async function RaceLeaderboardPage({ params }: PageProps) {
   const resolvedEntries = snapshot.entries.filter((e) => e.wave !== null);
   const registrants = new Map<string, Registrant>(snapshot.registrants);
   const buckets = computeCategoryBuckets(resolvedEntries, registrants);
+  const photos = await loadApprovedPhotos(
+    snapshot.raceId,
+    new Set(resolvedEntries.map((e) => e.id))
+  );
 
   return (
     <PublicLeaderboardView
@@ -101,6 +132,7 @@ export default async function RaceLeaderboardPage({ params }: PageProps) {
       lastSaved={snapshot.lastSaved}
       entries={resolvedEntries}
       buckets={buckets}
+      photos={photos}
     />
   );
 }

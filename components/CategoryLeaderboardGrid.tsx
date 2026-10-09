@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import type { Entry } from "@/lib/types";
+import type { Entry, PhotosByEntry, PublicPhoto } from "@/lib/types";
+import FinisherPhoto from "@/components/FinisherPhoto";
 import type { CategoryBoard } from "@/lib/categories";
 import { formatElapsedHuman, computeStandardRanks } from "@/lib/utils";
 import BibChip from "@/components/BibChip";
@@ -10,6 +11,8 @@ import RankBadge from "@/components/RankBadge";
 
 interface CategoryLeaderboardGridProps {
   buckets: CategoryBoard[];
+  // Approved photos by entry id. Only the public leaderboard passes this.
+  photos?: PhotosByEntry;
 }
 
 interface LeaderboardCardProps {
@@ -17,15 +20,25 @@ interface LeaderboardCardProps {
   entries: Entry[];
   displayLimit: number;
   expandLimit: number;
+  photos?: PhotosByEntry;
 }
 
 // One ranked row — bib, name, wave, elapsed on one line — used by the
 // category boards, which are wide enough (2-up) for it.
-function RankedRow({ entry, place }: { entry: Entry; place: number }) {
+function RankedRow({
+  entry,
+  place,
+  photo,
+}: {
+  entry: Entry;
+  place: number;
+  photo?: PublicPhoto;
+}) {
   return (
     <div className="flex items-center gap-2 text-sm border-b border-ink/10 pb-2">
       <RankBadge place={place} className="w-6 h-6 shrink-0 text-xs" />
       <BibChip bib={entry.bib} className="text-xs" />
+      {photo && <FinisherPhoto photo={photo} className="w-10 h-10" />}
       <div className="flex-1 truncate">
         <div className="font-semibold">{entry.name}</div>
         <div className="text-xs text-ink-soft">Wave {entry.wave}</div>
@@ -49,6 +62,7 @@ function LeaderboardCard({
   entries,
   displayLimit,
   expandLimit,
+  photos,
 }: LeaderboardCardProps) {
   const [showAll, setShowAll] = useState(false);
 
@@ -84,7 +98,12 @@ function LeaderboardCard({
       </h3>
       <div className="space-y-2">
         {displayedEntries.map((entry, index) => (
-          <RankedRow key={entry.id} entry={entry} place={ranks[index]} />
+          <RankedRow
+            key={entry.id}
+            entry={entry}
+            place={ranks[index]}
+            photo={photos?.[entry.id]}
+          />
         ))}
       </div>
 
@@ -108,6 +127,7 @@ function LeaderboardCard({
 
 export default function CategoryLeaderboardGrid({
   buckets,
+  photos,
 }: CategoryLeaderboardGridProps) {
   return (
     <div className="space-y-4">
@@ -122,6 +142,7 @@ export default function CategoryLeaderboardGrid({
             entries={board.entries}
             displayLimit={board.displayLimit}
             expandLimit={board.expandLimit}
+            photos={photos}
           />
         ))}
       </div>

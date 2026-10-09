@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { Entry } from "@/lib/types";
+import type { Entry, PhotosByEntry } from "@/lib/types";
 import type { CategoryBoard } from "@/lib/categories";
 import ResultsTable from "./ResultsTable";
 import CategoryLeaderboardGrid from "./CategoryLeaderboardGrid";
@@ -13,6 +13,8 @@ interface PublicLeaderboardViewProps {
   lastSaved: string;
   entries: Entry[]; // already filtered to resolved (wave !== null) finishers
   buckets: CategoryBoard[];
+  // Approved finish-line photos by entry id; empty until some are matched.
+  photos: PhotosByEntry;
 }
 
 const REFRESH_INTERVAL_MS = 20_000;
@@ -22,6 +24,7 @@ export default function PublicLeaderboardView({
   lastSaved,
   entries,
   buckets,
+  photos,
 }: PublicLeaderboardViewProps) {
   const [view, setView] = useState<"overall" | "categories">("overall");
   const router = useRouter();
@@ -77,10 +80,10 @@ export default function PublicLeaderboardView({
               <h2 className="font-display uppercase tracking-tight text-lg sm:text-2xl mb-3 text-moss-dark">
                 {entries.length} finisher{entries.length !== 1 ? "s" : ""}
               </h2>
-              <ResultsTable entries={entries} />
+              <ResultsTable entries={entries} photos={photos} />
             </>
           ) : (
-            <CategoryLeaderboardGrid buckets={buckets} />
+            <CategoryLeaderboardGrid buckets={buckets} photos={photos} />
           )}
 
           <p className="mt-6 text-sm text-ink-soft text-center">
