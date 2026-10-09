@@ -4,6 +4,7 @@ import type { Entry, PhotosByEntry } from "@/lib/types";
 import { formatElapsedHuman, computeStandardRanks } from "@/lib/utils";
 import BibChip from "@/components/BibChip";
 import FinisherPhoto from "@/components/FinisherPhoto";
+import RankedRow from "@/components/RankedRow";
 import TimeChip from "@/components/TimeChip";
 import RankBadge from "@/components/RankBadge";
 import { EditIcon, TrashIcon, WarningIcon } from "@/components/icons";
@@ -58,7 +59,7 @@ export default function ResultsTable({
     );
   }
 
-  return (
+  const table = (
     <div className="bg-chalk border border-ink/10 rounded-lg overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-xs sm:text-sm">
@@ -222,5 +223,33 @@ export default function ResultsTable({
         </table>
       </div>
     </div>
+  );
+
+  // The operator's table is for a laptop. The public one is read on phones,
+  // where seven columns run off the screen and the photo, the last one, is the
+  // first thing cut. Below the small breakpoint it becomes the same card rows
+  // the category boards use. Both are in the page and CSS picks one, so there
+  // is nothing to flash or mismatch on load.
+  if (editable) return table;
+
+  return (
+    <>
+      <div className="hidden sm:block">{table}</div>
+      <div className="sm:hidden bg-chalk border border-ink/10 rounded-lg p-3 space-y-2">
+        {sortedValid.map((entry, index) => (
+          <RankedRow
+            key={entry.id}
+            entry={entry}
+            place={overallRanks[index]}
+            photo={photos?.[entry.id]}
+            // The time as the operator's laptop showed it, without seconds
+            // (the race time has them, and the line has little room).
+            // Formatting finishTimeMs here would use the server's timezone on
+            // the first render and the viewer's after it.
+            detail={entry.finishTime.replace(/(\d{1,2}:\d{2}):\d{2}/, "$1")}
+          />
+        ))}
+      </div>
+    </>
   );
 }

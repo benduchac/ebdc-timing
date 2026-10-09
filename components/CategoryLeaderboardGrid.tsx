@@ -1,13 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import type { Entry, PhotosByEntry, PublicPhoto } from "@/lib/types";
-import FinisherPhoto from "@/components/FinisherPhoto";
+import type { Entry, PhotosByEntry } from "@/lib/types";
+import RankedRow from "@/components/RankedRow";
 import type { CategoryBoard } from "@/lib/categories";
-import { formatElapsedHuman, computeStandardRanks } from "@/lib/utils";
-import BibChip from "@/components/BibChip";
-import TimeChip from "@/components/TimeChip";
-import RankBadge from "@/components/RankBadge";
+import { computeStandardRanks } from "@/lib/utils";
 
 interface CategoryLeaderboardGridProps {
   buckets: CategoryBoard[];
@@ -21,34 +18,6 @@ interface LeaderboardCardProps {
   displayLimit: number;
   expandLimit: number;
   photos?: PhotosByEntry;
-}
-
-// One ranked row — bib, name, wave, elapsed on one line — used by the
-// category boards, which are wide enough (2-up) for it.
-function RankedRow({
-  entry,
-  place,
-  photo,
-}: {
-  entry: Entry;
-  place: number;
-  photo?: PublicPhoto;
-}) {
-  return (
-    <div className="flex items-center gap-2 text-sm border-b border-ink/10 pb-2">
-      <RankBadge place={place} className="w-6 h-6 shrink-0 text-xs" />
-      <BibChip bib={entry.bib} className="text-xs" />
-      <div className="flex-1 truncate">
-        <div className="font-semibold">{entry.name}</div>
-        <div className="text-xs text-ink-soft">Wave {entry.wave}</div>
-      </div>
-      <TimeChip className="text-xs">
-        {entry.elapsedMs !== null ? formatElapsedHuman(entry.elapsedMs) : "N/A"}
-      </TimeChip>
-      {/* Last on the row, after the time. */}
-      {photo && <FinisherPhoto photo={photo} className="w-10 h-10" />}
-    </div>
-  );
 }
 
 // Deliberately takes only Entry[] — no registrants, no age, nothing beyond

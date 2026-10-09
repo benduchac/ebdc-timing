@@ -325,6 +325,10 @@ never served stale.
 `components/FinisherPhoto.tsx` draws them; the thumbnail is the last item on
 the row, after the race time, in the results table (a "Photo" column that
 exists only once someone on the page has a photo) and in the category boards.
+Below the small breakpoint (640px) the public overall results are not a table
+but the same card rows the category boards use (`RankedRow`), because seven
+columns do not fit a phone and the photo, last, was the first thing cut off.
+The operator's Results table is never swapped.
 Tapping a thumbnail opens a lightbox
 (`FinisherPhoto`) rather than a new tab, which on a phone takes the viewer off
 the leaderboard: the full frame is requested only once it is open, and it
