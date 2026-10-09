@@ -125,7 +125,9 @@ context.
   deliberately not the snapshot the operator's device overwrites wholesale on
   every sync. `app/operator/page.tsx` polls and adopts each new wave time,
   tracked in `RaceState.waveStartAdopted` so a later manual correction
-  sticks. See `docs/race-readiness-design.md` "Wave start line".
+  sticks. The phone page refreshes what other phones sent (15s, then 60s once
+  all three waves are in) and merges it in; a failed refresh never clears the
+  screen. See `docs/race-readiness-design.md` "Wave start line".
 - `components/CategoryLeaderboardGrid.tsx` — pure presentational category
   grid; takes pre-bucketed `Entry[]` arrays only, no registrants/age. Shared
   by both the operator's `CategoryLeaderboards.tsx` (thin wrapper that calls

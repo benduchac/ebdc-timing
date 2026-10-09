@@ -246,6 +246,22 @@ next poll sees nothing new to adopt. Comparing against `waveStartTimes`
 directly would re-clobber the correction the moment the interval fired
 again.
 
+**More than one phone.** The same link works on any number of phones, and the
+last post to arrive wins a wave. A second person is a backup for the first
+one, not a second tapper. So the page asks the cloud what every phone has
+sent, every 15s while any wave is unstarted and every 60s after all three are
+(a few Redis commands each), and also when the phone comes back online or the
+tab becomes visible. It merges the answer into what is on screen and never
+clears it: a failed or timed-out refresh leaves every button and time in
+place, shows "Can't reach the server" with the time of the last good answer,
+and tries again at the next interval. Taps and their retry loop don't depend on
+it. A reply to a refresh that began before this phone's own tap finished is
+ignored, so it can't put an older time back over a restart. A backup who takes
+over should still reload the link as they start: that shows earlier waves
+immediately, and a tap on a wave already started elsewhere then asks for
+confirmation. Taps that failed to send stay on the phone that made them and
+are not visible to others.
+
 **Timestamp precision.** The tap's timestamp is captured client-side, on
 the phone, at the moment of the tap (`Date.now()`, before the POST) — the
 same principle as `TimingTab.handleRecordFinish` stamping before anything
