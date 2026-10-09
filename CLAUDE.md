@@ -185,8 +185,9 @@ context.
   escaping), `getDateString`, `downloadFile`, `verifySystemClock`,
   `TIME_SOURCE_LABEL`, `getClockSeverity` (fine/caution/alert/unknown from a
   `ClockCheckResult`).
-- `lib/categories.ts` — age/gender categorization (`parseAge`,
-  `getAgeCategory`). `computeCategoryBuckets` is the one place actual
+- `lib/categories.ts` — age/gender categorization (`parseAge`, the
+  `JUNIOR_MAX_AGE` / `MASTERS_MIN_AGE` cutoffs, the five 2026 `BOARDS`).
+  `computeCategoryBuckets` is the one place actual
   bucketing happens; only call it somewhere with real `registrants` data
   (server-side, or the operator's own local state) — never pass registrants
   into a client component for the public page.

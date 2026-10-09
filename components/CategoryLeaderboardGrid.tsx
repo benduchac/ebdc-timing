@@ -42,7 +42,7 @@ function RankedRow({ entry, place }: { entry: Entry; place: number }) {
 // makes it safe to reuse for the public leaderboard: the caller (a Server
 // Component with real registrant data) does the age/gender bucketing
 // server-side via lib/categories.ts's computeCategoryBuckets and only ever
-// passes the resulting Entry[] buckets down — birthdate never reaches the
+// passes the resulting Entry[] buckets down — age never reaches the
 // client bundle.
 function LeaderboardCard({
   title,

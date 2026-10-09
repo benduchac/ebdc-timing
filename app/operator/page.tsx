@@ -478,6 +478,9 @@ export default function OperatorPage() {
 
   // Handlers
   const handleCreateRace = (label: string) => {
+    // The reply to the last sync of the race just left can land after the
+    // clear and put its lastSaved here; a new race has no cloud version yet.
+    setCloudLastSyncedAt(null);
     setActiveRace({
       id: crypto.randomUUID(),
       label,

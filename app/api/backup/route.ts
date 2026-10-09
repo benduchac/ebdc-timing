@@ -75,6 +75,23 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Every sync must say which device it is from. Without it the write check
+  // has nothing to compare, and storing an empty id would leave the race
+  // looking "written before devices were tracked", which lets any device
+  // overwrite it (lib/syncGuard.ts). The app always sends one, so what lands
+  // here is a copy of the app from before the check, still cached on a
+  // laptop; the message tells the operator how to fix it.
+  if (typeof body.writerId !== "string" || body.writerId.length === 0) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          "This copy of the app is out of date. Reload the page while online, then it will sync.",
+      },
+      { status: 400 }
+    );
+  }
+
   // Registry read-modify-write isn't atomic; acceptable for the single-active-
   // operator model this app assumes (see "Honest limitations").
   const index = (await redis.get<RaceIndexEntry[]>(kvKeys.racesIndex)) ?? [];

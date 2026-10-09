@@ -220,6 +220,12 @@ test("a photo from another day says so instead of just failing to match", async 
     });
   });
 
+  // Pin one finish to 10:00 today, so the nearest finisher is exactly six
+  // days off whatever time of day this runs. Finishes recorded "now" are six
+  // and a half days off or more late in the evening, and describeGap rounds
+  // that to 7.
+  await setFinishTime(page, "Michael Chen", "10:00:00");
+
   await page.getByRole("button", { name: "Photos" }).click();
   await expect(page.getByText(/6 days away/)).toBeVisible();
   await expect(
