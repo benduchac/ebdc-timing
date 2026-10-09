@@ -297,8 +297,10 @@ so there's zero ambiguity about which event is being scored.
   **cannot clobber** a prior race's backup. This replaces the old blanket
   "reset/clear" (which would otherwise POST an empty snapshot over good data).
 - **Race menu** in the operator surface — browse every event id (label · date ·
-  finisher count · last-synced) and **Open** any one: pulls `race:{id}:latest`
-  into IndexedDB, sets it active, resumes syncing to that id.
+  finisher count · last-synced) and **Start scoring** on any one: pulls
+  `race:{id}:latest` into IndexedDB, sets it active, resumes syncing to that
+  id. That first sync makes this computer the race's writer (see
+  `lib/syncGuard.ts`), so the button says what it does.
 - **Recovery-aware startup:**
   1. Local active race present → continue it.
   2. No local race, online + authed → show the race menu (recover the in-progress
@@ -349,7 +351,7 @@ sync** — the badge, not this checklist, is what says so.
 3. **Move to scoring.** In the field the app only appends finishes, which sync
    best-effort; the badge flags anything not yet confirmed off-device.
 
-Even if the scoring laptop dies, a replacement Opens the race fully provisioned
+Even if the scoring laptop dies, a replacement starts scoring the race fully provisioned
 (all registrants/waves/prior finishes) and loses only unsynced finishes — which
 the badge was already warning about.
 

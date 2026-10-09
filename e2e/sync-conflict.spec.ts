@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
-import type { Route } from "@playwright/test";
+import type { Page, Route } from "@playwright/test";
+import { readFileSync } from "fs";
 import { unlockOperator, startNewRace } from "./helpers";
 import { isWriteAllowed } from "../lib/syncGuard";
 
@@ -59,17 +60,19 @@ test.describe("isWriteAllowed", () => {
 });
 
 interface SyncBody {
+  raceId?: string;
   writerId?: string;
   baseSavedAt?: string | null;
 }
 
 // Answers POSTs from a script and records what was sent. GET returns a
 // snapshot of the race named in the query, as the real route would.
-function fakeBackup(opts: { status: () => number }) {
+// `minute` keeps two computers' servers from handing out the same versions.
+function fakeBackup(opts: { status: () => number; minute?: number }) {
   const posts: SyncBody[] = [];
   let counter = 0;
   const lastSavedFor = (n: number) =>
-    new Date(Date.UTC(2026, 9, 10, 16, 0, n)).toISOString();
+    new Date(Date.UTC(2026, 9, 10, 16, opts.minute ?? 0, n)).toISOString();
 
   const handler = async (route: Route) => {
     const request = route.request();
@@ -174,7 +177,7 @@ test("a refused sync shows the banner and stops trying", async ({ page }) => {
   await expect(page.getByText("This computer is out of date.")).toBeVisible();
   await expect(page.getByText("Out of date", { exact: true })).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "Load latest from cloud" })
+    page.getByRole("button", { name: "Save a copy and leave" })
   ).toBeVisible();
 
   // A further change must not queue another attempt, and no retry timer runs.
@@ -184,35 +187,124 @@ test("a refused sync shows the banner and stops trying", async ({ page }) => {
   expect(fake.posts.length).toBe(1);
 });
 
-test("Load latest saves a copy of this computer's data, takes the cloud's, and resumes syncing", async ({
+test("Save a copy and leave downloads this computer's copy and returns to the race menu without syncing", async ({
   page,
 }) => {
-  let status = 409;
-  const fake = fakeBackup({ status: () => status });
+  const fake = fakeBackup({ status: () => 409 });
   await page.route(/\/api\/backup/, fake.handler);
 
   await unlockOperator(page);
   await startNewRace(page);
   await expect(page.getByText("This computer is out of date.")).toBeVisible();
+  const postsBefore = fake.posts.length;
 
-  status = 200;
   const download = page.waitForEvent("download");
-  await page.getByRole("button", { name: "Load latest from cloud" }).click();
+  await page.getByRole("button", { name: "Save a copy and leave" }).click();
   expect((await download).suggestedFilename()).toMatch(/^EBDC-backup-.*\.json$/);
 
-  await expect(page.getByText("This computer is out of date.")).toHaveCount(0);
-  // The cloud's registrant replaced this computer's empty list.
+  await expect(page.getByRole("status")).toContainText(
+    "Another computer is scoring this race."
+  );
+  await expect(page.getByRole("button", { name: "Start Race" })).toBeVisible();
+
+  // Leaving takes nothing over: no sync, now or after a reload.
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Start Race" })).toBeVisible();
+  await page.waitForTimeout(1500);
+  expect(fake.posts.length).toBe(postsBefore);
+});
+
+// The race menu's list, holding the race another computer is scoring.
+async function routeRaceList(page: Page) {
+  await page.route(/\/api\/races/, (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ok: true,
+        races: [
+          {
+            id: "race-from-laptop-b",
+            label: "Test Race",
+            slug: "ebdc-test",
+            createdAt: "2026-10-09T12:00:00.000Z",
+            lastSaved: "2026-10-10T17:00:00.000Z",
+            entryCount: 0,
+            writerId: "laptop-b",
+          },
+        ],
+      }),
+    })
+  );
+}
+
+test("Start scoring is the only way into a cloud race, and it syncs on the copy it loaded", async ({
+  page,
+}) => {
+  const fake = fakeBackup({ status: () => 200 });
+  await page.route(/\/api\/backup/, fake.handler);
+  await routeRaceList(page);
+
+  await unlockOperator(page);
+  await expect(page.getByRole("button", { name: "Open", exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Start scoring" }).click();
+
   await expect(
     page.getByRole("heading", { name: /^Registration \(1 riders\)/ })
   ).toBeVisible();
-
-  // Syncing resumes, based on the version just loaded.
-  await expect.poll(() => fake.posts.length).toBe(2);
-  expect(fake.posts[1].baseSavedAt).toBe("2026-10-10T17:00:00.000Z");
+  await expect.poll(() => fake.posts.length).toBe(1);
+  expect(fake.posts[0].baseSavedAt).toBe("2026-10-10T17:00:00.000Z");
+  expect(fake.posts[0].writerId).not.toBe("laptop-b");
 });
 
+test("a backup JSON imported on another computer syncs on the version it was exported from", async ({
+  page,
+  browser,
+}) => {
+  // Laptop A: syncs once, then exports.
+  const fakeA = fakeBackup({ status: () => 200 });
+  await page.route(/\/api\/backup/, fakeA.handler);
+  await unlockOperator(page);
+  await startNewRace(page);
+  await expect.poll(() => fakeA.posts.length).toBe(1);
+
+  await page.getByTitle("Settings").click();
+  const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download backup JSON" }).click();
+  const file = await (await download).path();
+  const exported = JSON.parse(readFileSync(file, "utf8"));
+  expect(exported.cloudLastSyncedAt).toBe("2026-10-10T16:00:01.000Z");
+
+  // Laptop B: its own browser, so its own device id and IndexedDB.
+  const contextB = await browser.newContext();
+  const pageB = await contextB.newPage();
+  const fakeB = fakeBackup({ status: () => 200, minute: 30 });
+  await pageB.route(/\/api\/backup/, fakeB.handler);
+  await unlockOperator(pageB);
+  await startNewRace(pageB);
+  await expect.poll(() => fakeB.posts.length).toBe(1);
+
+  await pageB.getByTitle("Settings").click();
+  await pageB.locator('input[type="file"][accept=".json"]').setInputFiles(file);
+  await expect.poll(() => fakeB.posts.length).toBe(2);
+  const importSync = fakeB.posts[1];
+  expect(importSync.raceId).toBe(exported.raceId);
+  expect(importSync.baseSavedAt).toBe("2026-10-10T16:00:01.000Z");
+  expect(importSync.writerId).not.toBe(fakeA.posts[0].writerId);
+
+  await contextB.close();
+});
+
+// Both presses: the button, then the confirmation it asks for.
+async function finishScoring(page: Page) {
+  await page.getByRole("button", { name: "Finish scoring" }).click();
+  await page.getByRole("button", { name: "Yes, finish scoring" }).click();
+}
+
 test.describe("Finish scoring", () => {
-  test("saves to the cloud, then returns to the race menu", async ({ page }) => {
+  test("does nothing until the second press, and closing Settings disarms it", async ({
+    page,
+  }) => {
     const fake = fakeBackup({ status: () => 200 });
     await page.route(/\/api\/backup/, fake.handler);
 
@@ -222,11 +314,54 @@ test.describe("Finish scoring", () => {
 
     await page.getByTitle("Settings").click();
     await page.getByRole("button", { name: "Finish scoring" }).click();
+    await page.getByRole("button", { name: "Keep scoring" }).click();
+    await expect(page.getByRole("button", { name: "Finish scoring" })).toBeVisible();
+
+    // Armed, then closed: reopening shows the first button again.
+    await page.getByRole("button", { name: "Finish scoring" }).click();
+    await page.getByRole("button", { name: "Close", exact: true }).click();
+    await page.getByTitle("Settings").click();
+    await expect(page.getByRole("button", { name: "Yes, finish scoring" })).toHaveCount(0);
+
+    // Nothing was flushed or cleared along the way.
+    expect(fake.posts.length).toBe(1);
+    await expect(page.getByRole("button", { name: "Start Race" })).toHaveCount(0);
+  });
+
+  test("saves to the cloud, then returns to the race menu", async ({ page }) => {
+    const fake = fakeBackup({ status: () => 200 });
+    await page.route(/\/api\/backup/, fake.handler);
+
+    await unlockOperator(page);
+    await startNewRace(page);
+    await expect.poll(() => fake.posts.length).toBe(1);
+
+    await page.getByTitle("Settings").click();
+    await finishScoring(page);
 
     await expect(page.getByRole("status")).toContainText("Scoring finished");
     await expect(page.getByRole("button", { name: "Start Race" })).toBeVisible();
     // The flush itself was a sync, so the cloud was asked before anything cleared.
     expect(fake.posts.length).toBeGreaterThanOrEqual(2);
+  });
+
+  test("stays cleared after a reload", async ({ page }) => {
+    const fake = fakeBackup({ status: () => 200 });
+    await page.route(/\/api\/backup/, fake.handler);
+
+    await unlockOperator(page);
+    await startNewRace(page);
+    await expect.poll(() => fake.posts.length).toBe(1);
+
+    await page.getByTitle("Settings").click();
+    await finishScoring(page);
+    await expect(page.getByRole("status")).toContainText("Scoring finished");
+
+    // The flush's reply lands in state just as the clear runs; it must not
+    // write the race back to IndexedDB.
+    await page.waitForTimeout(1500);
+    await page.reload();
+    await expect(page.getByRole("button", { name: "Start Race" })).toBeVisible();
   });
 
   test("clears nothing when the cloud does not confirm", async ({ page }) => {
@@ -240,7 +375,7 @@ test.describe("Finish scoring", () => {
 
     status = 500;
     await page.getByTitle("Settings").click();
-    await page.getByRole("button", { name: "Finish scoring" }).click();
+    await finishScoring(page);
 
     await expect(
       page.getByText("The cloud didn't confirm the save, so nothing was cleared.")
@@ -248,6 +383,13 @@ test.describe("Finish scoring", () => {
     // Still in the race.
     await expect(page.getByRole("button", { name: "Finish scoring" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Start Race" })).toHaveCount(0);
+
+    // The error belongs to that attempt; reopening Settings starts clean.
+    await page.getByRole("button", { name: "Close", exact: true }).click();
+    await page.getByTitle("Settings").click();
+    await expect(
+      page.getByText("The cloud didn't confirm the save, so nothing was cleared.")
+    ).toHaveCount(0);
   });
 
   test("clears nothing when another computer is ahead", async ({ page }) => {
@@ -261,10 +403,10 @@ test.describe("Finish scoring", () => {
 
     status = 409;
     await page.getByTitle("Settings").click();
-    await page.getByRole("button", { name: "Finish scoring" }).click();
+    await finishScoring(page);
 
     await expect(
-      page.getByText("Another computer has newer results, so nothing was cleared.")
+      page.getByText("Another computer is scoring this race, so nothing was cleared.")
     ).toBeVisible();
     await expect(page.getByRole("button", { name: "Start Race" })).toHaveCount(0);
   });

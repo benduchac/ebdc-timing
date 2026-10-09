@@ -75,14 +75,18 @@ context.
   write wins; the server refuses (409) a device whose copy is older than the
   cloud's, judged by a per-browser device id and the `lastSaved` that device
   last loaded or wrote. `useCloudSync` goes to a `conflict` status on a 409,
-  stops retrying, and `SyncConflictBanner` offers **Load latest from cloud**
-  (downloads the local copy first). `flush()` resolves once the server has
+  stops retrying, and `SyncConflictBanner` offers **Save a copy and leave**
+  (downloads the local copy, clears it, back to the race menu). Taking a race
+  over is only ever the race menu's **Start scoring**, never a side effect.
+  The backup JSON carries `cloudLastSyncedAt` so an import on another
+  computer is accepted when it is current. `flush()` resolves once the server has
   answered, and **Finish scoring** (Settings) uses it: it clears the local
   copy only after a confirmed save. Two tabs in one browser share a device
   id, so they are not protected from each other.
 - `components/RaceMenuScreen.tsx` — shown when there's no local `activeRace`;
-  if online, lists races from `GET /api/races` to resume (pulls
-  `race:{id}:latest` via `GET /api/backup?id=`), always offers Start New
+  if online, lists races from `GET /api/races` to resume with **Start
+  scoring** (pulls `race:{id}:latest` via `GET /api/backup?id=`; there is no
+  view-only Open, since opening takes the race over), always offers Start New
   (mints a `Race { id, label, createdAt }`). Offline: Start New only.
 - `components/SetupChecklist.tsx` — three-panel setup checklist (Registration
   tab only): Check Clock / Load Registrants / Set Wave Times, each with its

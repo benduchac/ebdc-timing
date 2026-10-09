@@ -13,7 +13,7 @@ import { getDeviceId } from "./deviceId";
 //
 // "conflict" = the server refused the write because another computer has a
 // newer copy (see lib/syncGuard.ts). Syncing stops, with no retry, until the
-// operator loads the latest copy.
+// operator leaves the race.
 export type SyncStatus =
   | "never"
   | "syncing"
@@ -48,7 +48,8 @@ export interface CloudSync {
   // Sends the latest state now and resolves once the server has answered, so
   // a caller can act only after the cloud holds everything.
   flush: () => Promise<SyncResult>;
-  // Resume syncing after the operator has loaded the latest copy.
+  // Drops the refusal once the page has left the race, so the next race
+  // starts clean.
   clearConflict: () => void;
 }
 
@@ -264,8 +265,8 @@ export function useCloudSync(
   // behavior": trigger is every state change, not a timer.
   useEffect(() => {
     if (!input.race) return;
-    // A refused device stays refused until the operator loads the latest
-    // copy; a new entry on it must not queue another attempt.
+    // A refused device stays refused until the operator leaves the race; a
+    // new entry on it must not queue another attempt.
     if (conflictRef.current) return;
     setStatus((s) => (s === "syncing" ? s : "dirty"));
     if (debounceRef.current) clearTimeout(debounceRef.current);

@@ -1,18 +1,18 @@
 "use client";
 
 interface SyncConflictBannerProps {
-  loading: boolean;
-  error: string | null;
-  onLoadLatest: () => void;
+  leaving: boolean;
+  onLeave: () => void;
 }
 
-// Shown when the server refused a sync because another computer holds newer
-// results for this race (see lib/syncGuard.ts). Recording still works here,
-// but nothing it records reaches the cloud until the latest copy is loaded.
+// Shown when the server refused a sync because another computer is scoring
+// this race (see lib/syncGuard.ts). Recording still works here, but nothing
+// it records reaches the cloud. The way out is to leave: taking the race back
+// is Start scoring on the race menu, so it is always a deliberate press and
+// never a side effect of clearing this banner.
 export default function SyncConflictBanner({
-  loading,
-  error,
-  onLoadLatest,
+  leaving,
+  onLeave,
 }: SyncConflictBannerProps) {
   return (
     <div
@@ -22,18 +22,17 @@ export default function SyncConflictBanner({
       <div className="text-sm">
         <div className="font-bold">This computer is out of date.</div>
         <div>
-          Another computer has newer results for this race. Syncing is stopped
-          here, so nothing is overwritten. Anything recorded on this computer
-          since then stays on it and is not in the cloud.
+          Another computer is scoring this race. Syncing is stopped here, so
+          nothing is overwritten. Anything recorded on this computer since then
+          is only on this computer.
         </div>
-        {error && <div className="mt-1 text-chalk/80">{error}</div>}
       </div>
       <button
-        onClick={onLoadLatest}
-        disabled={loading}
+        onClick={onLeave}
+        disabled={leaving}
         className="px-4 py-2 bg-chalk text-danger rounded-lg font-semibold hover:bg-sand disabled:opacity-60"
       >
-        {loading ? "Loading…" : "Load latest from cloud"}
+        {leaving ? "Saving…" : "Save a copy and leave"}
       </button>
     </div>
   );

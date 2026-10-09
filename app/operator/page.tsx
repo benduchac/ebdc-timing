@@ -35,7 +35,7 @@ import SyncConflictBanner from "@/components/SyncConflictBanner";
 import SetupChecklist from "@/components/SetupChecklist";
 import CopyLinkButton from "@/components/CopyLinkButton";
 import WaveTimesSetupModal from "@/components/WaveTimesSetupModal";
-import RaceMenuScreen from "@/components/RaceMenuScreen";
+import RaceMenuScreen, { type MenuNotice } from "@/components/RaceMenuScreen";
 import { GearIcon } from "@/components/icons";
 import OperatorGate, {
   clearStoredPassphrase,
@@ -726,63 +726,49 @@ export default function OperatorPage() {
     alert(`Exported ${sorted.length} finishers to CSV!`);
   };
 
-  // Fetches this race's latest cloud copy and replaces the local one with it.
-  // Used when the server refused a sync because another computer is ahead.
-  // The local copy is downloaded first: it may hold entries the cloud never
-  // saw, and this replaces it.
-  const [loadingLatest, setLoadingLatest] = useState(false);
-  const [loadLatestError, setLoadLatestError] = useState<string | null>(null);
-  const handleLoadLatest = async () => {
-    if (!activeRace) return;
-    const passphrase = getStoredPassphrase();
-    if (!passphrase) {
-      setLoadLatestError("Locked — unlock the operator app first.");
-      return;
-    }
-    setLoadingLatest(true);
-    setLoadLatestError(null);
+  // Shown on the race menu after this computer leaves a race.
+  const [menuNotice, setMenuNotice] = useState<MenuNotice | null>(null);
+
+  // Used when the server refused a sync because another computer is scoring
+  // this race. Downloads the local copy (it may hold entries the cloud never
+  // saw), then clears it and returns to the race menu. Taking the race back
+  // is Start scoring there, never a side effect of this.
+  const [leaving, setLeaving] = useState(false);
+  const handleLeaveOutOfDate = async () => {
+    setLeaving(true);
+    handleExportBackup();
+    let clearProblem: string | null = null;
     try {
-      const res = await fetch(
-        `/api/backup?id=${encodeURIComponent(activeRace.id)}`,
-        { headers: { Authorization: `Bearer ${passphrase}` } }
-      );
-      const data = await res.json();
-      if (!res.ok || !data.ok) {
-        setLoadLatestError(data.error ?? "Couldn't load the latest copy.");
-        return;
-      }
-      handleExportBackup();
-      const snapshot: RaceSnapshot = data.snapshot;
-      handleOpenRace(
-        {
-          id: snapshot.raceId,
-          label: snapshot.label,
-          createdAt: snapshot.createdAt,
-          slug: snapshot.slug,
-          startToken: snapshot.startToken,
-          photoToken: snapshot.photoToken,
-        },
-        snapshot
-      );
-      clearConflict();
-    } catch {
-      setLoadLatestError("Couldn't reach the server.");
-    } finally {
-      setLoadingLatest(false);
+      await clearLocalRaceState();
+    } catch (error) {
+      clearProblem = (error as Error).message;
     }
+    setLeaving(false);
+    clearConflict();
+    setActiveTab("registration");
+    setShowSettings(false);
+    // The screen is already back on the race menu either way, so a failed
+    // clear is reported there too.
+    setMenuNotice({
+      tone: "warning",
+      text:
+        "Another computer is scoring this race. This computer's copy is in your Downloads folder as a backup JSON. To score here instead, press Start scoring." +
+        (clearProblem
+          ? ` Clearing this computer failed (${clearProblem}), so reloading this page will bring the old copy back; don't score on this computer.`
+          : ""),
+    });
   };
 
   // The safe way to leave a race for another computer: the server has to
   // confirm it holds everything before the local copy is cleared. Switch Race
   // only warns; this refuses.
-  const [finishNotice, setFinishNotice] = useState<string | null>(null);
   const handleFinishScoring = async (): Promise<string | null> => {
     if (syncStatus === "conflict") {
-      return "This computer is out of date. Load the latest copy first (red banner at the top), then finish scoring.";
+      return "Another computer is scoring this race, so there is nothing to hand off from here. Use the red banner at the top to leave.";
     }
     const result = await flushSync();
     if (result === "conflict") {
-      return "Another computer has newer results, so nothing was cleared. Load the latest copy first (red banner at the top).";
+      return "Another computer is scoring this race, so nothing was cleared. Use the red banner at the top to leave.";
     }
     if (result !== "ok") {
       return "The cloud didn't confirm the save, so nothing was cleared. Check the connection and try again.";
@@ -791,13 +777,23 @@ export default function OperatorPage() {
     try {
       await clearLocalRaceState();
     } catch (error) {
-      return "Saved to the cloud, but clearing this computer failed: " + (error as Error).message;
+      // The screen has already gone back to the race menu, so the message
+      // goes there rather than to Settings.
+      setMenuNotice({
+        tone: "warning",
+        text:
+          "Everything is saved in the cloud, but clearing this computer failed: " +
+          (error as Error).message +
+          ". Reloading this page will bring the race back here, so don't score on this computer.",
+      });
+      return null;
     }
     setActiveTab("registration");
     setShowSettings(false);
-    setFinishNotice(
-      `Scoring finished. All ${count} finish${count === 1 ? "" : "es"} are saved in the cloud. The next computer can Open this race now.`
-    );
+    setMenuNotice({
+      tone: "success",
+      text: `Scoring finished. All ${count} finish${count === 1 ? "" : "es"} are saved in the cloud. The next computer can press Start scoring on this race now.`,
+    });
     return null;
   };
 
@@ -811,6 +807,10 @@ export default function OperatorPage() {
       raceSlug: activeRace?.slug,
       raceStartToken: activeRace?.startToken,
       racePhotoToken: activeRace?.photoToken,
+      // The cloud version this copy is built on. Importing it on another
+      // computer sends it as the sync base, so the server accepts the import
+      // if nothing newer has reached the cloud since (lib/syncGuard.ts).
+      cloudLastSyncedAt: cloudLastSyncedAt ?? undefined,
       raceDate: raceDate ?? undefined,
       waveStartAdopted,
       waveStartTimes: {
@@ -873,6 +873,10 @@ export default function OperatorPage() {
           setEntryCounter(backup.entryCounter);
         }
         if (backup.raceId) {
+          // Absent from files exported before the write check; a sync from
+          // another computer is then refused, as it can't show what it's
+          // based on.
+          setCloudLastSyncedAt(backup.cloudLastSyncedAt ?? null);
           setActiveRace({
             id: backup.raceId,
             label: backup.raceLabel || "Imported Race",
@@ -920,10 +924,14 @@ export default function OperatorPage() {
 
   // Clears the local working copy only. The current race's cloud backup is
   // untouched either way (storage is keyed per race id) — the next load
-  // shows the race menu, where it can still be resumed via "Open".
+  // shows the race menu, where it can still be resumed via "Start scoring".
+  //
+  // State is reset before IndexedDB is cleared, not after. Callers often run
+  // this straight after a sync answered, and that answer is still on its way
+  // into cloudLastSyncedAt; with activeRace still set, the save effect would
+  // write the whole race back after the clear, and a reload would restore it.
+  // Once activeRace is null and the lists are empty, the save effect skips.
   const clearLocalRaceState = async () => {
-    await clearAllData();
-
     setEntries([]);
     setRegistrants(new Map());
     setEntryCounter(0);
@@ -944,6 +952,8 @@ export default function OperatorPage() {
       B: new Date(`${year}-${month}-${day}T09:15:00`),
       C: new Date(`${year}-${month}-${day}T09:30:00`),
     });
+
+    await clearAllData();
   };
 
   // "Whoops, wrong race" escape hatch — lighter-weight than Reset (no typed
@@ -1017,12 +1027,15 @@ export default function OperatorPage() {
     return (
       <OperatorGate>
         <RaceMenuScreen
-          onCreate={handleCreateRace}
+          onCreate={(label) => {
+            setMenuNotice(null);
+            handleCreateRace(label);
+          }}
           onOpen={(race, snapshot) => {
-            setFinishNotice(null);
+            setMenuNotice(null);
             handleOpenRace(race, snapshot);
           }}
-          notice={finishNotice}
+          notice={menuNotice}
         />
       </OperatorGate>
     );
@@ -1098,9 +1111,8 @@ export default function OperatorPage() {
 
           {syncStatus === "conflict" && (
             <SyncConflictBanner
-              loading={loadingLatest}
-              error={loadLatestError ?? syncError}
-              onLoadLatest={handleLoadLatest}
+              leaving={leaving}
+              onLeave={handleLeaveOutOfDate}
             />
           )}
 

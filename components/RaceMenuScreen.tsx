@@ -9,12 +9,23 @@ interface RaceMenuScreenProps {
   onCreate: (label: string) => void;
   onOpen: (race: Race, snapshot: RaceSnapshot) => void;
   // Shown above the menu, e.g. after "Finish scoring" returns here.
-  notice?: string | null;
+  notice?: MenuNotice | null;
+}
+
+export interface MenuNotice {
+  tone: "success" | "warning";
+  text: string;
 }
 
 // Recovery-aware startup screen: shown when there's no local activeRace. If
 // online, offers to resume any race from the cloud registry; always offers
 // Start New. See docs/race-readiness-design.md "Race lifecycle & recovery".
+//
+// Resuming is "Start scoring", and it is the only way into a race that
+// exists in the cloud: the first sync after it makes this computer the
+// race's writer, and any other computer still scoring it is refused from
+// then on (lib/syncGuard.ts). Opening a race just to look would take it
+// over the same way, so there is no separate Open.
 export default function RaceMenuScreen({
   onCreate,
   onOpen,
@@ -124,9 +135,13 @@ export default function RaceMenuScreen({
           {notice && (
             <div
               role="status"
-              className="bg-success-soft border border-success/40 rounded-lg p-3 text-sm text-moss-dark mb-4"
+              className={
+                notice.tone === "success"
+                  ? "bg-success-soft border border-success/40 rounded-lg p-3 text-sm text-moss-dark mb-4"
+                  : "bg-warning-soft border border-warning/40 rounded-lg p-3 text-sm text-ink mb-4"
+              }
             >
-              {notice}
+              {notice.text}
             </div>
           )}
           {!online && (
@@ -152,6 +167,13 @@ export default function RaceMenuScreen({
                 <p className="text-sm text-ink-soft">No races found yet.</p>
               )}
               {races && races.length > 0 && (
+                <p className="text-xs text-ink-soft mb-2">
+                  Start scoring makes this the computer that saves the race.
+                  Any other computer still scoring it stops syncing and shows
+                  &ldquo;out of date&rdquo;.
+                </p>
+              )}
+              {races && races.length > 0 && (
                 <ul className="space-y-2 max-h-56 overflow-y-auto">
                   {races.map((r) => (
                     <li
@@ -172,7 +194,7 @@ export default function RaceMenuScreen({
                         disabled={openingId === r.id}
                         className="shrink-0 px-3 py-1.5 bg-moss text-chalk rounded-lg text-sm font-semibold hover:bg-moss-dark disabled:opacity-50"
                       >
-                        {openingId === r.id ? "Opening…" : "Open"}
+                        {openingId === r.id ? "Starting…" : "Start scoring"}
                       </button>
                     </li>
                   ))}

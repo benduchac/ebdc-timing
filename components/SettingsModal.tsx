@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { getClockSeverity } from "@/lib/utils";
 import type { ClockCheckResult } from "@/lib/types";
 import { CheckIcon, WarningIcon } from "@/components/icons";
@@ -49,6 +49,18 @@ export default function SettingsModal({
 }: SettingsModalProps) {
   const [finishing, setFinishing] = useState(false);
   const [finishError, setFinishError] = useState<string | null>(null);
+  // Finish scoring takes a second press: one stray click mid-race would stop
+  // recording on this computer until someone reopened the race.
+  const [confirmingFinish, setConfirmingFinish] = useState(false);
+
+  // This component stays mounted while closed, so the second press is
+  // disarmed, and an old error dropped, on every close, including the one
+  // Finish scoring itself causes.
+  useEffect(() => {
+    if (isOpen) return;
+    setConfirmingFinish(false);
+    setFinishError(null);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -57,6 +69,7 @@ export default function SettingsModal({
     setFinishError(null);
     const problem = await onFinishScoring();
     setFinishing(false);
+    setConfirmingFinish(false);
     setFinishError(problem);
   };
 
@@ -266,19 +279,47 @@ export default function SettingsModal({
           {/* Hand off */}
           <div className="border-2 border-moss/40 rounded-lg p-4">
             <h3 className="font-bold mb-3 text-ink">Hand off scoring</h3>
-            <button
-              onClick={handleFinish}
-              disabled={finishing}
-              className="w-full py-2 bg-moss-dark text-chalk rounded-lg font-semibold hover:bg-moss disabled:opacity-60"
-            >
-              {finishing ? "Saving to the cloud…" : "Finish scoring"}
-            </button>
+            {confirmingFinish ? (
+              <div className="space-y-2">
+                <p className="text-sm text-ink font-semibold">
+                  This computer stops scoring. Write down the bib of anyone who
+                  crosses before the next computer starts.
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleFinish}
+                    disabled={finishing}
+                    className="flex-1 py-2 bg-moss-dark text-chalk rounded-lg font-semibold hover:bg-moss disabled:opacity-60"
+                  >
+                    {finishing ? "Saving to the cloud…" : "Yes, finish scoring"}
+                  </button>
+                  <button
+                    onClick={() => setConfirmingFinish(false)}
+                    disabled={finishing}
+                    className="flex-1 py-2 bg-sand text-moss-dark rounded-lg font-semibold hover:bg-ink/10 disabled:opacity-60"
+                  >
+                    Keep scoring
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => {
+                  setFinishError(null);
+                  setConfirmingFinish(true);
+                }}
+                className="w-full py-2 bg-moss-dark text-chalk rounded-lg font-semibold hover:bg-moss"
+              >
+                Finish scoring
+              </button>
+            )}
             <p className="text-xs text-ink-soft mt-2">
               Use this when another computer is taking over, and again when
               you take the race back. It sends everything to the cloud and
               waits for the server to confirm, then returns this computer to
-              the race menu. The next computer can then Open the race. If the
-              cloud can&apos;t confirm, nothing is cleared.
+              the race menu. The next computer can then press Start scoring
+              on the race. If the cloud can&apos;t confirm, nothing is
+              cleared.
             </p>
             {finishError && (
               <p role="alert" className="text-sm text-danger font-semibold mt-2">

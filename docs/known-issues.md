@@ -52,14 +52,30 @@ overlap on the 2026 feature work.
   cloud copy (`lib/syncGuard.ts`): each sync sends a device id and the
   `lastSaved` it last loaded or wrote. A refusal returns 409, writes nothing
   (so it adds no history entry), and the operator app shows a red banner with
-  **Load latest from cloud**. Recording keeps working on the refused device;
-  its entries stay local until the latest copy is loaded, which first
-  downloads a JSON of the local copy.
+  **Save a copy and leave**: it downloads a JSON of the local copy, clears it,
+  and returns to the race menu. Recording keeps working on the refused device
+  until then; its entries stay local.
+- **Opening a race took it over.** The race menu's Open synced at once, which
+  made that computer the race's writer and locked out the one actually
+  scoring. Open is now **Start scoring**, the only way into a race that is in
+  the cloud, so taking a race over is always a deliberate press. There is no
+  view-only mode: watch results on the public leaderboard instead.
+- **Finish scoring came back after a reload.** The reply to its last sync
+  reached state as the local copy was cleared, and the save effect wrote the
+  race back to IndexedDB. `clearLocalRaceState` now resets state before it
+  clears storage. Switch Race had the same bug when it ran right after a sync.
+- **An imported backup JSON was refused on another computer.** The JSON did
+  not carry the cloud version it was built on, so the server could not tell
+  it was current. Export now writes `cloudLastSyncedAt` and import restores
+  it. A JSON exported before this change still has none, and its sync from a
+  different computer is refused.
 - **There was no safe way to leave a race for another computer.** Settings
   now has **Finish scoring**: it syncs, waits for the server's confirmation,
   and only then clears the local copy and returns to the race menu. If the
   cloud doesn't confirm, or another computer is ahead, nothing is cleared.
-  "Switch to a different race" stays; it only warns.
+  It asks for a second press first, since a stray click mid-race would stop
+  recording until the race was reopened. "Switch to a different race" stays;
+  it only warns.
 
 Not covered: two computers recording at the same time (the second to sync is
 refused and sees the banner, but the entries are not merged), and the gap in
@@ -143,12 +159,14 @@ For what is still open above.
 4. Watch the wave clocks on the Timing tab. Wave A reading 23-something
    before the start means the wave date is wrong.
 5. **Handing timekeeping off to a second computer:** on the outgoing
-   laptop, record the last finisher, then Settings → **Finish scoring**. It
-   returns to the race menu once the cloud confirms. Then the incoming laptop
-   unlocks `/operator` and Opens the race. Someone writes down bibs for the
-   gap. To take the race back, repeat in the other direction. If a laptop is
-   ever reopened with an old copy, it shows a red "out of date" banner;
-   press **Load latest from cloud**.
+   laptop, record the last finisher, then Settings → **Finish scoring** →
+   **Yes, finish scoring**. It returns to the race menu once the cloud
+   confirms. Then the incoming laptop unlocks `/operator` and presses
+   **Start scoring** on the race. Someone writes down bibs for the gap. To
+   take the race back, repeat in the other direction. Start scoring takes
+   the race over, so don't use it on a second laptop just to look; use the
+   public leaderboard. If a laptop is ever reopened with an old copy, it
+   shows a red "out of date" banner; press **Save a copy and leave**.
 6. Export both the results CSV and the backup JSON before closing the tab,
    and check the CSV's row count against the finisher count on screen —
    unresolved finishers are not in the file.
