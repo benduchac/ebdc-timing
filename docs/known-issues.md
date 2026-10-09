@@ -135,6 +135,18 @@ and moving the CSV to `bib,name,wave,age,gender` (see
 
 Real, but not worth the churn before race day.
 
+- **The public leaderboard is not cached, so every open tab reads Redis.**
+  `app/[slug]/page.tsx` sets `revalidate = 10` to share one render between
+  viewers, but the page is rendered on every request (`x-vercel-cache: MISS`,
+  `cache-control: no-store`). Each render costs about 5 commands (the title and
+  the body each read the index and snapshot, plus the photos) and about 60 KB;
+  a tab refreshes every 20 seconds, so one open tab is roughly 900 commands and
+  11 MB an hour. 100 tabs for 3 hours is about 270,000 commands and 3 GB.
+  Accepted for race day on a Redis pay-as-you-go plan (20 cents per 100,000
+  commands; the free plan caps at 500,000 a month and 10 GB of bandwidth).
+  The fix is a 10-second shared cache (`unstable_cache`) around the page's
+  reads, with the title and body sharing one load: about 3,000 commands for a
+  3-hour race whatever the audience. Not built.
 - **Unknown-rider numbers get reused.** The next `UNK-n` is numbered from the
   count of existing ones, so deleting UNK-1 makes the next unknown UNK-2 as
   well.

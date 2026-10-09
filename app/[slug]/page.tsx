@@ -16,9 +16,12 @@ interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
-// Concurrent public viewers share one render instead of each one's 20s
-// refresh timer (see PublicLeaderboardView) hitting Redis directly — with
-// N open tabs that's roughly N*3 commands a minute otherwise.
+// Meant to make concurrent viewers share one render instead of each one's 20s
+// refresh timer (see PublicLeaderboardView) hitting Redis directly. It does
+// not: the Upstash client's requests are uncacheable, so the page renders on
+// every request (observed 9 October 2026: x-vercel-cache MISS, cache-control
+// no-store). Each open tab therefore costs about 900 Redis commands an hour.
+// Accepted for 2026 on pay-as-you-go; see docs/known-issues.md.
 export const revalidate = 10;
 
 // Throws on an actual storage problem (Redis unreachable/unconfigured) so
