@@ -113,6 +113,13 @@ context.
   arrays to `components/PublicLeaderboardView.tsx` — real registrant data
   (age) never reaches the client. Unresolved finishers (no wave assigned)
   are excluded.
+- `app/[slug]/tv/page.tsx` + `components/TvLeaderboardView.tsx` — the same
+  leaderboard for a TV at the venue: overall results then every category
+  board expanded (`CategoryLeaderboardGrid`'s `expanded`), scrolling itself
+  top to bottom, then `router.refresh()` and round again. `?speed=` (px/s)
+  and `?pause=` (seconds held at each end). Shares its Redis reads with
+  `/[slug]` through `lib/publicRace.ts`. `/dev/public-preview?tv=1` shows
+  it from the seeds.
 - `lib/slug.ts` — `slugify`/`assignSlug`: turns a race label into its public
   URL slug (`"EBDC 7/9"` → `"ebdc-7-9"`), deduped on collision (`-2`, `-3`,
   ...). Assigned once server-side on a race's first sync

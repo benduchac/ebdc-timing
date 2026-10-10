@@ -1,14 +1,7 @@
 import type { Metadata } from "next";
-import { getRedis, kvKeys } from "@/lib/kv";
 import { computeCategoryBuckets } from "@/lib/categories";
-import { approvedPhotosByEntry } from "@/lib/publicPhotos";
-import type {
-  PhotosByEntry,
-  RaceIndexEntry,
-  RacePhoto,
-  RaceSnapshot,
-  Registrant,
-} from "@/lib/types";
+import { loadApprovedPhotos, loadRaceBySlug } from "@/lib/publicRace";
+import type { RaceSnapshot, Registrant } from "@/lib/types";
 import PublicLeaderboardView from "@/components/PublicLeaderboardView";
 import TrailHero from "@/components/TrailHero";
 
@@ -23,41 +16,6 @@ interface PageProps {
 // no-store). Each open tab therefore costs about 900 Redis commands an hour.
 // Accepted for 2026 on pay-as-you-go; see docs/known-issues.md.
 export const revalidate = 10;
-
-// Throws on an actual storage problem (Redis unreachable/unconfigured) so
-// the page can tell that apart from a genuine bad slug — both used to
-// collapse into the same "race not found," which reads as a bad URL when
-// it might be a quota or outage the operator needs to know about instead.
-async function loadRaceBySlug(slug: string): Promise<RaceSnapshot | null> {
-  const redis = getRedis();
-  if (!redis) throw new Error("Backup storage is not configured.");
-
-  const index = (await redis.get<RaceIndexEntry[]>(kvKeys.racesIndex)) ?? [];
-  const entry = index.find((r) => r.slug === slug);
-  if (!entry) return null;
-
-  return (await redis.get<RaceSnapshot>(kvKeys.raceLatest(entry.id))) ?? null;
-}
-
-// Approved photos for the finishers on the page, keyed by entry id. A photo
-// problem must never take the results down with it, so any failure here is an
-// empty set: the board simply shows no pictures.
-async function loadApprovedPhotos(
-  raceId: string,
-  shownEntryIds: Set<number>
-): Promise<PhotosByEntry> {
-  try {
-    const redis = getRedis();
-    if (!redis) return {};
-    const hash =
-      (await redis.hgetall<Record<string, RacePhoto>>(
-        kvKeys.racePhotos(raceId)
-      )) ?? {};
-    return approvedPhotosByEntry(Object.values(hash), shownEntryIds);
-  } catch {
-    return {};
-  }
-}
 
 export async function generateMetadata({
   params,

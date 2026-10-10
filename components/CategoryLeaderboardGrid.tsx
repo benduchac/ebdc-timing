@@ -10,6 +10,9 @@ interface CategoryLeaderboardGridProps {
   buckets: CategoryBoard[];
   // Approved photos by entry id. Only the public leaderboard passes this.
   photos?: PhotosByEntry;
+  // Every board open to its expanded length, with no toggle. For the TV view,
+  // which nobody can click.
+  expanded?: boolean;
 }
 
 interface LeaderboardCardProps {
@@ -18,6 +21,7 @@ interface LeaderboardCardProps {
   displayLimit: number;
   expandLimit: number;
   photos?: PhotosByEntry;
+  expanded?: boolean;
 }
 
 // Deliberately takes only Entry[] — no registrants, no age, nothing beyond
@@ -33,8 +37,9 @@ function LeaderboardCard({
   displayLimit,
   expandLimit,
   photos,
+  expanded = false,
 }: LeaderboardCardProps) {
-  const [showAll, setShowAll] = useState(false);
+  const [showAll, setShowAll] = useState(expanded);
 
   if (entries.length === 0) {
     return (
@@ -77,7 +82,7 @@ function LeaderboardCard({
         ))}
       </div>
 
-      {hasMore && (
+      {hasMore && !expanded && (
         <button
           onClick={() => setShowAll(!showAll)}
           className="w-full mt-3 py-2 bg-sand text-moss-dark rounded-lg font-semibold hover:bg-ink/10 transition"
@@ -98,6 +103,7 @@ function LeaderboardCard({
 export default function CategoryLeaderboardGrid({
   buckets,
   photos,
+  expanded,
 }: CategoryLeaderboardGridProps) {
   return (
     <div className="space-y-4">
@@ -113,6 +119,7 @@ export default function CategoryLeaderboardGrid({
             displayLimit={board.displayLimit}
             expandLimit={board.expandLimit}
             photos={photos}
+            expanded={expanded}
           />
         ))}
       </div>

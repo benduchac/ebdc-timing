@@ -7,9 +7,12 @@
 //   /dev/public-preview                 finished race, photos on the 20 fastest
 //   /dev/public-preview?seed=mid        the race at 11:20, partway through
 //   /dev/public-preview?photos=none     no photos, to see the table without them
+//   /dev/public-preview?tv=1            the TV view (/[slug]/tv); takes
+//                                       &speed= and &pause= as that page does
 import { notFound } from "next/navigation";
 import { computeCategoryBuckets } from "@/lib/categories";
 import PublicLeaderboardView from "@/components/PublicLeaderboardView";
+import TvLeaderboardView from "@/components/TvLeaderboardView";
 import type { Entry, PhotosByEntry, Registrant } from "@/lib/types";
 import finalSeed from "../../../fixtures/seed/ebdc-seed-final.json";
 import midSeed from "../../../fixtures/seed/ebdc-seed-midrace.json";
@@ -17,7 +20,13 @@ import midSeed from "../../../fixtures/seed/ebdc-seed-midrace.json";
 export const dynamic = "force-dynamic";
 
 interface PageProps {
-  searchParams: Promise<{ seed?: string; photos?: string }>;
+  searchParams: Promise<{
+    seed?: string;
+    photos?: string;
+    tv?: string;
+    speed?: string;
+    pause?: string;
+  }>;
 }
 
 // picsum.photos serves a repeatable image for a given seed, so a rider keeps
@@ -30,7 +39,8 @@ const full = (bib: string) => `https://picsum.photos/seed/ebdc-${bib}/1200/800`;
 export default async function DevPublicPreview({ searchParams }: PageProps) {
   if (process.env.NODE_ENV === "production") notFound();
 
-  const { seed: seedName, photos: photosMode } = await searchParams;
+  const { seed: seedName, photos: photosMode, tv, speed, pause } =
+    await searchParams;
   const seed = seedName === "mid" ? midSeed : finalSeed;
 
   const entries = (seed.entries as unknown as Entry[]).filter(
@@ -49,6 +59,20 @@ export default async function DevPublicPreview({ searchParams }: PageProps) {
       .forEach((e) => {
         photos[e.id] = { thumbUrl: thumb(e.bib), url: full(e.bib) };
       });
+  }
+
+  if (tv) {
+    return (
+      <TvLeaderboardView
+        raceLabel={seed.raceLabel}
+        lastSaved={seed.exportDate}
+        entries={entries}
+        buckets={buckets}
+        photos={photos}
+        speedPxPerSec={Number(speed) || 40}
+        pauseMs={(Number(pause) || 8) * 1000}
+      />
+    );
   }
 
   return (
