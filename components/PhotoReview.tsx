@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import FinisherPhoto from "./FinisherPhoto";
+import PhotoDuplicates from "./PhotoDuplicates";
 import {
   findCandidates,
   nearestEntry,
@@ -16,6 +18,8 @@ import type { RacePhoto } from "@/lib/types";
 // time it was taken, to pick from or throw away. Pure display. It fetches
 // nothing, so the same cards serve the operator's Photos tab (passphrase) and
 // the photographer's phone (photo link): see PhotosTab and PhotoMatchView.
+// Every photo opens full size in FinisherPhoto's lightbox on a tap; until
+// then only thumbnails load.
 //
 // See docs/photo-companion-design.md "Review".
 
@@ -34,6 +38,8 @@ interface PhotoReviewProps {
   // entryId null puts the photo back to pending.
   onDecide: (photoId: string, entryId: number | null) => void;
   onReject: (photo: RacePhoto) => void;
+  // From the duplicate sweep: the rest of a group, after one was kept.
+  onDeleteCopies: (extras: RacePhoto[]) => void;
 }
 
 export default function PhotoReview({
@@ -45,7 +51,9 @@ export default function PhotoReview({
   onRefresh,
   onDecide,
   onReject,
+  onDeleteCopies,
 }: PhotoReviewProps) {
+  const [sweeping, setSweeping] = useState(false);
   const entryById = new Map(finishers.map((e) => [e.id, e]));
   const pending = photos?.filter((p) => p.status === "pending") ?? [];
   const approved = photos?.filter((p) => p.status === "approved") ?? [];
@@ -67,13 +75,31 @@ export default function PhotoReview({
         <h2 className="font-display uppercase tracking-tight text-xl text-moss-dark">
           Photos ({pending.length} to review)
         </h2>
-        <button
-          onClick={onRefresh}
-          className="px-3 py-1.5 text-sm bg-moss-dark text-chalk rounded-lg font-semibold hover:bg-moss"
-        >
-          Refresh
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setSweeping((v) => !v)}
+            disabled={photos === null}
+            className="px-3 py-1.5 text-sm border-2 border-moss-dark text-moss-dark rounded-lg font-semibold hover:bg-sand disabled:opacity-50"
+          >
+            {sweeping ? "Hide duplicates" : "Find duplicates"}
+          </button>
+          <button
+            onClick={onRefresh}
+            className="px-3 py-1.5 text-sm bg-moss-dark text-chalk rounded-lg font-semibold hover:bg-moss"
+          >
+            Refresh
+          </button>
+        </div>
       </div>
+
+      {sweeping && photos !== null && (
+        <PhotoDuplicates
+          photos={photos}
+          entryById={entryById}
+          busy={busyId !== null}
+          onDeleteCopies={onDeleteCopies}
+        />
+      )}
 
       {error && (
         <div className="bg-danger-soft border border-danger/40 text-danger rounded-lg p-3 mb-4 text-sm">
@@ -123,15 +149,7 @@ export default function PhotoReview({
                   key={photo.id}
                   className="bg-success-soft border-2 border-success rounded-lg p-2 flex items-center gap-3"
                 >
-                  {/* The thumbnail, not the full frame — this list can run
-                      to hundreds of rows. */}
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={photo.thumbUrl}
-                    alt=""
-                    loading="lazy"
-                    className="w-16 h-16 object-cover rounded shrink-0"
-                  />
+                  <FinisherPhoto photo={photo} className="w-16 h-16" />
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold text-moss-dark truncate">
                       {entry
@@ -191,12 +209,10 @@ function PhotoCard({
   onReject,
 }: PhotoCardProps) {
   const [showAll, setShowAll] = useState(false);
-  const [expanded, setExpanded] = useState(false);
   const [query, setQuery] = useState("");
   // A rider picked from the search who already has a photo, waiting on the
   // operator to compare the two.
   const [swapFor, setSwapFor] = useState<PhotoFinisher | null>(null);
-  const [showCurrent, setShowCurrent] = useState(false);
 
   // Riders without a photo first, since they're the usual answer; then the
   // ones who have one, for fixing a wrong match. Within each, most recent
@@ -211,7 +227,6 @@ function PhotoCard({
 
   const pick = (entry: PhotoFinisher) => {
     if (photoByEntry.has(entry.id)) {
-      setShowCurrent(false);
       setSwapFor(entry);
     } else {
       onApprove(entry.id);
@@ -235,38 +250,10 @@ function PhotoCard({
 
   return (
     <div className="border-2 border-ink/10 rounded-lg p-3 bg-chalk">
-      {expanded && (
-        // The full frame, fetched only once the operator asks for it — at
-        // 112px they couldn't read a bib off it anyway, so loading it by
-        // default spent the whole transfer for none of the detail.
-        <button
-          onClick={() => setExpanded(false)}
-          className="block w-full mb-3"
-          title="Shrink"
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={photo.url}
-            alt=""
-            className="w-full max-h-96 object-contain rounded bg-ink/5"
-          />
-        </button>
-      )}
-
       <div className="flex gap-3">
-        <button
-          onClick={() => setExpanded((v) => !v)}
-          className="shrink-0"
-          title={expanded ? "Shrink" : "Enlarge to read a bib"}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={photo.thumbUrl}
-            alt=""
-            loading="lazy"
-            className="w-28 h-28 object-cover rounded"
-          />
-        </button>
+        {/* The full frame only in the lightbox: at 112px a bib can't be read
+            anyway, so loading it here would spend transfer for nothing. */}
+        <FinisherPhoto photo={photo} className="w-28 h-28" />
         <div className="min-w-0 flex-1">
           <div className="text-sm text-ink">
             Taken <strong>{formatClock(photo.capturedAtMs)}</strong>
@@ -409,78 +396,59 @@ function PhotoCard({
               )}
             </div>
           )}
-
-          {swapFor && currentPhoto && (
-            <div
-              aria-label="Swap photo"
-              className="mt-2 border-2 border-clay-dark/40 rounded-lg p-2 bg-sand"
-            >
-              <div className="text-sm text-ink">
-                <strong>
-                  #{swapFor.bib} {swapFor.name}
-                </strong>{" "}
-                already has a photo. Use this one instead? Their current one
-                goes back to the queue to be matched to someone else.
-              </div>
-              <div className="mt-2 flex gap-3">
-                <div className="text-xs text-ink-soft text-center">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={photo.thumbUrl}
-                    alt=""
-                    className="w-24 h-24 object-cover rounded mb-1"
-                  />
-                  This photo
-                </div>
-                <button
-                  onClick={() => setShowCurrent((v) => !v)}
-                  className="text-xs text-ink-soft text-center"
-                  title={showCurrent ? "Shrink" : "Enlarge to read a bib"}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={currentPhoto.thumbUrl}
-                    alt=""
-                    className="w-24 h-24 object-cover rounded mb-1"
-                  />
-                  Current photo
-                </button>
-              </div>
-              {showCurrent && (
-                // Full frame on request only, as with this card's own photo.
-                <button
-                  onClick={() => setShowCurrent(false)}
-                  className="block w-full mt-2"
-                  title="Shrink"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={currentPhoto.url}
-                    alt=""
-                    className="w-full max-h-96 object-contain rounded bg-ink/5"
-                  />
-                </button>
-              )}
-              <div className="mt-2 flex gap-2 flex-wrap">
-                <button
-                  onClick={() => onApprove(swapFor.id)}
-                  disabled={busy}
-                  className="px-3 py-1.5 text-sm bg-moss-dark text-chalk rounded-lg font-semibold hover:bg-moss disabled:opacity-50"
-                >
-                  Use this one
-                </button>
-                <button
-                  onClick={() => setSwapFor(null)}
-                  disabled={busy}
-                  className="px-3 py-1.5 text-sm border-2 border-ink/10 rounded-lg font-semibold disabled:opacity-50"
-                >
-                  Keep current
-                </button>
-              </div>
-            </div>
-          )}
         </div>
       </div>
+
+      {swapFor && currentPhoto && (
+        // Full card width and two columns, so the bibs can be compared
+        // without opening anything; a tap still opens each full size.
+        <div
+          aria-label="Swap photo"
+          className="mt-3 border-2 border-clay-dark/40 rounded-lg p-3 bg-sand"
+        >
+          <div className="text-sm text-ink">
+            <strong>
+              #{swapFor.bib} {swapFor.name}
+            </strong>{" "}
+            already has a photo. Use this one instead? Their current one goes
+            back to the queue to be matched to someone else.
+          </div>
+          <div className="mt-2 grid grid-cols-2 gap-3">
+            <div className="text-sm text-ink-soft text-center">
+              <FinisherPhoto
+                photo={photo}
+                className="w-full aspect-[4/3] block"
+                buttonClassName="block w-full"
+              />
+              This photo
+            </div>
+            <div className="text-sm text-ink-soft text-center">
+              <FinisherPhoto
+                photo={currentPhoto}
+                className="w-full aspect-[4/3] block"
+                buttonClassName="block w-full"
+              />
+              Current photo
+            </div>
+          </div>
+          <div className="mt-3 flex gap-2 flex-wrap">
+            <button
+              onClick={() => onApprove(swapFor.id)}
+              disabled={busy}
+              className="px-3 py-1.5 text-sm bg-moss-dark text-chalk rounded-lg font-semibold hover:bg-moss disabled:opacity-50"
+            >
+              Use this one
+            </button>
+            <button
+              onClick={() => setSwapFor(null)}
+              disabled={busy}
+              className="px-3 py-1.5 text-sm border-2 border-ink/10 rounded-lg font-semibold disabled:opacity-50"
+            >
+              Keep current
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -499,3 +467,18 @@ const formatOffset = (offsetMs: number) => {
   const seconds = Math.round(Math.abs(offsetMs) / 1000);
   return offsetMs > 0 ? `${seconds}s fast` : `${seconds}s slow`;
 };
+
+// What the duplicate sweep asks before deleting a group's other copies.
+// Shared by PhotosTab and PhotoMatchView.
+export function deleteCopiesMessage(extras: RacePhoto[]): string {
+  const n = extras.length;
+  const approved = extras.filter((p) => p.status === "approved").length;
+  return (
+    `Delete ${n} other ${n === 1 ? "copy" : "copies"} for good? ` +
+    "They're removed from storage, not just hidden." +
+    (approved > 0
+      ? ` ${approved} of them ${approved === 1 ? "is" : "are"} approved, so ` +
+        `${approved === 1 ? "that rider loses its" : "those riders lose their"} photo.`
+      : "")
+  );
+}

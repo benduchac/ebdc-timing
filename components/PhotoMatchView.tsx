@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import PhotoReview from "./PhotoReview";
+import PhotoReview, { deleteCopiesMessage } from "./PhotoReview";
 import type { PhotoFinisher } from "@/lib/photoMatch";
 import type { RacePhoto } from "@/lib/types";
 
@@ -97,6 +97,20 @@ export default function PhotoMatchView({ token, active }: PhotoMatchViewProps) {
     ) {
       return;
     }
+    await remove(photo);
+  };
+
+  // From the duplicate sweep. One confirm for the group, then one DELETE at
+  // a time, stopping at the first failure so nothing is lost silently.
+  const deleteCopies = async (extras: RacePhoto[]) => {
+    if (!confirm(deleteCopiesMessage(extras))) return;
+    for (const extra of extras) {
+      if (!(await remove(extra))) return;
+    }
+  };
+
+  // True once the photo is gone from storage and the list.
+  const remove = async (photo: RacePhoto): Promise<boolean> => {
     setBusyId(photo.id);
     try {
       const res = await fetch(
@@ -108,12 +122,14 @@ export default function PhotoMatchView({ token, active }: PhotoMatchViewProps) {
       const data = await res.json();
       if (!res.ok || !data.ok) {
         setError(data.error ?? "Couldn't delete that.");
-        return;
+        return false;
       }
       setError(null);
       setPhotos((prev) => (prev ? prev.filter((p) => p.id !== photo.id) : prev));
+      return true;
     } catch {
       setError("Couldn't reach the server, so that wasn't deleted.");
+      return false;
     } finally {
       setBusyId(null);
     }
@@ -131,6 +147,7 @@ export default function PhotoMatchView({ token, active }: PhotoMatchViewProps) {
           onRefresh={load}
           onDecide={decide}
           onReject={reject}
+          onDeleteCopies={deleteCopies}
         />
       </div>
     </div>

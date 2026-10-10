@@ -288,3 +288,79 @@ test("a photo from another day says so instead of just failing to match", async 
     page.getByText(/taken on a different day, or a clock is wrong/)
   ).toBeVisible();
 });
+
+test("the duplicate sweep keeps one copy and deletes the rest", async ({
+  page,
+}) => {
+  const shot = Date.now();
+  const photos = [
+    { ...stubPhoto("aaaaaaaa-0000-4000-8000-000000000011", shot), contentHash: "x1" },
+    { ...stubPhoto("aaaaaaaa-0000-4000-8000-000000000012", shot), contentHash: "x2" },
+    { ...stubPhoto("aaaaaaaa-0000-4000-8000-000000000013", shot - 60_000), contentHash: "x3" },
+  ];
+  const deleted: string[] = [];
+  await page.route("**/api/photos*", async (route) => {
+    const request = route.request();
+    if (request.method() === "DELETE") {
+      deleted.push(new URL(request.url()).searchParams.get("photoId")!);
+      return route.fulfill({ status: 200, contentType: "application/json", body: '{"ok":true}' });
+    }
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ ok: true, photos: photos.filter((p) => !deleted.includes(p.id)) }),
+    });
+  });
+  const dialogs: string[] = [];
+  page.on("dialog", (d) => {
+    dialogs.push(d.message());
+    d.accept();
+  });
+
+  await page.getByRole("button", { name: "Photos" }).click();
+  await page.getByRole("button", { name: "Find duplicates" }).click();
+  const sweep = page.locator('[aria-label="Duplicate photos"]');
+  await expect(sweep).toContainText("1 group");
+  await expect(sweep).toContainText("same second");
+
+  // Keep the second; only the first is deleted, after one confirm.
+  await sweep.getByRole("button", { name: "Keep this one", exact: true }).click();
+  await expect(sweep).toContainText("No duplicates among 2 photos.");
+  expect(deleted).toEqual(["aaaaaaaa-0000-4000-8000-000000000011"]);
+  expect(dialogs).toHaveLength(1);
+  expect(dialogs[0]).toContain("Delete 1 other copy");
+});
+
+test("any photo in the queue opens full size, and only on a tap", async ({
+  page,
+}) => {
+  const FULL = PIXEL + "#full";
+  await page.route("**/api/photos*", async (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ok: true,
+        photos: [
+          { ...stubPhoto("aaaaaaaa-0000-4000-8000-000000000021", Date.now()), url: FULL },
+          {
+            ...stubPhoto("aaaaaaaa-0000-4000-8000-000000000022", Date.now()),
+            url: FULL,
+            status: "approved",
+            entryId: 1,
+          },
+        ],
+      }),
+    })
+  );
+  await page.getByRole("button", { name: "Photos" }).click();
+  await expect(page.getByText("Approved (1)")).toBeVisible();
+  await expect(page.locator(`img[src="${FULL}"]`)).toHaveCount(0);
+
+  // The approved row's photo, which used to be a plain thumbnail.
+  await page.getByRole("button", { name: "Open the full photo" }).last().click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await expect(page.locator(`img[src="${FULL}"]`)).toHaveCount(1);
+  await page.keyboard.press("Escape");
+  await expect(page.locator(`img[src="${FULL}"]`)).toHaveCount(0);
+});

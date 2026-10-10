@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import { readFileSync } from "fs";
 import { resolve } from "path";
 import { readExifTimes, parseExifDateTime } from "../lib/exif";
+import { findDuplicateGroups } from "../lib/photoHash";
 import {
   findCandidates,
   correctedCaptureMs,
@@ -189,4 +190,52 @@ test("approving a photo for a rider sends their old one back to pending", () => 
   expect(decidePhoto(photos, "missing", 7)).toBeNull();
   // Re-approving a photo for its own rider displaces nothing.
   expect(decidePhoto(photos, "old", 7)!.displaced).toEqual([]);
+});
+
+test.describe("findDuplicateGroups", () => {
+  const at = (
+    id: string,
+    over: Partial<RacePhoto> = {}
+  ): RacePhoto => ({ ...photoRecord(id, "pending", null), ...over });
+
+  test("groups the same file, and the same second at the same size", () => {
+    const groups = findDuplicateGroups([
+      at("a", { contentHash: "h1", capturedAtMs: 1000 }),
+      at("b", { contentHash: "h1", capturedAtMs: 1000 }),
+      // Different bytes, same frame: what an iPhone re-pick looks like.
+      at("c", { contentHash: "h2", capturedAtMs: 5000 }),
+      at("d", { contentHash: "h3", capturedAtMs: 5000 }),
+      // Same second, different size: a different photo.
+      at("e", { contentHash: "h4", capturedAtMs: 5000, width: 1200, height: 1600 }),
+      at("f", { contentHash: "h5", capturedAtMs: 9000 }),
+    ]);
+    expect(groups.map((g) => [g.kind, g.photos.map((p) => p.id).sort()])).toEqual([
+      ["file", ["a", "b"]],
+      ["shot", ["c", "d"]],
+    ]);
+  });
+
+  test("ignores upload-time captures for the same-second match", () => {
+    expect(
+      findDuplicateGroups([
+        at("a", { contentHash: "h1", capturedSource: "upload" }),
+        at("b", { contentHash: "h2", capturedSource: "upload" }),
+      ])
+    ).toEqual([]);
+  });
+
+  test("puts the approved copy first, and flags one approved twice", () => {
+    const [group] = findDuplicateGroups([
+      at("old", { uploadedAt: "2026-10-10T09:00:00.000Z" }),
+      at("kept", { status: "approved", entryId: 4, uploadedAt: "2026-10-10T10:00:00.000Z" }),
+    ]);
+    expect(group.photos[0].id).toBe("kept");
+    expect(group.conflict).toBe(false);
+
+    const [twice] = findDuplicateGroups([
+      at("x", { status: "approved", entryId: 4 }),
+      at("y", { status: "approved", entryId: 5 }),
+    ]);
+    expect(twice.conflict).toBe(true);
+  });
 });

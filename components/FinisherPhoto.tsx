@@ -6,7 +6,11 @@ import type { PublicPhoto } from "@/lib/types";
 
 interface FinisherPhotoProps {
   photo: PublicPhoto;
+  // On the thumbnail image.
   className?: string;
+  // On the button around it. "block w-full" lets the thumbnail fill a grid
+  // cell, as the review queue's comparisons do.
+  buttonClassName?: string;
 }
 
 // An approved finish-line photo on the public leaderboard: the thumbnail,
@@ -19,7 +23,11 @@ interface FinisherPhotoProps {
 // board at full size would spend it in an afternoon, so `photo.url` must never
 // be rendered outside the open branch below. See
 // docs/photo-companion-design.md "Publishing".
-export default function FinisherPhoto({ photo, className = "" }: FinisherPhotoProps) {
+export default function FinisherPhoto({
+  photo,
+  className = "",
+  buttonClassName = "shrink-0",
+}: FinisherPhotoProps) {
   const [open, setOpen] = useState(false);
   const thumbRef = useRef<HTMLButtonElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -50,7 +58,7 @@ export default function FinisherPhoto({ photo, className = "" }: FinisherPhotoPr
         onClick={() => setOpen(true)}
         title="Open the full photo"
         aria-label="Open the full photo"
-        className="shrink-0"
+        className={buttonClassName}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img

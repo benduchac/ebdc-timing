@@ -310,10 +310,19 @@ find the rider. A dropdown of two hundred was the first attempt and is
 unusable at that size.
 
 **The review queue loads thumbnails too**, not just the leaderboard. Tapping
-one enlarges it, and that is the only thing that ever fetches a full frame —
+any photo in it opens the full frame in the leaderboard's lightbox
+(`FinisherPhoto`), and that is the only thing that ever fetches one —
 which is when the operator actually needs to read a bib. An earlier version
 loaded the 1600px frame and drew it at 112px: the whole transfer cost, none
 of the detail.
+
+**A duplicate sweep sits at the top of the queue.** After the 2026 race the
+upload check looked to have let copies through. The likely cause is that an
+iPhone converts HEIC to JPEG on each pick, so the same frame can arrive as
+different bytes and a different hash. **Find duplicates** groups photos with
+the same hash, or the same capture second and the same size, and shows each
+group side by side. Keeping one deletes the rest after a single confirm. It
+never deletes on its own, because two burst shots can share a second.
 
 **Rejecting deletes the blob** and drops the hash field, because the store is
 public and a flag alone would leave the image sitting at a live URL. It is

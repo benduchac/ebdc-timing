@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { getStoredPassphrase } from "./OperatorGate";
-import PhotoReview from "./PhotoReview";
+import PhotoReview, { deleteCopiesMessage } from "./PhotoReview";
 import type { Entry } from "@/lib/db";
 import type { RacePhoto } from "@/lib/types";
 
@@ -107,8 +107,22 @@ export default function PhotosTab({ raceId, entries }: PhotosTabProps) {
     ) {
       return;
     }
+    await remove(photo);
+  };
+
+  // From the duplicate sweep. One confirm for the group, then one DELETE at
+  // a time, stopping at the first failure so nothing is lost silently.
+  const deleteCopies = async (extras: RacePhoto[]) => {
+    if (!confirm(deleteCopiesMessage(extras))) return;
+    for (const extra of extras) {
+      if (!(await remove(extra))) return;
+    }
+  };
+
+  // True once the photo is gone from storage and the list.
+  const remove = async (photo: RacePhoto): Promise<boolean> => {
     const passphrase = getStoredPassphrase();
-    if (!passphrase) return;
+    if (!passphrase) return false;
     setBusyId(photo.id);
     try {
       const res = await fetch(
@@ -120,11 +134,13 @@ export default function PhotosTab({ raceId, entries }: PhotosTabProps) {
       const data = await res.json();
       if (!res.ok || !data.ok) {
         alert(data.error ?? "Couldn't delete that.");
-        return;
+        return false;
       }
       setPhotos((prev) => (prev ? prev.filter((p) => p.id !== photo.id) : prev));
+      return true;
     } catch {
       alert("Couldn't reach the server.");
+      return false;
     } finally {
       setBusyId(null);
     }
@@ -140,6 +156,7 @@ export default function PhotosTab({ raceId, entries }: PhotosTabProps) {
       onRefresh={load}
       onDecide={decide}
       onReject={reject}
+      onDeleteCopies={deleteCopies}
     />
   );
 }

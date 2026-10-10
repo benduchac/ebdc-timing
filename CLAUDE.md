@@ -189,13 +189,18 @@ context.
   won't remember what they already sent), which only works because a
   duplicate is skipped before the decode and the upload. Checked again
   server-side, since the phone's list of what the race holds is loaded once
-  and can go stale.
+  and can go stale. Also `findDuplicateGroups`, behind the review queue's
+  **Find duplicates** button (`components/PhotoDuplicates.tsx`): copies by
+  hash, or by the same capture second and size, since an iPhone re-pick can
+  arrive as different bytes. The operator keeps one per group; never
+  delete a group unseen, as a burst can share a second.
 - `lib/photoMatch.ts` — `findCandidates`: the finishers within ±20s of a
   photo, nearest first. Ranks only; the operator picks.
 - `lib/publicPhotos.ts` + `components/FinisherPhoto.tsx` — photos on the
   public leaderboard. `approvedPhotosByEntry` keeps approved photos for
   finishers on the page; `FinisherPhoto` draws the thumbnail (lazy) and opens
-  the full frame in a lightbox. Only `FinisherPhoto` may touch a photo's
+  the full frame in a lightbox. The review queue uses it for every photo
+  too. Only `FinisherPhoto` may touch a photo's
   `url`, and only inside its open lightbox, so the full frame loads on a tap;
   `e2e/public-photos.spec.ts` reads the source to hold that and
   `e2e/photo-lightbox.spec.ts` proves it in a browser.
