@@ -26,6 +26,10 @@ interface TvLeaderboardViewProps {
   // Scroll speed in pixels a second, and the hold at each end.
   speedPxPerSec: number;
   pauseMs: number;
+  // The interactive leaderboard (/[slug]), and a QR code for it drawn on the
+  // server, so people watching can open it on their phones.
+  leaderboardUrl: string;
+  qrSvg: string;
 }
 
 export default function TvLeaderboardView({
@@ -36,6 +40,8 @@ export default function TvLeaderboardView({
   photos,
   speedPxPerSec,
   pauseMs,
+  leaderboardUrl,
+  qrSvg,
 }: TvLeaderboardViewProps) {
   const router = useRouter();
 
@@ -133,6 +139,24 @@ export default function TvLeaderboardView({
           <p className="mt-6 text-sm text-ink-soft text-center">
             Proudly supporting the Alameda County Community Food Bank
           </p>
+        </div>
+      </div>
+
+      {/* Fixed, so it stays put while the board scrolls under it. */}
+      <div
+        aria-label="Scan for live results"
+        className="fixed bottom-4 right-4 z-40 bg-white rounded-xl shadow-xl p-3 text-center"
+      >
+        <div
+          className="w-44 h-44 [&>svg]:w-full [&>svg]:h-full"
+          // Our own SVG, made by the qrcode package from our own URL.
+          dangerouslySetInnerHTML={{ __html: qrSvg }}
+        />
+        <div className="mt-2 text-sm font-bold text-ink">
+          Live results on your phone
+        </div>
+        <div className="text-xs text-ink-soft max-w-44 break-all">
+          {leaderboardUrl.replace(/^https?:\/\//, "")}
         </div>
       </div>
     </div>

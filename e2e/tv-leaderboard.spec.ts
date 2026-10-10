@@ -43,3 +43,16 @@ test("scrolls to the bottom, then starts again from the top", async ({ page }) =
     .poll(() => page.evaluate(() => window.scrollY), { timeout: 10_000 })
     .toBe(0);
 });
+
+test("a QR code in the corner points at the interactive leaderboard", async ({ page }) => {
+  await page.goto("/dev/public-preview?tv=1&pause=60");
+  const qr = page.locator('[aria-label="Scan for live results"]');
+  await expect(qr.locator("svg")).toBeVisible();
+  // The preview's own leaderboard, not the TV view.
+  await expect(qr).toContainText(/\/dev\/public-preview$/);
+
+  // Still in the corner after the board scrolls.
+  const box = await qr.boundingBox();
+  await page.evaluate(() => window.scrollTo(0, 2000));
+  expect(await qr.boundingBox()).toEqual(box);
+});

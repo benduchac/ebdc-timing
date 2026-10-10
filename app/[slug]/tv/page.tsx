@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { computeCategoryBuckets } from "@/lib/categories";
 import { loadApprovedPhotos, loadRaceBySlug } from "@/lib/publicRace";
+import { absoluteUrl, qrSvg } from "@/lib/qr";
 import type { RaceSnapshot, Registrant } from "@/lib/types";
 import TvLeaderboardView from "@/components/TvLeaderboardView";
 import TrailHero from "@/components/TrailHero";
@@ -84,6 +85,8 @@ export default async function TvLeaderboardPage({ params, searchParams }: PagePr
     snapshot.raceId,
     new Set(resolvedEntries.map((e) => e.id))
   );
+  // The interactive leaderboard, not this page.
+  const leaderboardUrl = await absoluteUrl(`/${slug}`);
 
   return (
     <TvLeaderboardView
@@ -94,6 +97,8 @@ export default async function TvLeaderboardPage({ params, searchParams }: PagePr
       photos={photos}
       speedPxPerSec={param(speed, DEFAULT_SPEED, 5, 2000)}
       pauseMs={param(pause, DEFAULT_PAUSE_S, 0, 120) * 1000}
+      leaderboardUrl={leaderboardUrl}
+      qrSvg={await qrSvg(leaderboardUrl)}
     />
   );
 }

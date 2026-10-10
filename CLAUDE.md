@@ -119,7 +119,8 @@ context.
   top to bottom, then `router.refresh()` and round again. `?speed=` (px/s)
   and `?pause=` (seconds held at each end). Shares its Redis reads with
   `/[slug]` through `lib/publicRace.ts`. `/dev/public-preview?tv=1` shows
-  it from the seeds.
+  it from the seeds. A QR code in the corner (`lib/qr.ts`, drawn server-side)
+  links to the interactive `/[slug]`.
 - `lib/slug.ts` — `slugify`/`assignSlug`: turns a race label into its public
   URL slug (`"EBDC 7/9"` → `"ebdc-7-9"`), deduped on collision (`-2`, `-3`,
   ...). Assigned once server-side on a race's first sync

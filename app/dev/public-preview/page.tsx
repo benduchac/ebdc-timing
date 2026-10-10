@@ -13,6 +13,7 @@ import { notFound } from "next/navigation";
 import { computeCategoryBuckets } from "@/lib/categories";
 import PublicLeaderboardView from "@/components/PublicLeaderboardView";
 import TvLeaderboardView from "@/components/TvLeaderboardView";
+import { absoluteUrl, qrSvg } from "@/lib/qr";
 import type { Entry, PhotosByEntry, Registrant } from "@/lib/types";
 import finalSeed from "../../../fixtures/seed/ebdc-seed-final.json";
 import midSeed from "../../../fixtures/seed/ebdc-seed-midrace.json";
@@ -62,6 +63,7 @@ export default async function DevPublicPreview({ searchParams }: PageProps) {
   }
 
   if (tv) {
+    const leaderboardUrl = await absoluteUrl("/dev/public-preview");
     return (
       <TvLeaderboardView
         raceLabel={seed.raceLabel}
@@ -71,6 +73,8 @@ export default async function DevPublicPreview({ searchParams }: PageProps) {
         photos={photos}
         speedPxPerSec={Number(speed) || 40}
         pauseMs={(Number(pause) || 8) * 1000}
+        leaderboardUrl={leaderboardUrl}
+        qrSvg={await qrSvg(leaderboardUrl)}
       />
     );
   }
