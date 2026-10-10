@@ -169,7 +169,10 @@ context.
 - `components/PhotosTab.tsx` — the operator's photo review queue. A rider
   who already has an approved photo is filtered out of every other photo's
   options (one rider, one photo); unapproving puts them back. Riders can
-  also be found by bib or name, since a photo whose capture time fell back
+  also be found by bib or name, including ones who already have a photo:
+  picking one offers a swap, and the server puts the old photo back to
+  pending in the same write as the new approval (`decidePhoto`). Search
+  matters since a photo whose capture time fell back
   to the file date lands nowhere near its rider. **The one
   tab that owns its own data**, deliberately: photos are not in the race
   snapshot, never touch IndexedDB, and are useless offline, so the fetching

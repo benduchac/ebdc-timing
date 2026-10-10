@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { put, del } from "@vercel/blob";
 import { isAuthorized } from "@/lib/auth";
 import { getRedis, kvKeys } from "@/lib/kv";
-import type { PhotoFinisher } from "@/lib/photoMatch";
+import { decidePhoto, type PhotoFinisher } from "@/lib/photoMatch";
 import type {
   PhotoCaptureSource,
   RaceIndexEntry,
@@ -304,8 +304,9 @@ export async function GET(request: NextRequest) {
 
 // The matching decision, from the operator's Photos tab (passphrase) or the
 // photographer's phone (photo link). entryId attaches the photo to a
-// finisher and publishes it; null puts it back to pending, which is what
-// makes approval reversible.
+// finisher and publishes it, and puts any photo that finisher already had
+// back to pending; null puts it back to pending, which is what makes
+// approval reversible.
 export async function PATCH(request: NextRequest) {
   const redis = getRedis();
   if (!redis) return notConfigured("Backup storage");
@@ -330,20 +331,22 @@ export async function PATCH(request: NextRequest) {
     return bad("entryId must be a finisher id or null.");
   }
 
-  const existing = await redis.hget<RacePhoto>(
+  // The whole hash, not just this photo, because approving also sends any
+  // photo the finisher already had back to pending — see decidePhoto.
+  const decision = decidePhoto(await readPhotos(redis, raceId), photoId, entryId);
+  if (!decision) return bad("No such photo.", 404);
+  const { photo, displaced } = decision;
+
+  // One HSET for every record, so the new photo can't be approved while the
+  // old one stays approved too.
+  await redis.hset(
     kvKeys.racePhotos(raceId),
-    photoId
+    Object.fromEntries([photo, ...displaced].map((p) => [p.id, p]))
   );
-  if (!existing) return bad("No such photo.", 404);
 
-  const photo: RacePhoto = {
-    ...existing,
-    status: entryId === null ? "pending" : "approved",
-    entryId,
-  };
-  await redis.hset(kvKeys.racePhotos(raceId), { [photoId]: photo });
-
-  return NextResponse.json({ ok: true, photo });
+  // displaced is new. A page from before it ignores the field and picks up
+  // the change on its next refresh.
+  return NextResponse.json({ ok: true, photo, displaced });
 }
 
 // Rejecting deletes the image, it doesn't flag it. The store is public, so a

@@ -7,8 +7,10 @@ import {
   correctedCaptureMs,
   nearestEntry,
   describeGap,
+  decidePhoto,
 } from "../lib/photoMatch";
 import type { Entry } from "../lib/db";
+import type { RacePhoto } from "../lib/types";
 
 // Pure-function tests — no page, no server. Both halves of photo matching
 // are decidable without a network, which matters because the authorized
@@ -151,4 +153,40 @@ test.describe("describeGap", () => {
     expect(describeGap(5 * 3_600_000)).toBe("5 hours");
     expect(describeGap(6 * 24 * 3_600_000)).toBe("6 days");
   });
+});
+
+const photoRecord = (
+  id: string,
+  status: RacePhoto["status"],
+  entryId: number | null
+): RacePhoto => ({
+  id,
+  url: "",
+  thumbUrl: "",
+  capturedAtMs: 0,
+  capturedSource: "exif",
+  contentHash: id,
+  clockOffsetMs: 0,
+  width: 1600,
+  height: 1200,
+  uploadedAt: "2026-10-10T10:00:00.000Z",
+  status,
+  entryId,
+});
+
+test("approving a photo for a rider sends their old one back to pending", () => {
+  const old = photoRecord("old", "approved", 7);
+  const other = photoRecord("other", "approved", 8);
+  const fresh = photoRecord("fresh", "pending", null);
+  const photos = [old, other, fresh];
+
+  const decision = decidePhoto(photos, "fresh", 7)!;
+  expect(decision.photo).toMatchObject({ id: "fresh", status: "approved", entryId: 7 });
+  expect(decision.displaced).toEqual([{ ...old, status: "pending", entryId: null }]);
+
+  // Unapproving displaces nothing, and an unknown photo is refused.
+  expect(decidePhoto(photos, "old", null)!.displaced).toEqual([]);
+  expect(decidePhoto(photos, "missing", 7)).toBeNull();
+  // Re-approving a photo for its own rider displaces nothing.
+  expect(decidePhoto(photos, "old", 7)!.displaced).toEqual([]);
 });

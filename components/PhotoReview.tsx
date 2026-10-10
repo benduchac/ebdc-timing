@@ -53,14 +53,13 @@ export default function PhotoReview({
   // A rider who already has a photo drops out of every other photo's
   // options. One rider, one photo — so the list of who's left shrinks as the
   // operator works through the queue, and the same person can't quietly be
-  // picked twice a hundred photos apart. Swapping in a better shot means
-  // unapproving the first, which puts that rider back in the list.
-  const spokenFor = new Set(
-    approved
-      .map((p) => p.entryId)
-      .filter((id): id is number => id !== null)
-  );
-  const available = finishers.filter((e) => !spokenFor.has(e.id));
+  // picked twice a hundred photos apart. The search still finds them, so a
+  // photo matched to the wrong rider can be swapped for the right one.
+  const photoByEntry = new Map<number, RacePhoto>();
+  for (const p of approved) {
+    if (p.entryId !== null) photoByEntry.set(p.entryId, p);
+  }
+  const available = finishers.filter((e) => !photoByEntry.has(e.id));
 
   return (
     <div>
@@ -100,7 +99,8 @@ export default function PhotoReview({
               photo={photo}
               candidates={findCandidates(photo, available)}
               entries={available}
-              spokenForCount={spokenFor.size}
+              finishers={finishers}
+              photoByEntry={photoByEntry}
               busy={busyId === photo.id}
               onApprove={(entryId) => onDecide(photo.id, entryId)}
               onReject={() => onReject(photo)}
@@ -169,9 +169,12 @@ export default function PhotoReview({
 interface PhotoCardProps {
   photo: RacePhoto;
   candidates: PhotoCandidate[];
-  // Only riders still without a photo — see spokenFor in PhotosTab.
+  // Only riders still without a photo, for the time-based suggestions — see
+  // photoByEntry above.
   entries: PhotoFinisher[];
-  spokenForCount: number;
+  // Everyone, for the search.
+  finishers: PhotoFinisher[];
+  photoByEntry: Map<number, RacePhoto>;
   busy: boolean;
   onApprove: (entryId: number) => void;
   onReject: () => void;
@@ -181,7 +184,8 @@ function PhotoCard({
   photo,
   candidates,
   entries,
-  spokenForCount,
+  finishers,
+  photoByEntry,
   busy,
   onApprove,
   onReject,
@@ -189,12 +193,30 @@ function PhotoCard({
   const [showAll, setShowAll] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [query, setQuery] = useState("");
+  // A rider picked from the search who already has a photo, waiting on the
+  // operator to compare the two.
+  const [swapFor, setSwapFor] = useState<PhotoFinisher | null>(null);
+  const [showCurrent, setShowCurrent] = useState(false);
 
-  // Most recent first — a photo just uploaded is far likelier to belong to a
-  // rider who finished a minute ago than one from the first wave.
-  const allFinishers = [...entries].sort(
-    (a, b) => b.finishTimeMs - a.finishTimeMs
+  // Riders without a photo first, since they're the usual answer; then the
+  // ones who have one, for fixing a wrong match. Within each, most recent
+  // first — a photo just uploaded is far likelier to belong to a rider who
+  // finished a minute ago than one from the first wave.
+  const allFinishers = [...finishers].sort(
+    (a, b) =>
+      Number(photoByEntry.has(a.id)) - Number(photoByEntry.has(b.id)) ||
+      b.finishTimeMs - a.finishTimeMs
   );
+  const currentPhoto = swapFor ? photoByEntry.get(swapFor.id) : undefined;
+
+  const pick = (entry: PhotoFinisher) => {
+    if (photoByEntry.has(entry.id)) {
+      setShowCurrent(false);
+      setSwapFor(entry);
+    } else {
+      onApprove(entry.id);
+    }
+  };
 
   const nearest = candidates.length === 0 ? nearestEntry(photo, entries) : null;
 
@@ -340,24 +362,43 @@ function PhotoCard({
               >
                 {matches.length === 0 ? (
                   <div className="p-2 text-sm text-ink-soft">
-                    No rider without a photo matches that.
+                    No finisher matches that.
                   </div>
                 ) : (
-                  matches.slice(0, PICKER_LIMIT).map((entry) => (
-                    <button
-                      key={entry.id}
-                      onClick={() => onApprove(entry.id)}
-                      disabled={busy}
-                      className="w-full text-left p-2 text-sm hover:bg-sand disabled:opacity-50"
-                    >
-                      <span className="font-semibold">#{entry.bib}</span>{" "}
-                      {entry.name}
-                      <span className="text-ink-soft">
-                        {" "}
-                        — {entry.finishTime}
-                      </span>
-                    </button>
-                  ))
+                  matches.slice(0, PICKER_LIMIT).map((entry) => {
+                    const has = photoByEntry.get(entry.id);
+                    return (
+                      <button
+                        key={entry.id}
+                        onClick={() => pick(entry)}
+                        disabled={busy}
+                        className="w-full text-left p-2 text-sm hover:bg-sand disabled:opacity-50 flex items-center gap-2"
+                      >
+                        <span className="flex-1 min-w-0">
+                          <span className="font-semibold">#{entry.bib}</span>{" "}
+                          {entry.name}
+                          <span className="text-ink-soft">
+                            {" "}
+                            — {entry.finishTime}
+                          </span>
+                          {has && (
+                            <span className="block text-xs text-clay-dark font-semibold">
+                              Has a photo
+                            </span>
+                          )}
+                        </span>
+                        {has && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={has.thumbUrl}
+                            alt=""
+                            loading="lazy"
+                            className="w-10 h-10 object-cover rounded shrink-0"
+                          />
+                        )}
+                      </button>
+                    );
+                  })
                 )}
               </div>
               {matches.length > PICKER_LIMIT && (
@@ -366,13 +407,76 @@ function PhotoCard({
                   it down.
                 </div>
               )}
-              {spokenForCount > 0 && (
-                <div className="text-xs text-ink-soft mt-1">
-                  {spokenForCount} rider{spokenForCount === 1 ? "" : "s"}{" "}
-                  already {spokenForCount === 1 ? "has" : "have"} a photo and
-                  aren&apos;t listed.
+            </div>
+          )}
+
+          {swapFor && currentPhoto && (
+            <div
+              aria-label="Swap photo"
+              className="mt-2 border-2 border-clay-dark/40 rounded-lg p-2 bg-sand"
+            >
+              <div className="text-sm text-ink">
+                <strong>
+                  #{swapFor.bib} {swapFor.name}
+                </strong>{" "}
+                already has a photo. Use this one instead? Their current one
+                goes back to the queue to be matched to someone else.
+              </div>
+              <div className="mt-2 flex gap-3">
+                <div className="text-xs text-ink-soft text-center">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={photo.thumbUrl}
+                    alt=""
+                    className="w-24 h-24 object-cover rounded mb-1"
+                  />
+                  This photo
                 </div>
+                <button
+                  onClick={() => setShowCurrent((v) => !v)}
+                  className="text-xs text-ink-soft text-center"
+                  title={showCurrent ? "Shrink" : "Enlarge to read a bib"}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={currentPhoto.thumbUrl}
+                    alt=""
+                    className="w-24 h-24 object-cover rounded mb-1"
+                  />
+                  Current photo
+                </button>
+              </div>
+              {showCurrent && (
+                // Full frame on request only, as with this card's own photo.
+                <button
+                  onClick={() => setShowCurrent(false)}
+                  className="block w-full mt-2"
+                  title="Shrink"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={currentPhoto.url}
+                    alt=""
+                    className="w-full max-h-96 object-contain rounded bg-ink/5"
+                  />
+                </button>
               )}
+              <div className="mt-2 flex gap-2 flex-wrap">
+                <button
+                  onClick={() => onApprove(swapFor.id)}
+                  disabled={busy}
+                  className="px-3 py-1.5 text-sm bg-moss-dark text-chalk rounded-lg font-semibold hover:bg-moss disabled:opacity-50"
+                >
+                  Use this one
+                </button>
+                <button
+                  onClick={() => setSwapFor(null)}
+                  disabled={busy}
+                  className="px-3 py-1.5 text-sm border-2 border-ink/10 rounded-lg font-semibold disabled:opacity-50"
+                >
+                  Keep current
+                </button>
+              </div>
             </div>
           )}
         </div>

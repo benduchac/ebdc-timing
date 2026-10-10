@@ -1,5 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { unlockOperator, startNewRace, uploadCsv, FIXTURES } from "./helpers";
+import { decidePhoto } from "../lib/photoMatch";
+import type { RacePhoto } from "../lib/types";
 
 // The operator's side of photo matching. There's no Redis here, so the photo
 // queue is served from a stub at the network boundary — what's under test is
@@ -8,7 +10,7 @@ import { unlockOperator, startNewRace, uploadCsv, FIXTURES } from "./helpers";
 const PIXEL =
   "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
 
-const stubPhoto = (id: string, capturedAtMs: number) => ({
+const stubPhoto = (id: string, capturedAtMs: number): RacePhoto => ({
   id,
   url: PIXEL,
   thumbUrl: PIXEL,
@@ -23,12 +25,15 @@ const stubPhoto = (id: string, capturedAtMs: number) => ({
   entryId: null,
 });
 
-// Serves the queue and accepts the operator's decisions, so approving one
-// photo actually moves it and the other cards re-render against it.
+// Serves the queue and accepts the operator's decisions through the same
+// decidePhoto the server runs, so approving one photo actually moves it (and
+// any it displaces) and the other cards re-render against it. Returns the
+// PATCH bodies sent.
 async function stubPhotoQueue(page: Page, ids: string[]) {
   // Captured now, so it lands inside the match window of finishes recorded
   // moments ago. Register this after the finishes, not before.
-  const photos = ids.map((id) => stubPhoto(id, Date.now()));
+  let photos = ids.map((id) => stubPhoto(id, Date.now()));
+  const patches: { photoId: string; entryId: number | null }[] = [];
 
   await page.route("**/api/photos*", async (route) => {
     const request = route.request();
@@ -41,22 +46,21 @@ async function stubPhotoQueue(page: Page, ids: string[]) {
     }
     if (request.method() === "PATCH") {
       const body = JSON.parse(request.postData() ?? "{}");
-      const base = photos.find((p) => p.id === body.photoId);
+      patches.push(body);
+      const decision = decidePhoto(photos, body.photoId, body.entryId)!;
+      const updated = new Map(
+        [decision.photo, ...decision.displaced].map((p) => [p.id, p])
+      );
+      photos = photos.map((p) => updated.get(p.id) ?? p);
       return route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify({
-          ok: true,
-          photo: {
-            ...base,
-            status: body.entryId === null ? "pending" : "approved",
-            entryId: body.entryId,
-          },
-        }),
+        body: JSON.stringify({ ok: true, ...decision }),
       });
     }
     return route.continue();
   });
+  return patches;
 }
 
 // A fixed instant today, so a photo's capture time and a hand-edited finish
@@ -138,6 +142,58 @@ test("unapproving puts a rider back in the running", async ({ page }) => {
   await expect(page.getByRole("button", { name: /Alex Rivera/ })).toHaveCount(2);
 });
 
+test("a rider matched to the wrong photo can be found and swapped", async ({
+  page,
+}) => {
+  const first = "aaaaaaaa-0000-4000-8000-000000000001";
+  const second = "aaaaaaaa-0000-4000-8000-000000000002";
+  const patches = await stubPhotoQueue(page, [first, second]);
+  await page.getByRole("button", { name: "Photos" }).click();
+
+  // The first card is the first photo. Give Sarah that one.
+  await page.getByRole("button", { name: /Sarah Johnson/ }).first().click();
+  await expect(page.getByText("Approved (1)")).toBeVisible();
+  const sarahId = patches[0].entryId;
+
+  // The remaining photo is really hers. The suggestions no longer offer her,
+  // but the search does, flagged as already having a photo.
+  await page.getByRole("button", { name: "Someone else" }).click();
+  await page.getByPlaceholder("Search by bib or name").fill("Sarah");
+  const results = page.locator('[aria-label="Finisher search results"]');
+  const sarah = results.getByRole("button", { name: /Sarah Johnson/ });
+  await expect(sarah).toContainText("Has a photo");
+
+  // Picking her asks first, and backing out changes nothing.
+  await sarah.click();
+  const swap = page.locator('[aria-label="Swap photo"]');
+  await expect(swap).toContainText("already has a photo");
+  await swap.getByRole("button", { name: "Keep current" }).click();
+  await expect(swap).toHaveCount(0);
+  expect(patches).toHaveLength(1);
+
+  await sarah.click();
+  await swap.getByRole("button", { name: "Use this one" }).click();
+
+  // One request: the second photo goes to Sarah, and the first goes back to
+  // the queue rather than leaving her with two.
+  await expect(
+    page.getByRole("heading", { name: /^Photos \(1 to review\)/ })
+  ).toBeVisible();
+  await expect(page.getByText("Approved (1)")).toBeVisible();
+  expect(patches).toEqual([
+    { raceId: expect.any(String), photoId: first, entryId: sarahId },
+    { raceId: expect.any(String), photoId: second, entryId: sarahId },
+  ]);
+  // The first photo is pending again, and Sarah is spoken for, so it no
+  // longer suggests her.
+  await expect(page.getByRole("button", { name: /Michael Chen/ })).toHaveCount(
+    1
+  );
+  await expect(page.getByRole("button", { name: /Sarah Johnson/ })).toHaveCount(
+    0
+  );
+});
+
 test("a finisher can be found by name or bib instead of the suggestions", async ({
   page,
 }) => {
@@ -167,7 +223,7 @@ test("a finisher can be found by name or bib instead of the suggestions", async 
 
   await search.fill("zzzz");
   await expect(
-    page.getByText("No rider without a photo matches that.")
+    page.getByText("No finisher matches that.")
   ).toBeVisible();
 });
 

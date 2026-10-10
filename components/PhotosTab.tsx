@@ -81,10 +81,14 @@ export default function PhotosTab({ raceId, entries }: PhotosTabProps) {
         alert(data.error ?? "Couldn't save that.");
         return;
       }
+      // The photo itself, plus any the finisher had before, now pending.
+      const updated = new Map<string, RacePhoto>(
+        [data.photo as RacePhoto, ...((data.displaced ?? []) as RacePhoto[])].map(
+          (p) => [p.id, p]
+        )
+      );
       setPhotos((prev) =>
-        prev
-          ? prev.map((p) => (p.id === photoId ? (data.photo as RacePhoto) : p))
-          : prev
+        prev ? prev.map((p) => updated.get(p.id) ?? p) : prev
       );
     } catch {
       alert("Couldn't reach the server.");

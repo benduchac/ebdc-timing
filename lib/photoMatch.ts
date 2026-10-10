@@ -93,3 +93,37 @@ export function describeGap(ms: number): string {
   if (hours < 36) return `${hours} hours`;
   return `${Math.round(hours / 24)} days`;
 }
+
+// The records a matching decision writes. entryId attaches the photo to a
+// finisher; null puts it back to pending. Attaching also sends any other
+// photo already approved for that finisher back to pending, so a rider
+// never ends up with two: the review card offers a swap, and the laptop and
+// the photographer's phone can each pick the same rider at once. The caller
+// writes every record returned in one HSET, so the swap can't half-happen.
+// Returns null when the photo isn't in the list.
+export function decidePhoto(
+  photos: RacePhoto[],
+  photoId: string,
+  entryId: number | null
+): { photo: RacePhoto; displaced: RacePhoto[] } | null {
+  const existing = photos.find((p) => p.id === photoId);
+  if (!existing) return null;
+
+  const photo: RacePhoto = {
+    ...existing,
+    status: entryId === null ? "pending" : "approved",
+    entryId,
+  };
+  const displaced =
+    entryId === null
+      ? []
+      : photos
+          .filter(
+            (p) =>
+              p.id !== photoId &&
+              p.status === "approved" &&
+              p.entryId === entryId
+          )
+          .map((p) => ({ ...p, status: "pending" as const, entryId: null }));
+  return { photo, displaced };
+}

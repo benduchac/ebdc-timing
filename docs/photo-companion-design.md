@@ -286,10 +286,22 @@ Matching keys off the absolute finish time, not elapsed, so correcting a
 **A rider who has a photo drops out of every other photo's options.** One
 rider, one photo — so the list of who's left shrinks as the operator works
 down the queue, and the same person can't be picked twice a hundred photos
-apart without anyone noticing. Swapping in a better shot means unapproving
-the first, which puts that rider back in the running.
+apart without anyone noticing. Unapproving a photo puts that rider back in
+the running.
 
-**Anyone still without a photo can be found by bib or name.** The time-based
+**The search still finds a rider who has a photo, and offers a swap.** After
+the 2026 race, photos with a clearly readable bib turned up whose rider was
+already matched to the wrong photo, and the search couldn't find them. Now
+those riders show at the end of the results with "Has a photo" and a
+thumbnail. Picking one shows both photos side by side; **Use this one**
+approves this photo and sends the old one back to pending, to be matched to
+whoever is really in it. The server does the swap, not the page: approving a
+photo for a rider moves any photo already approved for them back to pending,
+in the same Redis write (`decidePhoto` in `lib/photoMatch.ts`). So a dropped
+connection can't leave a rider with two, and neither can the laptop and the
+photographer's phone picking the same rider at once.
+
+**Anyone can be found by bib or name.** The time-based
 suggestions are the fast path and will usually be right, but a photo whose
 capture time fell back to the file date lands nowhere near its rider, and
 then the operator needs to search. Typing runs against both the bib and the
@@ -368,7 +380,7 @@ if Blob transfer ever gets tight, not a reason to add it now.
 - **No bib or face recognition.** Time is the only signal.
 - **One photo, one finisher, and one finisher, one photo.** A pack shot gets
   approved against a single rider or skipped, and a rider who already has a
-  photo isn't offered again. Attaching one photo to several riders, or
+  photo isn't suggested again (the search can swap one in). Attaching one photo to several riders, or
   giving a rider a gallery, are both later calls.
 - **No cropping, rotating or editing.**
 - **No retention policy.** An approved photo stays in Blob until someone
