@@ -29,6 +29,15 @@ Options to consider:
 - A native app that connects files to finishers automatically.
 - A better matching/uploading UI.
 
+Reference design: my photo partner's mockup at https://crocker510.com/ride-tracker/ (mock data only, no backend). It is a review-and-adjust screen for matches that already exist, not a matcher:
+
+- **Two columns on a shared time axis.** Finishes are on the left and photos on the right, each placed by timestamp, so a photo sits opposite the finish it was taken at. Gaps between clusters are labelled.
+- **Review every match at a glance.** Connectors share a color per rider #, and amber marks anything with no rider #. Counters show progress, e.g. "finishes 7 of 10 · photos 12 of 17".
+- **Fix matches by dragging.** Drop a finish onto a photo, or a photo onto a finish, to give both the same rider #. If their numbers disagree, a dialog asks which to keep. Rider # can also be typed on any card.
+- **Spot orphans.** Riders with no photo and photos with no rider are easy to see, which was the hard part with the native picker.
+
+Open question: where the first-pass matches come from. Last year's capture-time candidates in `lib/photoMatch.ts` could pre-fill the timeline.
+
 ## 3. Course staff photo uploads
 
 Let staff around the course upload photos and match them by bib number. That way we end up with more than a finish-line photo for each rider, including a few photos from around the course. Useful for the top 10, etc.
