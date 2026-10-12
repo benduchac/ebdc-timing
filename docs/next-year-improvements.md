@@ -53,3 +53,49 @@ Make sure the key information is always visible. For example, the main scoring s
 ## 6. Mark riders present at the start
 
 Add a way to mark riders as present at race start. About a dozen no-shows made it impossible to tell whether all riders had finished or whether more were still on the course.
+
+## 2026 capacity and cost baseline
+
+Usage for the 2026 event, Oct 9 to 12, Production. Everything ran well inside its limits. Use this as the baseline when sizing next year's changes.
+
+### Vercel (from the dashboard)
+
+- **Requests:** 49K in total, peaking around 4K per time bucket on race day, which is roughly one request per second. 0% function errors and 0% timeouts.
+- **Compute:** 9 minutes of active CPU in total, with a peak of about 45 seconds per bucket.
+- **Transfer:** 612 MB out and 279 MB in. This is well under 1% of the Hobby plan's 100 GB a month, as I recall the plan (check the plan page).
+- **Traffic shape:** a sharp spike on race day, a smaller bump on Oct 9 (probably setup and testing), then a steady tail of leaderboard views through Oct 12.
+
+Where the data went:
+
+| Route | Requests | Cached | Notes |
+| --- | --- | --- | --- |
+| `/timing_bg.webp` | 554 | not recorded | 217 MB out, 35% of all outgoing transfer, at about 390 KB each |
+| `/[slug]` (public leaderboard) | 11K | 0% | 125 MB out, about 11 KB per view; each view runs the function and reads Redis |
+| `/api/photos` | 736 | 0% | 215 MB in, 77% of all incoming. Requests include polls and approvals, so uploads are fewer and bigger; photo bytes pass through the function |
+| `/api/wave-start` | 2.3K | 0% | phone polling, as expected |
+| static assets | n/a | 92-99% | |
+
+### Vercel Blob (photos)
+
+- **Downloads:** 21K downloads, 2.04 GB in total, or about 97 KB per download. That is almost all thumbnails, so the two-size design works.
+- **Cap:** the repo's Blob note says Hobby includes 10 GB of transfer a month and stops serving when it is exhausted. One event used about 20% of that.
+- **Separate from Vercel transfer:** total delivery was about 2.6 GB (2.04 GB Blob plus 612 MB Fast Data Transfer).
+
+### Upstash Redis
+
+- **Commands:** 63K, made up of 60,060 reads and 2,536 writes.
+- **Bandwidth:** 2 GB, or about 33 KB per read. This is consistent with each leaderboard view pulling the whole race snapshot (my inference).
+- **Storage:** 1 MB of 100 GB.
+- **Cost:** $0.13 against a $25 budget (Pay As You Go).
+
+### Firewall
+
+Firewall Actions showed red spikes up to about 500. One lines up with race day. A second came near the end of the range when regular traffic was low, which looks more like a bot or scanner. The action and rule weren't visible in the screenshot. To do: check the Firewall tab and confirm no real spectators were blocked or rate-limited at the race peak.
+
+### What this means for next year
+
+- **Blob is the only finite ceiling.** Course-staff photos (#3) and a photo-cycling TV (#4) both multiply photo traffic. Plan for it, by upgrading Blob for race week or keeping thumbnails small. The hard stop is the failure mode to avoid.
+- **Shrink `/timing_bg.webp`.** It is the single largest outgoing item. Compressing or resizing it is cheap, and it is worth confirming how it is cached.
+- **Cache the public leaderboard briefly.** A 10 to 30 second cache on `/[slug]` would cut function invocations and Redis reads and bandwidth. It would matter more with a bigger crowd.
+- **Course-staff uploads should go direct to Blob.** At this scale `/api/photos` carried photo bytes through the function. More photographers would multiply that and run into the function's request-body limit.
+- **Server-as-source-of-truth (#1) is not a capacity risk.** Compute and Redis were tiny. Per-finish records would raise writes from today's 2.5K, which is still far from a concern.
