@@ -54,6 +54,14 @@ Make sure the key information is always visible. For example, the main scoring s
 
 Add a way to mark riders as present at race start. About a dozen no-shows made it impossible to tell whether all riders had finished or whether more were still on the course.
 
+## 7. Feedback from the photo uploader (Eric)
+
+Mostly overlaps with #2 and #3. His three points:
+
+- **Duplicates still got through.** The upload page didn't perfectly identify duplicates, so a couple of photos were posted twice. He doesn't know where the exact error was. The current checks are a SHA-256 of the original file, plus the capture-second and size match behind Find duplicates, so the miss is worth reproducing. `CLAUDE.md` already notes that an iPhone re-pick can arrive as different bytes.
+- **The uploader had to track what was unsent.** After each upload he had to remember how many photos weren't uploaded and tap them to kick them off. He knows duplicate handling should let him select everything every time, but would rather the app just knew what was missing, with no selecting at all. His words: "this is a cry for a native app." This supports the native app option in #2.
+- **Multiple photos per rider.** The data model should allow it, so several people can take photos at the finish without negotiating over who posts the single image for a rider. Today's rule is one approved photo per rider (`PhotosTab`, `decidePhoto`, with swap), so this changes the model. It also lines up with #3 (course photos) and with a photo-cycling `/tv/` (#4). The leaderboard would need a rule for which photo is the thumbnail, such as a chosen primary.
+
 ## 2026 capacity and cost baseline
 
 Usage for the 2026 event, Oct 9 to 12, Production. Everything ran well inside its limits. Use this as the baseline when sizing next year's changes.
